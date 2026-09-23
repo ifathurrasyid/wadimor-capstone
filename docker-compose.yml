@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: wadimor_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Use --env-file backend/.env with DB_PASSWORD configured}
+      POSTGRES_DB: ${DB_NAME:-wadimor_db}
+    ports:
+      - "127.0.0.1:5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - wadimor_pgdata:/var/lib/postgresql/data
+
+volumes:
+  wadimor_pgdata:
