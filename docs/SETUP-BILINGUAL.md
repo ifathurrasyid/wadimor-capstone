@@ -2,7 +2,7 @@
 
 ## Tentang panduan ini
 
-Aku menggunakan WADIMOR sebagai POS untuk toko offline. Setelah pembayaran, sistem menampilkan receipt/invoice (faktur pembayaran) yang bisa langsung dicetak. Sistem ini tidak memakai fitur pengiriman.
+WADIMOR adalah POS untuk toko offline. Setelah pembayaran, sistem menampilkan receipt/invoice (faktur pembayaran) yang bisa langsung dicetak. Sistem ini tidak memakai fitur pengiriman.
 
 ## 1. Teknologi yang dipakai
 
@@ -251,3 +251,4 @@ git push -u origin feature/short-description
 ```
 
 GitHub shares the source code. You still run the API and PostgreSQL locally unless I deploy them to a server.
+
