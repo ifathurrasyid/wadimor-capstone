@@ -2,7 +2,7 @@
 
 ## Assessment
 
-The stack is well suited to a five-person college capstone. Keep React + Vite, Tailwind v4, Express 5, node-postgres, and PostgreSQL. The original deliverable was a working database-to-table proof of concept, not yet a POS. No framework replacement, microservices, Redis, or ORM is needed to complete it.
+I chose the stack well suited to a five-person college capstone. Keep React + Vite, Tailwind v4, Express 5, node-postgres, and PostgreSQL. The original deliverable was a working database-to-table proof of concept, not yet a POS. No framework replacement, microservices, Redis, or ORM is needed to complete it.
 
 ## Audit findings and disposition
 
@@ -84,3 +84,4 @@ Use Zod (or equivalent) for more complex request bodies, React Router when navig
 - [PostgreSQL row locking](https://www.postgresql.org/docs/17/explicit-locking.html): concurrent inventory checkout design.
 - [Vite deployment](https://vite.dev/guide/static-deploy): static hosting and preview limitations.
 - [Node.js releases](https://nodejs.org/en/about/previous-releases): supported runtime selection.
+

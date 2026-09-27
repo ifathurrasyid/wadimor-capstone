@@ -31,3 +31,4 @@ Nama WADIMOR tetap bisa dipakai. Judul akademik dapat dibuat lebih spesifik: **S
 6. Baru tambahkan unggah gambar dan polesan presentasi.
 
 Untuk capstone, satu alur lengkap—Admin menambah stok, Customer membeli, stok turun tepat sekali, transaksi muncul di riwayat dan laporan—lebih kuat daripada banyak menu yang masih kosong.
+

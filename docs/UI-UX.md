@@ -2,7 +2,7 @@
 
 ## Current design
 
-The interface uses forest green navigation, a warm neutral background, white data surfaces, restrained amber stock alerts, and Indonesian copy. Inventory summaries show real catalog counts and units, not invented sales. Status uses text as well as color. Product images are neutral letter placeholders until real photos are available.
+I designed the interface with forest green navigation, a warm neutral background, white data surfaces, restrained amber stock alerts, and Indonesian copy. Inventory summaries show real catalog counts and units, not invented sales. Status uses text as well as color. Product images are neutral letter placeholders until real photos are available.
 
 Admin sign-in opens a dedicated dashboard with revenue, transaction count, low stock, seven-day sales, a daily table, and top products. Admin inventory has a stock alert, search and category filter, and a stock table. A stock-warning shortcut resets other filters so the relevant items are visible.
 
@@ -19,7 +19,7 @@ Design these next flows with the analyst before implementation:
 1. Refine the implemented sign-in flows: show password, session-expired message, account recovery, and clear field errors. The role choice selects a sign-in page; it does not assign a role.
 2. Admin inventory: add/edit product with field errors, stock adjustment with reason, archived products, confirmation for destructive actions.
 3. Customer shopping: empty catalog/cart, unavailable item, quantity limit, price changed at checkout, login required, confirmation and receipt.
-4. Cashier POS: quick barcode/search, keyboard-friendly cart, payment amount/change, double-submit prevention, print receipt.
+4. Cashier POS: quick barcode/search, keyboard-Youly cart, payment amount/change, double-submit prevention, print receipt.
 5. History: date range, transaction detail, payment status, empty range, accessible receipt.
 6. Extend the implemented analytics with date range, period comparison, and a chosen business timezone. It already has real totals and a table equivalent. Do not show profit until purchase costs exist.
 
@@ -50,3 +50,4 @@ Design these next flows with the analyst before implementation:
 | Tester/documentation | Run checklist, add role/concurrency cases with new features, capture real screens for slides/brochure |
 
 A useful capstone demonstration is: admin signs in, adds stock with an audit reason, customer browses, cashier checks out, stock decreases once, receipt appears in history, and sales analytics reflect the transaction. Build and test that complete flow before adding cosmetic features.
+

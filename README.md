@@ -66,22 +66,13 @@ npm.cmd --prefix frontend audit
 
 Read the [audit and roadmap](docs/AUDIT.md) and [UI/UX guide](docs/UI-UX.md). Checkout uses a database transaction and row locking, calculates prices on the server, and reduces stock only when the transaction succeeds. Migration `004_pos_features.sql` adds product cost snapshots for profit reports to existing databases.
 
-For teammates, see [collaboration and local setup](docs/COLLABORATING.md).
+See the [bilingual setup guide](docs/SETUP-BILINGUAL.md) for local installation and collaboration.
 
 See [feature alignment and priorities](docs/FEATURE-PLAN.md) for the team's proposed six-menu scope.
 
-## Quick rerun after pulling updates
+## Setup and collaboration
 
-For an existing working installation, run:
+I wrote a simpler bilingual setup guide in [docs/SETUP-BILINGUAL.md](docs/SETUP-BILINGUAL.md). It covers Docker, PostgreSQL without Docker, migrations, the admin/customer split, and the receipt-based in-store checkout.
 
-```powershell
-git pull --ff-only
-docker compose --env-file backend/.env up -d db
-Get-Content -Raw backend/migrations/004_pos_features.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
-npm.cmd --prefix backend ci
-npm.cmd --prefix frontend ci
-npm.cmd --prefix backend run dev
-npm.cmd --prefix frontend run dev
-```
+For collaboration rules, read [docs/COLLABORATING.md](docs/COLLABORATING.md).
 
-Run migration 004 only if `products.cost_price` and `transaction_details.cost_at_transaction` do not already exist. A fresh database already gets those columns from `schema.sql`; do not run migration 004 against a fresh database that was bootstrapped from the current version.
