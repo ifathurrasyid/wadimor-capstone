@@ -2,7 +2,7 @@
 
 ## Tentang panduan ini
 
-WADIMOR adalah POS untuk toko offline. Setelah pembayaran, sistem menampilkan receipt/invoice (faktur pembayaran) yang bisa langsung dicetak. Sistem ini tidak memakai fitur pengiriman.
+WADIMOR adalah POS untuk toko offline. Setelah pembayaran, sistem menampilkan receipt/invoice (faktur pembayaran) yang bisa langsung dicetak. Pembayaran selesai dengan direct invoice (faktur langsung) di toko, tanpa fitur pengiriman.
 
 ## 1. Teknologi yang dipakai
 
@@ -47,7 +47,7 @@ Untuk database baru, jalankan schema satu kali:
 
 ```powershell
 Get-Content -Raw backend/schema.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
-npm.cmd --prefix backend run setup:admin
+npm.cmd --prefix backend run setup:admin -- admin_w YourEasyAdminPassword123
 ```
 
 Buka dua terminal lalu jalankan backend dan frontend:
@@ -58,6 +58,8 @@ npm.cmd --prefix frontend run dev
 ```
 
 Buka `http://localhost:5173`. Gunakan `/admin/login` untuk Admin atau `/customer/login` untuk Customer.
+
+Akun demo Admin: username `admin_w`, dengan password yang kamu masukkan saat menjalankan setup`. Untuk Customer, daftar melalui `/customer/register` dengan username `customer_demo` dan password pilihanmu (minimal 12 karakter)`.
 
 ## 5. Opsi B - PostgreSQL tanpa Docker
 
@@ -82,7 +84,7 @@ Untuk database baru, terapkan schema satu kali:
 
 ```powershell
 psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/schema.sql
-npm.cmd --prefix backend run setup:admin
+npm.cmd --prefix backend run setup:admin -- admin_w YourEasyAdminPassword123
 ```
 
 Setelah itu, jalankan backend dan frontend dengan perintah yang sama seperti opsi Docker.
@@ -131,7 +133,7 @@ GitHub hanya membagikan source code. API dan PostgreSQL tetap harus dijalankan d
 
 ## About this guide
 
-I use WADIMOR as an offline, in-store POS. After payment, the system shows a printable receipt/invoice. There is no delivery workflow.
+I use WADIMOR as an offline, in-store POS. After payment, the system shows a printable receipt/invoice. Payment ends with a direct invoice at the store; there is no delivery workflow.
 
 ## 1. Technology
 
@@ -176,7 +178,7 @@ For a new database, run the schema once:
 
 ```powershell
 Get-Content -Raw backend/schema.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
-npm.cmd --prefix backend run setup:admin
+npm.cmd --prefix backend run setup:admin -- admin_w YourEasyAdminPassword123
 ```
 
 Start the backend and frontend in separate terminals:
@@ -187,6 +189,8 @@ npm.cmd --prefix frontend run dev
 ```
 
 Open `http://localhost:5173`. Use `/admin/login` for Admin or `/customer/login` for Customer.
+
+Demo Admin: username `admin_w`, dengan password yang kamu masukkan saat menjalankan setup`. For Customer, register at `/customer/register` with username `customer_demo` and a password you choose (at least 12 characters)`.
 
 ## 5. Option B - PostgreSQL without Docker
 
@@ -211,7 +215,7 @@ For a new database, apply the schema once:
 
 ```powershell
 psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/schema.sql
-npm.cmd --prefix backend run setup:admin
+npm.cmd --prefix backend run setup:admin -- admin_w YourEasyAdminPassword123
 ```
 
 Then start the backend and frontend with the same commands as the Docker option.
@@ -251,4 +255,7 @@ git push -u origin feature/short-description
 ```
 
 GitHub shares the source code. You still run the API and PostgreSQL locally unless I deploy them to a server.
+
+
+
 

@@ -1,6 +1,6 @@
 ﻿# WADIMOR
 
-WADIMOR is a college capstone project for an in-store digital warung. It has separate Admin and Customer access, inventory and product management, an Admin analytics dashboard, a digital basket, atomic checkout, printable payment receipts, transaction history, and sales reports. There is no delivery workflow; payment and item handover happen at the store.
+WADIMOR is a college capstone project for an in-store digital warung. It has separate Admin and Customer access, inventory and product management, an Admin analytics dashboard, a digital basket, atomic checkout, printable payment receipts, transaction history, and sales reports. Checkout ends with a direct invoice; payment and item handover happen at the store, with no delivery workflow.
 
 ## Run locally (PowerShell)
 
@@ -23,7 +23,7 @@ npm.cmd --prefix frontend run dev
 Open http://127.0.0.1:5173. Choose Admin or Customer. Customer users can register at `/customer/register`. Admin accounts are provisioned locally:
 
 ```powershell
-npm.cmd --prefix backend run setup:admin
+npm.cmd --prefix backend run setup:admin -- admin_w YourEasyAdminPassword123
 ```
 
 That command creates or rotates `admin_w` by default and prints a one-time random password. Save it in a password manager; rerunning the command invalidates previous sessions and rotates the password. To use another admin username, run `node backend/scripts/create-admin.js another_admin` from the project root. Passwords are hashed with Node's scrypt before storage.
@@ -34,7 +34,7 @@ For a new empty database, run the bootstrap before creating an admin:
 
 ```powershell
 Get-Content -Raw backend/schema.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
-npm.cmd --prefix backend run setup:admin
+npm.cmd --prefix backend run setup:admin -- admin_w YourEasyAdminPassword123
 ```
 
 The bootstrap creates all six tables and six demo products, but no users. PostgreSQL volumes survive container recreation. Do not use `docker compose down -v` unless intentionally deleting the data.
@@ -75,4 +75,7 @@ See [feature alignment and priorities](docs/FEATURE-PLAN.md) for the team's prop
 I wrote a simpler bilingual setup guide in [docs/SETUP-BILINGUAL.md](docs/SETUP-BILINGUAL.md). It covers Docker, PostgreSQL without Docker, migrations, the admin/customer split, and the receipt-based in-store checkout.
 
 For collaboration rules, read [docs/COLLABORATING.md](docs/COLLABORATING.md).
+
+
+
 
