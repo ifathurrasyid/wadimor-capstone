@@ -69,3 +69,19 @@ Read the [audit and roadmap](docs/AUDIT.md) and [UI/UX guide](docs/UI-UX.md). Ch
 For teammates, see [collaboration and local setup](docs/COLLABORATING.md).
 
 See [feature alignment and priorities](docs/FEATURE-PLAN.md) for the team's proposed six-menu scope.
+
+## Quick rerun after pulling updates
+
+For an existing working installation, run:
+
+```powershell
+git pull --ff-only
+docker compose --env-file backend/.env up -d db
+Get-Content -Raw backend/migrations/004_pos_features.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
+npm.cmd --prefix backend ci
+npm.cmd --prefix frontend ci
+npm.cmd --prefix backend run dev
+npm.cmd --prefix frontend run dev
+```
+
+Run migration 004 only if `products.cost_price` and `transaction_details.cost_at_transaction` do not already exist. A fresh database already gets those columns from `schema.sql`; do not run migration 004 against a fresh database that was bootstrapped from the current version.
