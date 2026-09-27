@@ -17,6 +17,7 @@ CREATE TABLE products (
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
     name VARCHAR(150) NOT NULL,
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
+    cost_price NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (cost_price >= 0),
     stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
     min_stock INTEGER NOT NULL DEFAULT 5 CHECK (min_stock >= 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -35,6 +36,7 @@ CREATE TABLE transaction_details (
     product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     price_at_transaction NUMERIC(10, 2) NOT NULL CHECK (price_at_transaction >= 0),
+    cost_at_transaction NUMERIC(10, 2) NOT NULL DEFAULT 0,
     subtotal NUMERIC(12, 2) NOT NULL CHECK (subtotal = quantity * price_at_transaction)
 );
 CREATE TABLE sessions (
@@ -62,11 +64,11 @@ FOR EACH ROW EXECUTE FUNCTION touch_product_updated_at();
 -- Demo catalog only. Create users through a future password-hashing registration flow.
 INSERT INTO categories (name, description) VALUES
 ('Sembako', 'Kebutuhan pokok harian'), ('Minuman', 'Minuman ringan dan kemasan'), ('Cemilan', 'Makanan ringan dan biskuit');
-INSERT INTO products (category_id, name, price, stock, min_stock) VALUES
-(1, 'Beras Sania 5kg', 75000, 20, 5),
-(1, 'Minyak Goreng Bimoli 2L', 34000, 15, 5),
-(2, 'Le Minerale 600ml', 3500, 50, 10),
-(2, 'Kopi Good Day Moccacino', 2000, 100, 20),
-(3, 'Indomie Goreng', 3000, 200, 40),
-(3, 'Tango Coklat', 8000, 3, 10);
+INSERT INTO products (category_id, name, price, cost_price, stock, min_stock) VALUES
+(1, 'Beras Sania 5kg', 75000, 66000, 20, 5),
+(1, 'Minyak Goreng Bimoli 2L', 34000, 30000, 15, 5),
+(2, 'Le Minerale 600ml', 3500, 2600, 50, 10),
+(2, 'Kopi Good Day Moccacino', 2000, 1500, 100, 20),
+(3, 'Indomie Goreng', 3000, 2400, 200, 40),
+(3, 'Tango Coklat', 8000, 6800, 3, 10);
 COMMIT;

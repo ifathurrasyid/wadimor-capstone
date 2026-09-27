@@ -1,6 +1,6 @@
 ﻿# WADIMOR
 
-WADIMOR is a college capstone project for a digital warung. It currently has separate Admin and Customer sign-in pages, customer registration, protected inventory/catalog views, an Admin analytics dashboard, and a temporary customer shopping list. Checkout, product editing, stock adjustments, receipts, and transaction history are still to be built.
+WADIMOR is a college capstone project for an in-store digital warung. It has separate Admin and Customer access, inventory and product management, an Admin analytics dashboard, a digital basket, atomic checkout, printable payment receipts, transaction history, and sales reports. There is no delivery workflow; payment and item handover happen at the store.
 
 ## Run locally (PowerShell)
 
@@ -64,9 +64,8 @@ npm.cmd --prefix backend audit
 npm.cmd --prefix frontend audit
 ```
 
-Read the [audit and roadmap](docs/AUDIT.md) and [UI/UX guide](docs/UI-UX.md). For future checkout implementation, use a database transaction and stock locking; never accept browser-supplied totals as authoritative.
+Read the [audit and roadmap](docs/AUDIT.md) and [UI/UX guide](docs/UI-UX.md). Checkout uses a database transaction and row locking, calculates prices on the server, and reduces stock only when the transaction succeeds. Migration `004_pos_features.sql` adds product cost snapshots for profit reports to existing databases.
 
 For teammates, see [collaboration and local setup](docs/COLLABORATING.md).
 
 See [feature alignment and priorities](docs/FEATURE-PLAN.md) for the team's proposed six-menu scope.
-

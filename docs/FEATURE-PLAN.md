@@ -4,11 +4,11 @@ Nama WADIMOR tetap bisa dipakai. Judul akademik dapat dibuat lebih spesifik: **S
 
 | Menu usulan | Status saat ini | Langkah berikutnya |
 |---|---|---|
-| Dashboard | Total jenis barang, unit stok, pendapatan kotor, jumlah transaksi, peringatan stok, grafik/tabel penjualan 7 hari ada. Saat ini penjualan masih 0 karena checkout belum ada. | Tambahkan metrik laba setelah harga modal dan aturan perhitungan jelas. |
+| Dashboard | Total jenis barang, unit stok, pendapatan kotor, jumlah transaksi, peringatan stok, grafik/tabel penjualan 7 hari ada. Angka terisi dari transaksi checkout yang tersimpan. | Tambahkan metrik laba setelah harga modal dan aturan perhitungan jelas. |
 | Daftar Barang | Nama, kategori, stok, batas minimum, harga jual, status, dan nomor baris ada. | Tambah harga modal, penyesuaian stok dengan alasan, tambah/edit barang, dan arsip. |
-| Kasir Digital | Katalog, harga, jumlah, dan daftar belanja sementara ada di ruang Customer. | Tambah gambar produk, checkout atomik, bukti transaksi, dan aturan kasir vs pembeli. |
-| Riwayat Transaksi | Tabel database sudah ada, halaman/API belum ada. | Tampilkan ID, tanggal, aktor, jumlah item, total, dan detail struk. |
-| Laporan Penjualan | Ringkasan dan grafik 7 hari ada pada Dashboard. | Tambah laporan per hari/minggu/bulan dan filter tanggal setelah checkout tersedia. |
+| Kasir Digital | Katalog, jumlah, keranjang, metode pembayaran di toko, checkout atomik, dan struk sudah ada. | Tambahkan barcode/SKU, nominal uang tunai dan kembalian, serta perlindungan klik ganda. |
+| Riwayat Transaksi | Halaman Admin dan riwayat struk Customer menampilkan ID, waktu, item, pembayaran, dan total. | Tambahkan filter tanggal dan snapshot nama produk pada detail transaksi. |
+| Laporan Penjualan | Dashboard 7 hari serta laporan hari ini/7 hari/bulan/semua waktu tersedia. | Tegaskan istilah laba kotor vs laba bersih dan zona waktu laporan. |
 | Peringatan Stok | Jumlah peringatan, status, sisa stok, batas minimum, dan filter barang menipis ada. | Buat menu khusus jika daftar barang makin banyak; saat ini filter inventori sudah cukup. |
 
 ## Keputusan data yang perlu dibuat bersama analis
@@ -26,8 +26,8 @@ Nama WADIMOR tetap bisa dipakai. Judul akademik dapat dibuat lebih spesifik: **S
 1. Sepakati role/aktor checkout dan definisi metrik dengan analis; perbarui ERD, use case, dan mockup.
 2. Tambahkan migrasi database untuk harga modal, snapshot detail transaksi, dan catatan mutasi stok. Jangan jalankan ulang `schema.sql` pada database yang sudah berisi data.
 3. Bangun CRUD barang dan penyesuaian stok dengan validasi serta hak akses Admin.
-4. Bangun checkout atomik dan struk, lalu uji pembelian terakhir secara bersamaan dan klik checkout ganda.
-5. Bangun riwayat transaksi, laporan per periode, dan perhitungan laba sesuai definisi tim.
+4. Perkuat checkout yang sudah ada dengan idempotency key, input uang tunai/kembalian, dan uji pembelian stok terakhir secara bersamaan.
+5. Tambahkan filter riwayat dan sempurnakan perhitungan laba sesuai definisi tim.
 6. Baru tambahkan unggah gambar dan polesan presentasi.
 
 Untuk capstone, satu alur lengkap—Admin menambah stok, Customer membeli, stok turun tepat sekali, transaksi muncul di riwayat dan laporan—lebih kuat daripada banyak menu yang masih kosong.

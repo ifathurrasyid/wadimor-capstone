@@ -34,11 +34,11 @@ The stack is well suited to a five-person college capstone. Keep React + Vite, T
 - backend/migrations/001_integrity.sql: one-time migration for original databases.
 - backend/migrations/002_sessions.sql and 003_reset_legacy_passwords.sql: session storage and removal of original plaintext demo passwords.
 - backend/scripts/create-admin.js: local admin provisioning and password rotation.
-- frontend/src/App.jsx: separate sign-in pages, Admin dashboard/inventory, Customer catalog, and local shopping list.
+- frontend/src/App.jsx: separate sign-in pages, Admin dashboard/inventory/reports, in-store customer basket, printable receipts, and transaction history.
 - frontend/src/App.css: responsive visual system; index.css imports Tailwind v4.
 - docker-compose.yml: local PostgreSQL service and persistent volume.
 
-As features grow, split frontend into pages, components, hooks, and API helpers; split backend into routes, services, validation, and repositories. The application now has several flows in App.jsx; extract pages, components, and API hooks before adding checkout or product editing.
+As features grow, split frontend into pages, components, hooks, and API helpers; split backend into routes, services, validation, and repositories. The application now has several flows in App.jsx; extract pages, components, and API hooks before extending checkout, product editing, or reports.
 
 ## Stack and performance
 
@@ -46,7 +46,7 @@ React/Vite is appropriate for an interactive POS where server-rendered SEO is no
 
 No performance load test was performed. Six catalog rows do not establish production capacity. The API still returns the full catalog and filtering is client-side: fine for this demo, but add parameterized server-side search/category/stock filters and bounded pagination before large inventories. Do not silently cap the existing array response, because summaries would become misleading. Prefer an explicit paginated response contract with separate counts/aggregates. Debounce search only when it starts making network requests.
 
-Use backend SQL aggregates for charts instead of downloading transaction histories. Preserve numeric precision in checkout: use integer minor units or a decimal library; frontend totals are estimates. Current display rounds to whole Rupiah; decide whether fractional prices are permitted. The current shopping list is memory-only and resets on reload, never reserves or decrements stock.
+Use backend SQL aggregates for charts instead of downloading transaction histories. Preserve numeric precision in checkout: use integer minor units or a decimal library; frontend totals are estimates. Current display rounds to whole Rupiah; decide whether fractional prices are permitted. The unpaid basket is memory-only and resets on reload. Completed checkout locks product rows, calculates prices from the database, stores cost snapshots, and decrements stock atomically.
 
 Installed Node was v22.20.0. Keep the team on a patched supported LTS release. Keep lockfiles and use npm ci. Neither package audit reported known vulnerabilities at audit time; this is not proof of application security.
 
@@ -55,9 +55,9 @@ Installed Node was v22.20.0. Keep the team on a patched supported LTS release. K
 1. Decide cashier/admin/customer permissions. transactions.user_id currently ambiguously means cashier or buyer. Use separate cashier_id and nullable customer_id if both need attribution.
 2. Authentication now has scrypt hashes, server-side sessions, role middleware, login limits, SameSite/HttpOnly cookies, origin checks, and CSRF protection for logout. Add account recovery, customer password reset, session management, stronger distributed rate limiting, and deployment hardening before public access.
 3. Product/category CRUD with input validation, SKU/barcode uniqueness, archive flags, and stock movement records (actor, reason, quantity, time). Audit adjustments instead of silently overwriting stock.
-4. Atomic checkout: acquire one pg client; BEGIN; lock products in consistent ID order; validate quantities and current availability; calculate prices from the database; insert transaction/details; decrement stock; COMMIT; ROLLBACK on failure; release in finally. A conditional stock update is another valid concurrency strategy. Add a unique idempotency key to prevent double submission. Never trust browser totals.
+4. Atomic checkout is implemented with a checked-out pg client, consistent product ordering, row locks, server-calculated prices, transaction details, and rollback. Add an idempotency key to prevent double submission and concurrency integration tests.
 5. Persist receipt identifiers, payment state, tender/change for cash, and product-name/SKU snapshots on receipt details. Add refunds/cancellations deliberately. Header/detail totals are not automatically reconciled by current SQL checks; checkout must enforce this transactionally.
-6. Admin analytics now shows real revenue, transactions, daily totals, and top products; all are zero/empty until checkout records exist. Add transaction history and date filters after checkout. Define business timezone (Asia/Jakarta), refunds, and revenue versus profit. Cost price is absent, so profit cannot be calculated correctly yet.
+6. Admin analytics, transaction history, and period reports use real checkout data. Product cost and cost-at-transaction snapshots support gross-profit estimates. Define the Asia/Jakarta reporting boundary, refunds, discounts, operating costs, and the exact difference between gross profit and net profit.
 7. Existing timestamps lack timezone. New bootstrap uses TIMESTAMPTZ, but the existing migration leaves them alone: establish how old timestamps were recorded before converting. Product updated_at now has a trigger in bootstrap/migration.
 8. Add integration tests for concurrent last-item purchases, duplicate checkout, rollback on failure, role access, and stock adjustment history. Add browser tests for cart and retry behavior.
 
@@ -84,4 +84,3 @@ Use Zod (or equivalent) for more complex request bodies, React Router when navig
 - [PostgreSQL row locking](https://www.postgresql.org/docs/17/explicit-locking.html): concurrent inventory checkout design.
 - [Vite deployment](https://vite.dev/guide/static-deploy): static hosting and preview limitations.
 - [Node.js releases](https://nodejs.org/en/about/previous-releases): supported runtime selection.
-

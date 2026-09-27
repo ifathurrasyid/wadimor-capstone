@@ -14,6 +14,12 @@ function fakeDatabase() {
   };
   return {
     users, sessions,
+    async connect() {
+      return {
+        query: this.query.bind(this),
+        release: () => {}
+      };
+    },
     async query(sql, params = []) {
       if (sql === 'SELECT 1') return { rows: [{ '?column?': 1 }] };
       if (sql.startsWith('INSERT INTO users')) {
@@ -95,6 +101,67 @@ test('logout requires CSRF token and revokes the server session', async t => {
   assert.equal((await fetch(url + '/api/auth/me', { headers: { Cookie: cookie } })).status, 401);
   assert.equal(pool.sessions.has(digest(cookie.split('=')[1])), false);
 });
+test('checkout processes correctly when stock is sufficient', async t => {
+  const { url, pool } = await serve(t);
+
+  // mock for checkout
+  const originalQuery = pool.query;
+  pool.query = async (sql, params = []) => {
+    if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') return { rows: [] };
+    if (sql.includes('INSERT INTO users')) {
+      const user = { id: 2, username: params[0], password: params[1], role: 'pelanggan' };
+      pool.users.set(user.username, user);
+      return { rows: [user] };
+    }
+    if (sql.includes('FROM products WHERE id = ANY')) return { rows: [{ id: 1, name: 'Beras', price: 75000, cost_price: 66000, stock: 10 }] };
+    if (sql.includes('UPDATE products SET stock')) return { rows: [] };
+    if (sql.includes('INSERT INTO transactions')) return { rows: [{ id: 101, created_at: new Date() }] };
+    if (sql.includes('INSERT INTO transaction_details')) return { rows: [] };
+    return originalQuery(sql, params);
+  };
+
+  const response = await post(url, '/api/auth/register', { username: 'buyer_two', password: 'customer-password-123' });
+  const cookie = response.headers.get('set-cookie').split(';')[0];
+  const { csrfToken } = await (await fetch(url + '/api/auth/me', { headers: { Cookie: cookie } })).json();
+
+  const checkoutResponse = await post(url, '/api/transactions/checkout', {
+    items: [{ productId: 1, quantity: 2 }],
+    paymentMethod: 'cash'
+  }, { Cookie: cookie, 'x-csrf-token': csrfToken });
+
+  assert.equal(checkoutResponse.status, 201);
+  const result = await checkoutResponse.json();
+  assert.equal(result.receipt.id, 101);
+  assert.equal(result.receipt.totalAmount, 150000);
+  assert.equal(result.receipt.paymentMethod, 'cash');
+  assert.equal(result.receipt.items[0].name, 'Beras');
+});
+
+test('admin can retrieve net profit reports', async t => {
+  const { url, pool } = await serve(t);
+
+  // override query for admin logic
+  const originalQuery = pool.query;
+  pool.query = async (sql, params = []) => {
+    if (sql.includes('SELECT id, username, password, role FROM users')) return { rows: [{ id: 99, username: 'admin_w', password: await hashPassword('admin123'), role: 'admin' }] };
+    if (sql.includes('INSERT INTO sessions')) { pool.sessions.set(params[0], { token_hash: params[0], user_id: 99, csrf_token: params[2] }); return { rows: [] }; }
+    if (sql.includes('SELECT * FROM sessions')) return { rows: [{ user_id: 99 }] };
+    if (sql.includes('FROM sessions s JOIN users')) return { rows: [{ id: 99, username: 'admin_w', role: 'admin', token_hash: params[0] }] };
+    if (sql.includes('laba_bersih')) return { rows: [{ omset: 150000, hpp: 132000, laba_bersih: 18000, total_orders: 1 }] };
+    if (sql.includes('units_sold')) return { rows: [{ name: 'Beras', units_sold: 2, revenue: 150000 }] };
+    return originalQuery(sql, params);
+  };
+
+  const response = await post(url, '/api/auth/login/admin', { username: 'admin_w', password: 'admin123' });
+  const cookie = response.headers.get('set-cookie').split(';')[0];
+
+  const reportResponse = await fetch(url + '/api/admin/reports?period=all', { headers: { Cookie: cookie } });
+  assert.equal(reportResponse.status, 200);
+  const data = await reportResponse.json();
+  assert.equal(data.financials.laba_bersih, 18000);
+  assert.equal(data.topProducts[0].name, 'Beras');
+});
+
 test('plaintext legacy passwords and bad requests cannot authenticate', async t => {
   const { url, pool } = await serve(t);
   pool.users.set('legacy', { id: 1, username: 'legacy', password: 'cust123', role: 'pelanggan' });

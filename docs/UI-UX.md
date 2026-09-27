@@ -4,9 +4,9 @@
 
 The interface uses forest green navigation, a warm neutral background, white data surfaces, restrained amber stock alerts, and Indonesian copy. Inventory summaries show real catalog counts and units, not invented sales. Status uses text as well as color. Product images are neutral letter placeholders until real photos are available.
 
-Admin sign-in opens a dedicated dashboard with revenue, order count, low stock, seven-day sales, a daily table, and top products. Admin inventory has a stock alert, search and category filter, and a stock table. A stock-warning shortcut resets other filters so the relevant items are visible.
+Admin sign-in opens a dedicated dashboard with revenue, transaction count, low stock, seven-day sales, a daily table, and top products. Admin inventory has a stock alert, search and category filter, and a stock table. A stock-warning shortcut resets other filters so the relevant items are visible.
 
-Customer catalog: shared search/category controls → product cards with prices and availability → quantity-controlled shopping list and estimated total. Unavailable products cannot be added. The shopping list explicitly says that payment is unavailable and no stock is reserved. Admin and Customer now have separate sign-in pages and server-enforced roles. Customer registration is available; only local setup can create Admin accounts.
+Customer catalog: shared search/category controls → product cards with prices and availability → quantity-controlled basket → in-store payment method → printable receipt. Unavailable products cannot be added. Checkout calculates prices on the server and reduces stock atomically. Admin and Customer now have separate sign-in pages and server-enforced roles. Customer registration is available; only local setup can create Admin accounts.
 
 At narrow widths navigation moves above the page, summaries remain compact, the table scrolls horizontally, and the shopping list follows the catalog. Native buttons, labels, select elements, table headers, focus outlines, skip link, error alerts, and loading announcements establish accessibility basics.
 
@@ -32,14 +32,14 @@ Design these next flows with the analyst before implementation:
 - A stopped/unreachable API displays a retryable error, never a blank page; recovery works after restarting it.
 - A successful empty-array response shows an empty inventory message; a malformed payload shows an error.
 - Adding a product cannot exceed its current loaded stock; minus reaches zero and removes it; totals match displayed prices.
-- Customer signs in through /customer/login or registers. Reload preserves the session but clears the temporary shopping list; it does not create a transaction.
+- Customer signs in through /customer/login or registers. A successful payment clears the basket, creates one transaction, reduces stock once, and displays a receipt. Reload preserves the session but clears an unpaid basket.
 - Customer cannot fetch /api/admin/analytics; Admin credentials cannot sign in through the Customer form. Logout revokes the session.
 - Tab through sign-in, navigation, filters, refresh, cards, quantity controls. Focus remains visible; inputs and buttons have meaningful names.
 - Check 320/390/768/1440-pixel widths. Only the inventory table should scroll horizontally, not the entire page.
 - Verify contrast and 200% zoom, long product/category names, large prices, null category, and large stock counts.
 - Check supported Chrome/Edge/Firefox and one mobile browser. Record browser, viewport, steps, expected/actual result, screenshot, and pass/fail.
 
-## Team ownership and delivery order
+## Team ownership and implementation order
 
 | Owner | Immediate output |
 |---|---|
@@ -50,4 +50,3 @@ Design these next flows with the analyst before implementation:
 | Tester/documentation | Run checklist, add role/concurrency cases with new features, capture real screens for slides/brochure |
 
 A useful capstone demonstration is: admin signs in, adds stock with an audit reason, customer browses, cashier checks out, stock decreases once, receipt appears in history, and sales analytics reflect the transaction. Build and test that complete flow before adding cosmetic features.
-
