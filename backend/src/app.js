@@ -21,8 +21,8 @@ function createApp(pool, origins = []) {
 
   app.post('/api/auth/register', async (req, res, next) => {
     const { username, password } = req.body || {};
-    if (typeof username !== 'string' || !/^[a-zA-Z0-9_]{3,50}$/.test(username) || typeof password !== 'string' || password.length < 12 || password.length > 128) {
-      return res.status(400).json({ error: 'Nama pengguna 3â€“50 karakter (huruf, angka, _) dan kata sandi minimal 12 karakter.' });
+    if (typeof username !== 'string' || !/^[a-zA-Z0-9_]{3,50}$/.test(username) || typeof password !== 'string' || password.length < 4 || password.length > 128) {
+      return res.status(400).json({ error: 'Nama pengguna 3â€“50 karakter (huruf, angka, _) dan kata sandi minimal 4 karakter.' });
     }
     try {
       const passwordHash = await hashPassword(password);
@@ -299,3 +299,4 @@ function createApp(pool, origins = []) {
   return app;
 }
 module.exports = { createApp };
+

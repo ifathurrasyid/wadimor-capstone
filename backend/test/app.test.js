@@ -166,8 +166,9 @@ test('plaintext legacy passwords and bad requests cannot authenticate', async t 
   const { url, pool } = await serve(t);
   pool.users.set('legacy', { id: 1, username: 'legacy', password: 'cust123', role: 'pelanggan' });
   assert.equal((await post(url, '/api/auth/login/customer', { username: 'legacy', password: 'cust123' })).status, 401);
-  assert.equal((await post(url, '/api/auth/register', { username: 'x', password: 'short' })).status, 400);
+  assert.equal((await post(url, '/api/auth/register', { username: 'x', password: 'abc' })).status, 400);
   const malformed = await fetch(url + '/api/auth/login/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{' });
   assert.equal(malformed.status, 400);
   assert.equal((await fetch(url + '/api/missing')).status, 404);
 });
+

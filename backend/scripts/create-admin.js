@@ -8,7 +8,7 @@ async function main() {
   const username = process.argv[2] || 'admin_w';
   if (!/^[a-zA-Z0-9_]{3,50}$/.test(username)) throw new Error('Invalid admin username');
   const password = process.argv[3] || process.env.ADMIN_PASSWORD;
-  if (!password || password.length < 12 || password.length > 128) throw new Error('Provide an admin password (12-128 characters) as the third argument or ADMIN_PASSWORD');
+  if (!password || password.length < 4 || password.length > 128) throw new Error('Provide an admin password (4-128 characters) as the third argument or ADMIN_PASSWORD');
   const pool = new Pool({
     user: process.env.DB_USER, host: process.env.DB_HOST,
     database: process.env.DB_NAME, password: process.env.DB_PASSWORD,
@@ -34,5 +34,6 @@ async function main() {
   } finally { await pool.end(); }
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });
+
 
 

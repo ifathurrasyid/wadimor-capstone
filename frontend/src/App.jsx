@@ -25,7 +25,7 @@ const LANGS = {
     loginDesc: 'Masukkan akun Anda untuk melanjutkan.',
     username: 'Nama pengguna',
     password: 'Kata sandi',
-    passwordMin: 'Minimal 12 karakter',
+    passwordMin: 'minimal 4 karakter',
     processing: 'Memproses…',
     create: 'Buat akun',
     enter: 'Masuk',
@@ -164,7 +164,7 @@ const LANGS = {
     loginDesc: 'Enter your account to continue.',
     username: 'Username',
     password: 'Password',
-    passwordMin: 'Minimum 12 characters',
+    passwordMin: 'minimum 4 characters',
     processing: 'Processing…',
     create: 'Create account',
     enter: 'Sign in',
@@ -391,7 +391,7 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
               <p className="muted">{isRegister ? t('registerDesc') : t('loginDesc')}</p>
               <form onSubmit={submit} className="auth-form">
                 <label>{t('username')}<input autoComplete="username" required minLength={3} maxLength={50} pattern="[a-zA-Z0-9_]+" value={username} onChange={e => setUsername(e.target.value)} placeholder={t('username')} /></label>
-                <label>{t('password')}<input type="password" autoComplete={isRegister ? 'new-password' : 'current-password'} required minLength={isRegister ? 12 : 1} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} placeholder={isRegister ? t('passwordMin') : t('password')} /></label>
+                <label>{t('password')}<input type="password" autoComplete={isRegister ? 'new-password' : 'current-password'} required minLength={isRegister ? 4 : 1} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} placeholder={isRegister ? t('passwordMin') : t('password')} /></label>
                 {error && <p className="form-error" role="alert">{error}</p>}
                 <button className="button auth-submit" disabled={submitting}>{submitting ? t('processing') : isRegister ? t('create') : t('enter')}</button>
               </form>
@@ -1060,3 +1060,4 @@ export default function App() {
     </I18nContext.Provider>
   )
 }
+

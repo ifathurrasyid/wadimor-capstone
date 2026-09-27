@@ -59,7 +59,7 @@ npm.cmd --prefix frontend run dev
 
 Buka `http://localhost:5173`. Gunakan `/admin/login` untuk Admin atau `/customer/login` untuk Customer.
 
-Akun demo Admin: username `admin_w`, dengan password yang kamu masukkan saat menjalankan setup`. Untuk Customer, daftar melalui `/customer/register` dengan username `customer_demo` dan password pilihanmu (minimal 12 karakter)`.
+Akun demo Admin: username `admin_w`, dengan password yang kamu masukkan saat menjalankan setup`. Untuk Customer, daftar melalui `/customer/register` dengan username `customer_demo` dan password pilihanmu (minimal 4 karakter)`.
 
 ## 5. Opsi B - PostgreSQL tanpa Docker
 
@@ -190,7 +190,7 @@ npm.cmd --prefix frontend run dev
 
 Open `http://localhost:5173`. Use `/admin/login` for Admin or `/customer/login` for Customer.
 
-Demo Admin: username `admin_w`, dengan password yang kamu masukkan saat menjalankan setup`. For Customer, register at `/customer/register` with username `customer_demo` and a password you choose (at least 12 characters)`.
+Demo Admin: username `admin_w`, dengan password yang kamu masukkan saat menjalankan setup`. For Customer, register at `/customer/register` with username `customer_demo` and a password you choose (at least 4 characters)`.
 
 ## 5. Option B - PostgreSQL without Docker
 
@@ -255,6 +255,7 @@ git push -u origin feature/short-description
 ```
 
 GitHub shares the source code. You still run the API and PostgreSQL locally unless I deploy them to a server.
+
 
 
 
