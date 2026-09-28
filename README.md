@@ -1,12 +1,12 @@
 # WADIMOR
 
-**Judul Capstone Project:** Sistem Informasi Inventory untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
+**Judul Capstone Project:** Sistem Informasi Inventori untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
 
 [Baca versi bahasa Inggris](#english-version)
 
 ## Tentang proyek
 
-WADIMOR adalah aplikasi web untuk membantu usaha mikro retail, khususnya warung kelontong, mengelola inventory dan transaksi penjualan. Aplikasi menyediakan area terpisah untuk Admin dan Customer.
+WADIMOR adalah aplikasi web untuk membantu usaha mikro retail, khususnya warung kelontong, mengelola inventori dan transaksi penjualan. Aplikasi menyediakan area terpisah untuk Admin dan Customer.
 
 Admin dapat memantau stok, transaksi, dan laporan. Customer dapat melihat katalog, membuat keranjang, menyelesaikan pembayaran di toko, dan mencetak struk. Sistem dirancang untuk transaksi langsung di toko dan tidak memiliki fitur pengiriman.
 
@@ -17,7 +17,7 @@ Admin dapat memantau stok, transaksi, dan laporan. Customer dapat melihat katalo
 - Katalog produk, pencarian, filter kategori, dan keranjang digital.
 - Checkout atomik: harga diperiksa oleh server dan stok hanya berkurang jika transaksi berhasil.
 - Struk yang dapat dicetak, riwayat transaksi, dan laporan penjualan.
-- Penyimpanan akun, produk, inventory, dan transaksi menggunakan PostgreSQL.
+- Penyimpanan akun, produk, inventori, dan transaksi menggunakan PostgreSQL.
 
 ## Teknologi
 
@@ -110,24 +110,24 @@ WADIMOR masih merupakan proyek capstone yang berjalan secara lokal, bukan layana
 
 # WADIMOR — English Version
 
-**Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+**Capstone Project Title:** inventori Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
 [Read the Indonesian version](#wadimor)
 
 ## About the project
 
-WADIMOR is a web application that helps micro retail businesses, particularly neighborhood grocery stores, manage inventory and sales transactions. The application provides separate areas for Admin and Customer users.
+WADIMOR is a web application that helps micro retail businesses, particularly neighborhood grocery stores, manage inventori and sales transactions. The application provides separate areas for Admin and Customer users.
 
-Admins can monitor inventory, transactions, and reports. Customers can browse the catalog, build a basket, complete an in-store payment, and print a receipt. The system is designed for in-store transactions and does not include delivery.
+Admins can monitor inventori, transactions, and reports. Customers can browse the catalog, build a basket, complete an in-store payment, and print a receipt. The system is designed for in-store transactions and does not include delivery.
 
 ## Main features
 
 - Separate Admin and Customer authentication and permissions.
-- Admin dashboard with inventory, revenue, transaction, low-stock, and seven-day sales summaries.
+- Admin dashboard with inventori, revenue, transaction, low-stock, and seven-day sales summaries.
 - Product catalog, search, category filters, and a digital basket.
 - Atomic checkout: prices are verified by the server and stock is reduced only when the transaction succeeds.
 - Printable receipts, transaction history, and sales reports.
-- PostgreSQL storage for accounts, products, inventory, and transactions.
+- PostgreSQL storage for accounts, products, inventori, and transactions.
 
 ## Technology stack
 
