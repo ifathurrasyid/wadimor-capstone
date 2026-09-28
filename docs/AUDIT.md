@@ -1,6 +1,6 @@
-# Audit Teknis dan Roadmap
+﻿# Audit Teknis dan Roadmap
 
-**Judul Capstone Project:** Sistem Informasi Inventory untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
+**Judul Capstone Project:** Sistem Informasi Inventori untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
 
 **Terakhir diperbarui:** 28 September 2026
 
@@ -12,7 +12,7 @@ Dokumen ini mencatat penilaian teknis, perbaikan yang sudah diterapkan, batasan,
 
 React + Vite, Tailwind CSS, Express, node-postgres, dan PostgreSQL sesuai untuk proyek capstone lima orang. Stack ini cukup sederhana untuk dipelajari, mendukung transaksi database yang aman, dan tidak memerlukan microservices, Redis, ORM, atau penggantian framework untuk scope saat ini.
 
-Prototype awal sudah berkembang menjadi aplikasi inventory dan POS lokal dengan authentication, katalog, checkout, receipt, history, dan analytics. Struktur source perlu dipecah sebelum fitur besar berikutnya ditambahkan.
+Prototype awal sudah berkembang menjadi aplikasi inventori dan POS lokal dengan authentication, katalog, checkout, receipt, history, dan analytics. Struktur source perlu dipecah sebelum fitur besar berikutnya ditambahkan.
 
 ## Temuan dan penyelesaian
 
@@ -54,11 +54,11 @@ Prototype awal sudah berkembang menjadi aplikasi inventory dan POS lokal dengan 
 
 ## Performa dan skalabilitas
 
-React/Vite sesuai untuk aplikasi interaktif yang tidak berfokus pada SEO server-rendered. Express dan `pg` cukup untuk transactional CRUD. PostgreSQL menyediakan `NUMERIC`, constraint, transaction, dan row locking yang diperlukan sistem inventory.
+React/Vite sesuai untuk aplikasi interaktif yang tidak berfokus pada SEO server-rendered. Express dan `pg` cukup untuk transactional CRUD. PostgreSQL menyediakan `NUMERIC`, constraint, transaction, dan row locking yang diperlukan sistem inventori.
 
 Belum ada load test. Enam produk demo tidak membuktikan kapasitas production. API catalog masih mengembalikan seluruh produk dan filter dijalankan di browser. Katalog besar memerlukan search/filter server-side, bounded pagination, dan aggregate terpisah.
 
-Jangan membatasi array secara diam-diam karena ringkasan inventory dapat salah. Ubah kontrak API secara eksplisit jika pagination ditambahkan. Gunakan aggregate SQL untuk chart dan laporan.
+Jangan membatasi array secara diam-diam karena ringkasan inventori dapat salah. Ubah kontrak API secara eksplisit jika pagination ditambahkan. Gunakan aggregate SQL untuk chart dan laporan.
 
 Harga ditampilkan dalam Rupiah tanpa pecahan, sedangkan database memakai `NUMERIC(..., 2)`. Tim perlu memutuskan apakah pecahan harga diperbolehkan. Untuk kalkulasi kompleks, gunakan integer minor units atau decimal library.
 
@@ -119,9 +119,9 @@ Hasil verifikasi adalah snapshot pada waktu audit. Jalankan kembali test, lint, 
 
 <a id="english-version"></a>
 
-# Technical Audit and Roadmap — English Version
+# Technical Audit and Roadmap â€” English Version
 
-**Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+**Capstone Project Title:** Inventori Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
 **Last updated:** 28 September 2026
 
@@ -133,7 +133,7 @@ This document records WADIMOR's technical assessment, completed improvements, li
 
 React + Vite, Tailwind CSS, Express, node-postgres, and PostgreSQL fit a five-person capstone. The stack is learnable, supports safe database transactions, and does not require microservices, Redis, an ORM, or a framework replacement for the current scope.
 
-The original prototype has grown into a local inventory and POS application with authentication, catalog, checkout, receipts, history, and analytics. The source structure should be split before major additions.
+The original prototype has grown into a local inventori and POS application with authentication, catalog, checkout, receipts, history, and analytics. The source structure should be split before major additions.
 
 ## Findings and disposition
 
@@ -175,11 +175,11 @@ The original prototype has grown into a local inventory and POS application with
 
 ## Performance and scalability
 
-React/Vite fits an interactive application without server-rendered SEO requirements. Express and `pg` are sufficient for transactional CRUD. PostgreSQL provides the `NUMERIC` values, constraints, transactions, and row locking needed by inventory management.
+React/Vite fits an interactive application without server-rendered SEO requirements. Express and `pg` are sufficient for transactional CRUD. PostgreSQL provides the `NUMERIC` values, constraints, transactions, and row locking needed by inventori management.
 
 No load test has been performed. Six demo products do not establish production capacity. The catalog API returns all products and filters in the browser. A larger catalog requires server-side search/filtering, bounded pagination, and separate aggregates.
 
-Do not silently cap arrays because inventory summaries may become incorrect. Change the API contract explicitly for pagination. Use SQL aggregates for charts and reports.
+Do not silently cap arrays because inventori summaries may become incorrect. Change the API contract explicitly for pagination. Use SQL aggregates for charts and reports.
 
 Prices display as whole Rupiah while the database uses `NUMERIC(..., 2)`. The team should decide whether fractional prices are allowed. Use integer minor units or a decimal library for complex calculations.
 
@@ -235,3 +235,4 @@ Verification results are snapshots from the audit date. Rerun tests, lint, build
 - [PostgreSQL explicit locking](https://www.postgresql.org/docs/current/explicit-locking.html)
 - [Vite static deployment](https://vite.dev/guide/static-deploy)
 - [Node.js releases](https://nodejs.org/en/about/previous-releases)
+

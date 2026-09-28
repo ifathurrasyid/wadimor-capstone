@@ -1,8 +1,8 @@
-# Rencana Fitur WADIMOR
+﻿# Rencana Fitur WADIMOR
 
-**Judul Capstone Project yang disetujui:** Sistem Informasi Inventory untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
+**Judul Capstone Project yang disetujui:** Sistem Informasi Inventori untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
 
-WADIMOR tetap digunakan sebagai nama aplikasi. Scope sistem mencakup pengelolaan inventory dan data penjualan yang dibutuhkan untuk memperbarui stok, riwayat transaksi, serta laporan.
+WADIMOR tetap digunakan sebagai nama aplikasi. Scope sistem mencakup pengelolaan inventori dan data penjualan yang dibutuhkan untuk memperbarui stok, riwayat transaksi, serta laporan.
 
 [Baca versi bahasa Inggris](#english-version)
 
@@ -15,7 +15,7 @@ WADIMOR tetap digunakan sebagai nama aplikasi. Scope sistem mencakup pengelolaan
 | Kasir Digital | Menyediakan katalog, jumlah, keranjang, metode pembayaran di toko, checkout atomik, dan struk. | Tambahkan SKU/barcode, uang diterima, kembalian, dan idempotency key untuk mencegah transaksi ganda. |
 | Riwayat Transaksi | Admin dan Customer dapat melihat ID, waktu, item, metode pembayaran, dan total sesuai hak akses. | Tambahkan filter tanggal dan snapshot nama/SKU produk. |
 | Laporan | Menyediakan laporan hari ini, tujuh hari, bulan berjalan, dan seluruh waktu. | Tetapkan definisi pendapatan, laba kotor, laba bersih, refund, diskon, dan zona waktu. |
-| Peringatan Stok | Menampilkan jumlah peringatan, sisa stok, batas minimum, status, dan filter stok menipis. | Buat halaman khusus jika katalog berkembang; filter inventory cukup untuk scope saat ini. |
+| Peringatan Stok | Menampilkan jumlah peringatan, sisa stok, batas minimum, status, dan filter stok menipis. | Buat halaman khusus jika katalog berkembang; filter inventori cukup untuk scope saat ini. |
 | Authentication | Login Admin/Customer terpisah, registrasi Customer, session PostgreSQL, dan role check server tersedia. | Tambahkan reset password, recovery, manajemen session, dan rate limiting untuk deployment publik. |
 
 ## Keputusan produk dan data
@@ -31,7 +31,7 @@ WADIMOR tetap digunakan sebagai nama aplikasi. Scope sistem mencakup pengelolaan
 - Laba kotor: pendapatan dikurangi harga modal barang.
 - Laba bersih: laba setelah harga modal dan biaya operasional lain.
 
-Jangan menampilkan label “laba bersih” jika sistem hanya mengurangi harga modal produk.
+Jangan menampilkan label â€œlaba bersihâ€ jika sistem hanya mengurangi harga modal produk.
 
 ### 3. Simpan riwayat harga modal
 
@@ -70,7 +70,7 @@ Simpan URL atau path gambar dan tampilkan placeholder ketika kosong. Jika upload
 
 ## Target demo capstone
 
-Alur demo yang kuat adalah: Admin login → Admin menambah atau menyesuaikan stok dengan alasan → Customer memilih produk → checkout berhasil tepat satu kali → stok berkurang → struk tampil di riwayat → dashboard dan laporan ikut berubah.
+Alur demo yang kuat adalah: Admin login â†’ Admin menambah atau menyesuaikan stok dengan alasan â†’ Customer memilih produk â†’ checkout berhasil tepat satu kali â†’ stok berkurang â†’ struk tampil di riwayat â†’ dashboard dan laporan ikut berubah.
 
 Satu alur lengkap dan dapat diuji lebih bernilai daripada banyak menu yang belum terhubung ke database.
 
@@ -78,11 +78,11 @@ Satu alur lengkap dan dapat diuji lebih bernilai daripada banyak menu yang belum
 
 <a id="english-version"></a>
 
-# WADIMOR Feature Plan — English Version
+# WADIMOR Feature Plan â€” English Version
 
-**Approved Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+**Approved Capstone Project Title:** Inventori Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
-WADIMOR remains the application name. The system scope includes inventory management and the sales data needed to update stock, transaction history, and reports.
+WADIMOR remains the application name. The system scope includes inventori management and the sales data needed to update stock, transaction history, and reports.
 
 [Read the Indonesian version](#rencana-fitur-wadimor)
 
@@ -90,12 +90,12 @@ WADIMOR remains the application name. The system scope includes inventory manage
 
 | Area | Current status | Next step |
 |---|---|---|
-| Dashboard | Shows product count, total inventory units, gross revenue, transactions, low-stock items, and seven-day sales from stored data. | Add period comparison after date and timezone rules are defined. |
-| Inventory | Shows name, category, stock, minimum stock, sale price, cost price, status, search, and filters. | Add product create/edit/archive and stock adjustments with reasons. |
+| Dashboard | Shows product count, total inventori units, gross revenue, transactions, low-stock items, and seven-day sales from stored data. | Add period comparison after date and timezone rules are defined. |
+| Inventori | Shows name, category, stock, minimum stock, sale price, cost price, status, search, and filters. | Add product create/edit/archive and stock adjustments with reasons. |
 | Digital checkout | Provides catalog, quantities, basket, in-store payment method, atomic checkout, and receipt. | Add SKU/barcode, tendered amount, change, and an idempotency key to prevent duplicates. |
 | Transaction history | Admin and Customer users can view IDs, times, items, payment methods, and totals according to permission. | Add date filters and product name/SKU snapshots. |
 | Reports | Provides today, seven-day, current-month, and all-time reports. | Define revenue, gross profit, net profit, refunds, discounts, and timezone. |
-| Stock alerts | Shows alert count, remaining stock, minimum stock, status, and a low-stock filter. | Create a dedicated page if the catalog grows; the inventory filter is enough for the current scope. |
+| Stock alerts | Shows alert count, remaining stock, minimum stock, status, and a low-stock filter. | Create a dedicated page if the catalog grows; the inventori filter is enough for the current scope. |
 | Authentication | Separate Admin/Customer login, Customer registration, PostgreSQL sessions, and server role checks are available. | Add password reset, recovery, session management, and production-grade rate limiting. |
 
 ## Product and data decisions
@@ -111,13 +111,13 @@ WADIMOR remains the application name. The system scope includes inventory manage
 - Gross profit: revenue minus cost of goods sold.
 - Net profit: profit after product cost and other operating expenses.
 
-Do not display “net profit” when the system only subtracts product cost.
+Do not display â€œnet profitâ€ when the system only subtracts product cost.
 
 ### 3. Preserve cost history
 
 `products.cost_price` stores the current product cost. At checkout, it is copied to `transaction_details.cost_at_transaction`, keeping historical reports accurate when costs change.
 
-### 4. Audit every inventory change
+### 4. Audit every inventori change
 
 Every stock increase or decrease should record the product, quantity change, reason, time, and responsible user. Checkout must reduce stock and save the sale in one database transaction.
 
@@ -142,7 +142,7 @@ Store an image URL or path and show a placeholder when empty. If uploads are imp
 1. Agree on checkout actors, permission matrix, financial terms, payment rules, and timezone; update the ERD, use cases, and mockups.
 2. Split the frontend and backend into smaller pages, components, routes, services, validation modules, and repositories.
 3. Add migrations for SKU, product snapshots, archiving, and stock movements; test them on a database copy.
-4. Build product create/edit/archive and inventory adjustments with validation and Admin authorization.
+4. Build product create/edit/archive and inventori adjustments with validation and Admin authorization.
 5. Strengthen checkout with an idempotency key, tender/change handling, and a concurrent last-item integration test.
 6. Add history filters and complete reports based on agreed definitions.
 7. Add password reset, session management, and hardening before public access.
@@ -150,6 +150,7 @@ Store an image URL or path and show a placeholder when empty. If uploads are imp
 
 ## Capstone demo target
 
-A strong demonstration is: Admin signs in → Admin adds or adjusts stock with a reason → Customer selects products → checkout succeeds exactly once → stock decreases → the receipt appears in history → dashboard and reports update.
+A strong demonstration is: Admin signs in â†’ Admin adds or adjusts stock with a reason â†’ Customer selects products â†’ checkout succeeds exactly once â†’ stock decreases â†’ the receipt appears in history â†’ dashboard and reports update.
 
 One complete, testable workflow is more valuable than many screens that are not connected to the database.
+

@@ -1,6 +1,6 @@
-# Panduan UI/UX dan Handoff Tim
+﻿# Panduan UI/UX dan Handoff Tim
 
-**Judul Capstone Project:** Sistem Informasi Inventory untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
+**Judul Capstone Project:** Sistem Informasi Inventori untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
 
 Dokumen ini merangkum sistem visual, perilaku antarmuka, pekerjaan desain berikutnya, dan acceptance checklist WADIMOR.
 
@@ -18,7 +18,7 @@ Gambar produk sementara menggunakan placeholder huruf yang netral sampai foto ny
 
 - Halaman login Admin terpisah dengan role check di server.
 - Dashboard menampilkan pendapatan, transaksi, stok menipis, penjualan tujuh hari, tabel harian, dan produk terlaris.
-- Inventory menyediakan ringkasan, pencarian, filter kategori, filter stok menipis, dan tabel produk.
+- Inventori menyediakan ringkasan, pencarian, filter kategori, filter stok menipis, dan tabel produk.
 - Shortcut stok menipis mereset filter yang bertentangan.
 - Riwayat transaksi dan laporan menggunakan data checkout yang tersimpan.
 
@@ -36,7 +36,7 @@ Keranjang yang belum dibayar hanya tersimpan di memory browser dan hilang setela
 
 ## Responsiveness dan accessibility
 
-Pada layar sempit, navigasi berpindah ke atas, kartu ringkasan tetap ringkas, tabel inventory dapat scroll horizontal, dan keranjang tampil setelah katalog. Halaman secara keseluruhan tidak boleh menghasilkan horizontal scroll.
+Pada layar sempit, navigasi berpindah ke atas, kartu ringkasan tetap ringkas, tabel inventori dapat scroll horizontal, dan keranjang tampil setelah katalog. Halaman secara keseluruhan tidak boleh menghasilkan horizontal scroll.
 
 Fondasi accessibility saat ini:
 
@@ -68,7 +68,7 @@ Gunakan spacing increment 4 atau 8 piksel, body text minimal 16 piksel untuk bac
 ## Flow yang perlu didesain berikutnya
 
 1. **Authentication:** show/hide password, session expired, recovery, field error, rate-limit feedback, dan loading. Pemilihan role hanya membuka halaman login; tidak memberikan role.
-2. **Admin inventory:** create/edit product, validation, stock adjustment dengan alasan, archived product, duplicate SKU, unsaved changes, dan konfirmasi tindakan berbahaya.
+2. **Admin inventori:** create/edit product, validation, stock adjustment dengan alasan, archived product, duplicate SKU, unsaved changes, dan konfirmasi tindakan berbahaya.
 3. **Customer shopping:** katalog/keranjang kosong, produk habis, quantity limit, perubahan harga/stok saat checkout, login required, duplicate-click protection, success, dan printable receipt.
 4. **Cashier workflow:** barcode/search cepat, keranjang ramah keyboard, uang diterima, kembalian, payment failure, pencegahan submit ganda, dan print receipt.
 5. **History:** rentang tanggal, detail transaksi, payment/refund status, periode kosong, dan receipt yang accessible.
@@ -84,7 +84,7 @@ Gunakan spacing increment 4 atau 8 piksel, body text minimal 16 piksel untuk bac
 - [ ] Logout membatalkan session; tombol Back tidak membuka data terlindungi.
 - [ ] Reload mempertahankan session valid tetapi menghapus keranjang yang belum dibayar.
 
-### Inventory dan filter
+### Inventori dan filter
 
 - [ ] Data awal menampilkan enam produk, 388 unit, dan satu item stok menipis.
 - [ ] `Tango Coklat` berstatus `Menipis`; fixture stok nol berstatus `Habis` dan tidak dapat ditambahkan.
@@ -116,7 +116,7 @@ Gunakan spacing increment 4 atau 8 piksel, body text minimal 16 piksel untuk bac
 - [ ] Focus selalu terlihat dan tidak terperangkap.
 - [ ] Input dan tombol memiliki nama yang bermakna.
 - [ ] Periksa lebar 320, 390, 768, dan 1440 piksel.
-- [ ] Hanya tabel inventory yang boleh scroll horizontal.
+- [ ] Hanya tabel inventori yang boleh scroll horizontal.
 - [ ] Periksa zoom 200%, nama panjang, kategori kosong, harga besar, dan stok besar.
 - [ ] Uji Chrome, Edge, Firefox, dan minimal satu mobile browser.
 
@@ -126,7 +126,7 @@ Catatan bug minimal berisi browser, viewport, langkah reproduksi, hasil yang dih
 
 | Role | Output terdekat |
 |---|---|
-| Coordinator | Milestone: inventory write → checkout hardening → history/report → acceptance/presentation |
+| Coordinator | Milestone: inventori write â†’ checkout hardening â†’ history/report â†’ acceptance/presentation |
 | Analyst | Permission matrix, aturan checkout/refund, istilah laporan, ERD, dan perbedaan Customer/Kasir |
 | Designer | Component library serta happy/error/empty/loading state untuk seluruh flow |
 | Developer | Satu vertical feature lengkap dan diuji pada satu waktu; migration selalu versioned |
@@ -136,9 +136,9 @@ Catatan bug minimal berisi browser, viewport, langkah reproduksi, hasil yang dih
 
 <a id="english-version"></a>
 
-# UI/UX Guide and Team Handoff — English Version
+# UI/UX Guide and Team Handoff â€” English Version
 
-**Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+**Capstone Project Title:** Inventori Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
 This document summarizes WADIMOR's visual system, interface behavior, next design work, and acceptance checklist.
 
@@ -156,7 +156,7 @@ Product images use neutral letter placeholders until real, optimized images are 
 
 - Separate Admin login with server-enforced role checks.
 - Dashboard with revenue, transactions, low stock, seven-day sales, a daily table, and top products.
-- Inventory summaries, search, category filter, low-stock filter, and product table.
+- Inventori summaries, search, category filter, low-stock filter, and product table.
 - Low-stock shortcut that resets conflicting filters.
 - Transaction history and reports backed by stored checkout data.
 
@@ -174,7 +174,7 @@ An unpaid basket exists only in browser memory and is cleared by reload. The log
 
 ## Responsiveness and accessibility
 
-On narrow screens, navigation moves above the page, summary cards remain compact, the inventory table can scroll horizontally, and the basket follows the catalog. The full page should not scroll horizontally.
+On narrow screens, navigation moves above the page, summary cards remain compact, the inventori table can scroll horizontally, and the basket follows the catalog. The full page should not scroll horizontally.
 
 Current accessibility foundations:
 
@@ -206,7 +206,7 @@ Use 4- or 8-pixel spacing increments, at least 16-pixel body text for longer rea
 ## Flows to design next
 
 1. **Authentication:** show/hide password, session expiry, recovery, field errors, rate-limit feedback, and loading. Role choice opens a login page; it does not grant a role.
-2. **Admin inventory:** product create/edit, validation, reasoned stock adjustment, archived products, duplicate SKU, unsaved changes, and destructive-action confirmation.
+2. **Admin inventori:** product create/edit, validation, reasoned stock adjustment, archived products, duplicate SKU, unsaved changes, and destructive-action confirmation.
 3. **Customer shopping:** empty catalog/basket, unavailable product, quantity limit, changed price/stock at checkout, login required, duplicate-click protection, success, and printable receipt.
 4. **Cashier workflow:** fast barcode/search, keyboard-friendly basket, cash received, change, payment failure, double-submit prevention, and receipt printing.
 5. **History:** date range, transaction details, payment/refund status, empty period, and accessible receipt.
@@ -222,7 +222,7 @@ Use 4- or 8-pixel spacing increments, at least 16-pixel body text for longer rea
 - [ ] Logout revokes the session; Back does not restore protected data.
 - [ ] Reload preserves a valid session but clears an unpaid basket.
 
-### Inventory and filtering
+### Inventori and filtering
 
 - [ ] Initial data shows six products, 388 units, and one low-stock item.
 - [ ] `Tango Coklat` shows `Menipis`; a zero-stock fixture shows `Habis` and cannot be added.
@@ -254,7 +254,7 @@ Use 4- or 8-pixel spacing increments, at least 16-pixel body text for longer rea
 - [ ] Focus remains visible and is not trapped.
 - [ ] Inputs and buttons have meaningful names.
 - [ ] Check 320, 390, 768, and 1440-pixel widths.
-- [ ] Only the inventory table scrolls horizontally.
+- [ ] Only the inventori table scrolls horizontally.
 - [ ] Check 200% zoom, long names, empty categories, large prices, and large stock.
 - [ ] Test Chrome, Edge, Firefox, and at least one mobile browser.
 
@@ -264,8 +264,9 @@ A bug report should include browser, viewport, reproduction steps, expected resu
 
 | Role | Immediate output |
 |---|---|
-| Coordinator | Milestones: inventory write → checkout hardening → history/report → acceptance/presentation |
+| Coordinator | Milestones: inventori write â†’ checkout hardening â†’ history/report â†’ acceptance/presentation |
 | Analyst | Permission matrix, checkout/refund rules, reporting terms, ERD, and Customer/Cashier distinction |
 | Designer | Component library and happy/error/empty/loading states for every flow |
 | Developer | One complete, tested vertical feature at a time; all migrations versioned |
 | Tester/Documentation | Acceptance runs, role/concurrency cases, bug evidence, and real screenshots |
+

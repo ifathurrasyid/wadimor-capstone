@@ -1,6 +1,6 @@
-# Panduan Setup WADIMOR
+﻿# Panduan Setup WADIMOR
 
-**Judul Capstone Project:** Sistem Informasi Inventory untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
+**Judul Capstone Project:** Sistem Informasi Inventori untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
 
 Panduan ini menjelaskan proses instalasi WADIMOR di Windows dari awal. Setiap langkah ditulis untuk pembaca yang belum pernah menggunakan Git, PowerShell, React, Docker, atau PostgreSQL.
 
@@ -34,7 +34,7 @@ WADIMOR terdiri dari tiga bagian yang harus bekerja bersama:
 |---|---|---|
 | Frontend | Tampilan React yang dibuka di browser | `http://localhost:5173` |
 | Backend | Server Express yang memproses login, produk, checkout, dan laporan | `http://localhost:5000` |
-| Database | PostgreSQL menyimpan akun, produk, inventory, dan transaksi | `127.0.0.1:5434` dengan Docker |
+| Database | PostgreSQL menyimpan akun, produk, inventori, dan transaksi | `127.0.0.1:5434` dengan Docker |
 
 Frontend tidak dapat bekerja dengan lengkap jika backend berhenti. Backend juga tidak dapat bekerja jika PostgreSQL berhenti atau konfigurasi database salah.
 
@@ -208,7 +208,7 @@ Jangan menjalankan `git clone` lagi di folder yang sama. Buka folder `wadimor-ca
 
 Bagian ini hanya untuk database lokal baru yang belum pernah menjalankan WADIMOR. Pastikan Docker Desktop terbuka dan engine berjalan.
 
-### Langkah 1 — Membuat file konfigurasi pribadi
+### Langkah 1 â€” Membuat file konfigurasi pribadi
 
 Salin contoh konfigurasi menjadi `backend/.env`:
 
@@ -238,7 +238,7 @@ Contoh tersebut hanya untuk komputer lokal. Buat password berbeda untuk deployme
 
 Simpan dengan **Ctrl+S**, lalu tutup Notepad. File `.env` bersifat pribadi dan diabaikan oleh Git. Jangan memasukkan file atau password tersebut ke repository, chat publik, screenshot, atau laporan.
 
-### Langkah 2 — Mengunduh dependency backend
+### Langkah 2 â€” Mengunduh dependency backend
 
 ```powershell
 npm.cmd --prefix backend ci
@@ -246,7 +246,7 @@ npm.cmd --prefix backend ci
 
 Tunggu sampai prompt PowerShell muncul kembali. Perintah ini membuat `backend/node_modules`. Warning yang tidak menghentikan proses tidak selalu berarti gagal; error biasanya ditandai `npm ERR!`.
 
-### Langkah 3 — Mengunduh React dan dependency frontend
+### Langkah 3 â€” Mengunduh React dan dependency frontend
 
 ```powershell
 npm.cmd --prefix frontend ci
@@ -254,7 +254,7 @@ npm.cmd --prefix frontend ci
 
 Perintah ini mengunduh React, React DOM, Vite, Tailwind CSS, ESLint, dan dependency frontend lain. Tidak ada installer React tambahan.
 
-### Langkah 4 — Menjalankan PostgreSQL
+### Langkah 4 â€” Menjalankan PostgreSQL
 
 ```powershell
 docker compose --env-file backend/.env up -d db
@@ -270,7 +270,7 @@ docker compose --env-file backend/.env ps
 
 Tunggu sampai service `db` atau container `wadimor_postgres` menunjukkan status `healthy`. Jika masih `health: starting`, tunggu beberapa detik lalu periksa lagi.
 
-### Langkah 5 — Membuat tabel dan data produk awal
+### Langkah 5 â€” Membuat tabel dan data produk awal
 
 > **Penting:** jalankan perintah ini hanya satu kali untuk database baru. Jangan jalankan pada database lama yang sudah memiliki tabel atau data.
 
@@ -282,9 +282,9 @@ Perintah ini membuat enam tabel, index, trigger, tiga kategori, dan enam produk 
 
 Hasil yang berhasil diakhiri dengan `COMMIT`. Jika tabel dilaporkan sudah ada, jangan menghapus volume. Database kemungkinan sudah pernah diinisialisasi; lanjutkan ke bagian database lama atau konfirmasikan dengan tim.
 
-### Langkah 6 — Membuat akun Admin
+### Langkah 6 â€” Membuat akun Admin
 
-Ganti `ChooseYourAdminPassword` dengan password pribadi sepanjang 4–128 karakter. Gunakan password tanpa spasi agar command lebih sederhana:
+Ganti `ChooseYourAdminPassword` dengan password pribadi sepanjang 4â€“128 karakter. Gunakan password tanpa spasi agar command lebih sederhana:
 
 ```powershell
 npm.cmd --prefix backend run setup:admin -- admin_w ChooseYourAdminPassword
@@ -395,7 +395,7 @@ Jika tidak yakin migration mana yang sudah diterapkan, jangan menebak. Periksa b
 
 Bagian ini adalah alternatif jika Docker Desktop tidak dapat digunakan. Jalur ini lebih rumit karena PostgreSQL harus dipasang dan dikelola secara manual.
 
-### Langkah 1 — Memasang PostgreSQL
+### Langkah 1 â€” Memasang PostgreSQL
 
 1. Buka halaman resmi [PostgreSQL Windows installer](https://www.postgresql.org/download/windows/).
 2. Unduh PostgreSQL 15 untuk Windows 64-bit.
@@ -404,7 +404,7 @@ Bagian ini adalah alternatif jika Docker Desktop tidak dapat digunakan. Jalur in
 5. Simpan password untuk user bawaan `postgres`. Password ini berbeda dari akun WADIMOR.
 6. Selesaikan instalasi dan pastikan service PostgreSQL berjalan.
 
-### Langkah 2 — Membuat user dan database
+### Langkah 2 â€” Membuat user dan database
 
 1. Buka **pgAdmin 4**.
 2. Hubungkan ke server lokal menggunakan password `postgres` dari installer.
@@ -418,7 +418,7 @@ CREATE DATABASE wadimor_db OWNER admin;
 
 Jika user atau database sudah ada, jangan menghapusnya sebelum memastikan data di dalamnya tidak diperlukan.
 
-### Langkah 3 — Mengatur `.env`
+### Langkah 3 â€” Mengatur `.env`
 
 ```powershell
 Copy-Item backend/.env.example backend/.env
@@ -437,14 +437,14 @@ DB_NAME=wadimor_db
 
 Nilai `DB_PASSWORD` harus sama dengan password pada `CREATE USER`.
 
-### Langkah 4 — Memasang dependency
+### Langkah 4 â€” Memasang dependency
 
 ```powershell
 npm.cmd --prefix backend ci
 npm.cmd --prefix frontend ci
 ```
 
-### Langkah 5 — Menerapkan schema melalui pgAdmin
+### Langkah 5 â€” Menerapkan schema melalui pgAdmin
 
 1. Di pgAdmin, klik kanan **Databases** lalu pilih **Refresh**.
 2. Pilih database `wadimor_db`.
@@ -595,7 +595,7 @@ Command tersebut juga membatalkan session lama untuk akun itu.
 | Dependency | Paket kode lain yang dibutuhkan proyek |
 | Frontend | Bagian aplikasi yang dilihat di browser |
 | Backend/API | Server yang menjalankan aturan bisnis dan berbicara dengan database |
-| Database | Penyimpanan terstruktur untuk akun, produk, inventory, dan transaksi |
+| Database | Penyimpanan terstruktur untuk akun, produk, inventori, dan transaksi |
 | Container | Lingkungan terisolasi yang menjalankan software, dalam proyek ini PostgreSQL |
 | Environment variable | Nilai konfigurasi seperti port dan password database |
 | Schema | Definisi awal tabel, relasi, constraint, dan data contoh |
@@ -624,9 +624,9 @@ Kemudian buka `http://localhost:5173`.
 
 <a id="english-version"></a>
 
-# WADIMOR Setup Guide — English Version
+# WADIMOR Setup Guide â€” English Version
 
-**Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+**Capstone Project Title:** Inventori Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
 This guide explains how to install WADIMOR on Windows from the beginning. Every step is written for readers who have never used Git, PowerShell, React, Docker, or PostgreSQL.
 
@@ -660,7 +660,7 @@ WADIMOR has three parts that must work together:
 |---|---|---|
 | Frontend | The React interface opened in a browser | `http://localhost:5173` |
 | Backend | The Express server that processes login, products, checkout, and reports | `http://localhost:5000` |
-| Database | PostgreSQL stores accounts, products, inventory, and transactions | `127.0.0.1:5434` with Docker |
+| Database | PostgreSQL stores accounts, products, inventori, and transactions | `127.0.0.1:5434` with Docker |
 
 The frontend cannot work fully when the backend is stopped. The backend also cannot work when PostgreSQL is stopped or its database configuration is incorrect.
 
@@ -832,7 +832,7 @@ Do not clone it again into the same folder. Open the existing `wadimor-capstone`
 
 This section is only for a new local database that has never run WADIMOR. Make sure Docker Desktop and its engine are running.
 
-### Step 1 — Create the private configuration file
+### Step 1 â€” Create the private configuration file
 
 ```powershell
 Copy-Item backend/.env.example backend/.env
@@ -855,7 +855,7 @@ This example is only for a local computer. Use a different password for deployme
 
 Save with **Ctrl+S** and close Notepad. `.env` is private and ignored by Git. Never put it or its password in the repository, public chats, screenshots, or reports.
 
-### Step 2 — Download backend dependencies
+### Step 2 â€” Download backend dependencies
 
 ```powershell
 npm.cmd --prefix backend ci
@@ -863,7 +863,7 @@ npm.cmd --prefix backend ci
 
 Wait for the prompt to return. This creates `backend/node_modules`. A warning does not always mean failure; errors are usually marked `npm ERR!`.
 
-### Step 3 — Download React and frontend dependencies
+### Step 3 â€” Download React and frontend dependencies
 
 ```powershell
 npm.cmd --prefix frontend ci
@@ -871,7 +871,7 @@ npm.cmd --prefix frontend ci
 
 This downloads React, React DOM, Vite, Tailwind CSS, ESLint, and other frontend packages. There is no separate React installer.
 
-### Step 4 — Start PostgreSQL
+### Step 4 â€” Start PostgreSQL
 
 ```powershell
 docker compose --env-file backend/.env up -d db
@@ -887,7 +887,7 @@ docker compose --env-file backend/.env ps
 
 Wait until `db` or `wadimor_postgres` reports `healthy`. If it shows `health: starting`, wait a few seconds and check again.
 
-### Step 5 — Create tables and initial products
+### Step 5 â€” Create tables and initial products
 
 > **Important:** run this only once for a new database. Never run it on an existing database with tables or data.
 
@@ -899,9 +899,9 @@ This creates six tables, indexes, a trigger, three categories, and six demo prod
 
 A successful result ends with `COMMIT`. If tables already exist, do not delete the volume. Use the existing-database section or confirm the database history with the team.
 
-### Step 6 — Create an Admin account
+### Step 6 â€” Create an Admin account
 
-Replace the example with a private password of 4–128 characters. A password without spaces is easier to enter in this command:
+Replace the example with a private password of 4â€“128 characters. A password without spaces is easier to enter in this command:
 
 ```powershell
 npm.cmd --prefix backend run setup:admin -- admin_w ChooseYourAdminPassword
@@ -1012,7 +1012,7 @@ If migration history is unclear, do not guess. Check backups or team records. Th
 
 This alternative is for computers that cannot use Docker Desktop. It is more complex because PostgreSQL must be installed and managed manually.
 
-### Step 1 — Install PostgreSQL
+### Step 1 â€” Install PostgreSQL
 
 1. Open the official [PostgreSQL Windows installer](https://www.postgresql.org/download/windows/) page.
 2. Download PostgreSQL 15 for 64-bit Windows.
@@ -1021,7 +1021,7 @@ This alternative is for computers that cannot use Docker Desktop. It is more com
 5. Store the password for the built-in `postgres` user. It is separate from WADIMOR accounts.
 6. Finish installation and confirm the PostgreSQL service is running.
 
-### Step 2 — Create the user and database
+### Step 2 â€” Create the user and database
 
 1. Open **pgAdmin 4**.
 2. Connect to the local server with the installer password.
@@ -1035,7 +1035,7 @@ CREATE DATABASE wadimor_db OWNER admin;
 
 If the user or database already exists, do not delete it before confirming its data is unneeded.
 
-### Step 3 — Configure `.env`
+### Step 3 â€” Configure `.env`
 
 ```powershell
 Copy-Item backend/.env.example backend/.env
@@ -1054,14 +1054,14 @@ DB_NAME=wadimor_db
 
 `DB_PASSWORD` must match the `CREATE USER` password.
 
-### Step 4 — Install dependencies
+### Step 4 â€” Install dependencies
 
 ```powershell
 npm.cmd --prefix backend ci
 npm.cmd --prefix frontend ci
 ```
 
-### Step 5 — Apply the schema through pgAdmin
+### Step 5 â€” Apply the schema through pgAdmin
 
 1. In pgAdmin, right-click **Databases** and select **Refresh**.
 2. Select `wadimor_db`.
@@ -1204,7 +1204,7 @@ This also revokes old sessions for the account.
 | Dependency | Another code package required by the project |
 | Frontend | The part users see in a browser |
 | Backend/API | The server that runs business rules and communicates with the database |
-| Database | Structured storage for accounts, products, inventory, and transactions |
+| Database | Structured storage for accounts, products, inventori, and transactions |
 | Container | An isolated environment that runs software, PostgreSQL in this project |
 | Environment variable | A configuration value such as a port or database password |
 | Schema | The initial definition of tables, relationships, constraints, and demo data |
@@ -1228,3 +1228,4 @@ npm.cmd --prefix frontend run dev
 ```
 
 Then open `http://localhost:5173`.
+

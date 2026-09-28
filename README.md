@@ -1,12 +1,12 @@
-# WADIMOR
+﻿# WADIMOR
 
-**Judul Capstone Project:** Sistem Informasi Inventory untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
+**Judul Capstone Project:** Sistem Informasi Inventori untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
 
 [Baca versi bahasa Inggris](#english-version)
 
 ## Tentang proyek
 
-WADIMOR adalah aplikasi web untuk membantu usaha mikro retail, khususnya warung kelontong, mengelola inventory dan transaksi penjualan. Aplikasi menyediakan area terpisah untuk Admin dan Customer.
+WADIMOR adalah aplikasi web untuk membantu usaha mikro retail, khususnya warung kelontong, mengelola inventori dan transaksi penjualan. Aplikasi menyediakan area terpisah untuk Admin dan Customer.
 
 Admin dapat memantau stok, transaksi, dan laporan. Customer dapat melihat katalog, membuat keranjang, menyelesaikan pembayaran di toko, dan mencetak struk. Sistem dirancang untuk transaksi langsung di toko dan tidak memiliki fitur pengiriman.
 
@@ -17,7 +17,7 @@ Admin dapat memantau stok, transaksi, dan laporan. Customer dapat melihat katalo
 - Katalog produk, pencarian, filter kategori, dan keranjang digital.
 - Checkout atomik: harga diperiksa oleh server dan stok hanya berkurang jika transaksi berhasil.
 - Struk yang dapat dicetak, riwayat transaksi, dan laporan penjualan.
-- Penyimpanan akun, produk, inventory, dan transaksi menggunakan PostgreSQL.
+- Penyimpanan akun, produk, inventori, dan transaksi menggunakan PostgreSQL.
 
 ## Teknologi
 
@@ -85,12 +85,12 @@ Semua perintah harus dijalankan dari folder utama `wadimor-capstone`. Dokumentas
 
 ## Dokumentasi
 
-- [Panduan setup](docs/SETUP-GUIDE.md) — instalasi yang sangat rinci untuk pemula.
-- [Panduan kolaborasi](docs/COLLABORATING.md) — branch, commit, push, dan pull request.
-- [Rencana fitur](docs/FEATURE-PLAN.md) — status fitur, keputusan produk, dan urutan pengembangan.
-- [Panduan UI/UX](docs/UI-UX.md) — sistem desain, handoff, dan acceptance checklist.
-- [Audit teknis](docs/AUDIT.md) — temuan teknis, batasan, dan rekomendasi.
-- [Catatan frontend](frontend/README.md) — ringkasan khusus aplikasi React.
+- [Panduan setup](docs/SETUP-GUIDE.md) â€” instalasi yang sangat rinci untuk pemula.
+- [Panduan kolaborasi](docs/COLLABORATING.md) â€” branch, commit, push, dan pull request.
+- [Rencana fitur](docs/FEATURE-PLAN.md) â€” status fitur, keputusan produk, dan urutan pengembangan.
+- [Panduan UI/UX](docs/UI-UX.md) â€” sistem desain, handoff, dan acceptance checklist.
+- [Audit teknis](docs/AUDIT.md) â€” temuan teknis, batasan, dan rekomendasi.
+- [Catatan frontend](frontend/README.md) â€” ringkasan khusus aplikasi React.
 
 ## Catatan keamanan dan data
 
@@ -108,26 +108,26 @@ WADIMOR masih merupakan proyek capstone yang berjalan secara lokal, bukan layana
 
 <a id="english-version"></a>
 
-# WADIMOR — English Version
+# WADIMOR â€” English Version
 
-**Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+**Capstone Project Title:** Inventori Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
 [Read the Indonesian version](#wadimor)
 
 ## About the project
 
-WADIMOR is a web application that helps micro retail businesses, particularly neighborhood grocery stores, manage inventory and sales transactions. The application provides separate areas for Admin and Customer users.
+WADIMOR is a web application that helps micro retail businesses, particularly neighborhood grocery stores, manage inventori and sales transactions. The application provides separate areas for Admin and Customer users.
 
-Admins can monitor inventory, transactions, and reports. Customers can browse the catalog, build a basket, complete an in-store payment, and print a receipt. The system is designed for in-store transactions and does not include delivery.
+Admins can monitor inventori, transactions, and reports. Customers can browse the catalog, build a basket, complete an in-store payment, and print a receipt. The system is designed for in-store transactions and does not include delivery.
 
 ## Main features
 
 - Separate Admin and Customer authentication and permissions.
-- Admin dashboard with inventory, revenue, transaction, low-stock, and seven-day sales summaries.
+- Admin dashboard with inventori, revenue, transaction, low-stock, and seven-day sales summaries.
 - Product catalog, search, category filters, and a digital basket.
 - Atomic checkout: prices are verified by the server and stock is reduced only when the transaction succeeds.
 - Printable receipts, transaction history, and sales reports.
-- PostgreSQL storage for accounts, products, inventory, and transactions.
+- PostgreSQL storage for accounts, products, inventori, and transactions.
 
 ## Technology stack
 
@@ -195,12 +195,12 @@ Run all commands from the main `wadimor-capstone` folder. The documentation uses
 
 ## Documentation
 
-- [Setup guide](docs/SETUP-GUIDE.md#english-version) — highly detailed installation instructions for beginners.
-- [Collaboration guide](docs/COLLABORATING.md#english-version) — branches, commits, pushes, and pull requests.
-- [Feature plan](docs/FEATURE-PLAN.md#english-version) — feature status, product decisions, and development order.
-- [UI/UX guide](docs/UI-UX.md#english-version) — design system, handoff, and acceptance checklist.
-- [Technical audit](docs/AUDIT.md#english-version) — technical findings, limitations, and recommendations.
-- [Frontend notes](frontend/README.md#english-version) — notes specific to the React application.
+- [Setup guide](docs/SETUP-GUIDE.md#english-version) â€” highly detailed installation instructions for beginners.
+- [Collaboration guide](docs/COLLABORATING.md#english-version) â€” branches, commits, pushes, and pull requests.
+- [Feature plan](docs/FEATURE-PLAN.md#english-version) â€” feature status, product decisions, and development order.
+- [UI/UX guide](docs/UI-UX.md#english-version) â€” design system, handoff, and acceptance checklist.
+- [Technical audit](docs/AUDIT.md#english-version) â€” technical findings, limitations, and recommendations.
+- [Frontend notes](frontend/README.md#english-version) â€” notes specific to the React application.
 
 ## Security and data notes
 
@@ -213,3 +213,4 @@ Run all commands from the main `wadimor-capstone` folder. The documentation uses
 ## Project status
 
 WADIMOR remains a locally run capstone project, not a production service. Public deployment requires HTTPS, a same-origin `/api` reverse proxy, secret management, tested backups, and additional hardening.
+

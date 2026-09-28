@@ -1,6 +1,6 @@
 ﻿# Panduan Kolaborasi WADIMOR
 
-**Judul Capstone Project:** Sistem Informasi Inventory untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
+**Judul Capstone Project:** Sistem Informasi Inventori untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
 
 Dokumen ini menjelaskan workflow Git agar perubahan setiap anggota tim mudah ditinjau dan tidak saling menimpa. Untuk instalasi lokal, baca [Panduan Setup](SETUP-GUIDE.md).
 
@@ -161,7 +161,7 @@ Jangan menggunakan `git reset --hard` untuk menyelesaikan conflict karena comman
 
 # WADIMOR Collaboration Guide — English Version
 
-**Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+**Capstone Project Title:** Inventori Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
 This document describes the Git workflow that keeps each team member's changes reviewable and prevents accidental overwrites. For local installation, read the [Setup Guide](SETUP-GUIDE.md#english-version).
 
@@ -319,3 +319,4 @@ Do not use `git reset --hard` to resolve conflicts because it can erase uncommit
 ## GitHub branch protection
 
 Adding contributors is not enough. In GitHub, open **Settings -> Branches -> Add branch ruleset/rule** for main and enable required pull requests, at least one approval, passing status checks, blocked force pushes, and restricted direct pushes. Contributors need repository **Write** access, then they push feature branches and open pull requests.
+
