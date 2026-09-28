@@ -176,7 +176,7 @@ const LANGS = {
     accountCustomer: 'CUSTOMER ACCOUNT',
     logout: 'Sign out',
     dashboard: 'Dashboard',
-    inventory: 'Inventory',
+    inventory: 'Inventori',
     orders: 'Transaction History',
     reports: 'Reports',
     catalog: 'Catalog',
@@ -200,7 +200,7 @@ const LANGS = {
     transactionCount: 'Transactions',
     sevenDaySales: 'Last 7 Days Sales',
     topProducts: 'Top Products',
-    viewInventory: 'View inventory →',
+    viewInventory: 'Lihat inventori →',
     noSales: 'No sales in the last 7 days',
     noSalesDesc: 'Chart will fill up once checkout transactions are recorded.',
     noTopProducts: 'No products sold yet.',
@@ -1060,4 +1060,5 @@ export default function App() {
     </I18nContext.Provider>
   )
 }
+
 
