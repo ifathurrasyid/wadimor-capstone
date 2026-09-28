@@ -80,9 +80,9 @@ Satu alur lengkap dan dapat diuji lebih bernilai daripada banyak menu yang belum
 
 # WADIMOR Feature Plan â€” English Version
 
-**Approved Capstone Project Title:** Inventori Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+**Approved Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
-WADIMOR remains the application name. The system scope includes inventori management and the sales data needed to update stock, transaction history, and reports.
+WADIMOR remains the application name. The system scope includes Inventory management and the sales data needed to update stock, transaction history, and reports.
 
 [Read the Indonesian version](#rencana-fitur-wadimor)
 
@@ -90,12 +90,12 @@ WADIMOR remains the application name. The system scope includes inventori manage
 
 | Area | Current status | Next step |
 |---|---|---|
-| Dashboard | Shows product count, total inventori units, gross revenue, transactions, low-stock items, and seven-day sales from stored data. | Add period comparison after date and timezone rules are defined. |
-| Inventori | Shows name, category, stock, minimum stock, sale price, cost price, status, search, and filters. | Add product create/edit/archive and stock adjustments with reasons. |
+| Dashboard | Shows product count, total Inventory units, gross revenue, transactions, low-stock items, and seven-day sales from stored data. | Add period comparison after date and timezone rules are defined. |
+| Inventory | Shows name, category, stock, minimum stock, sale price, cost price, status, search, and filters. | Add product create/edit/archive and stock adjustments with reasons. |
 | Digital checkout | Provides catalog, quantities, basket, in-store payment method, atomic checkout, and receipt. | Add SKU/barcode, tendered amount, change, and an idempotency key to prevent duplicates. |
 | Transaction history | Admin and Customer users can view IDs, times, items, payment methods, and totals according to permission. | Add date filters and product name/SKU snapshots. |
 | Reports | Provides today, seven-day, current-month, and all-time reports. | Define revenue, gross profit, net profit, refunds, discounts, and timezone. |
-| Stock alerts | Shows alert count, remaining stock, minimum stock, status, and a low-stock filter. | Create a dedicated page if the catalog grows; the inventori filter is enough for the current scope. |
+| Stock alerts | Shows alert count, remaining stock, minimum stock, status, and a low-stock filter. | Create a dedicated page if the catalog grows; the Inventory filter is enough for the current scope. |
 | Authentication | Separate Admin/Customer login, Customer registration, PostgreSQL sessions, and server role checks are available. | Add password reset, recovery, session management, and production-grade rate limiting. |
 
 ## Product and data decisions
@@ -117,7 +117,7 @@ Do not display â€œnet profitâ€ when the system only subtracts product c
 
 `products.cost_price` stores the current product cost. At checkout, it is copied to `transaction_details.cost_at_transaction`, keeping historical reports accurate when costs change.
 
-### 4. Audit every inventori change
+### 4. Audit every Inventory change
 
 Every stock increase or decrease should record the product, quantity change, reason, time, and responsible user. Checkout must reduce stock and save the sale in one database transaction.
 
@@ -142,7 +142,7 @@ Store an image URL or path and show a placeholder when empty. If uploads are imp
 1. Agree on checkout actors, permission matrix, financial terms, payment rules, and timezone; update the ERD, use cases, and mockups.
 2. Split the frontend and backend into smaller pages, components, routes, services, validation modules, and repositories.
 3. Add migrations for SKU, product snapshots, archiving, and stock movements; test them on a database copy.
-4. Build product create/edit/archive and inventori adjustments with validation and Admin authorization.
+4. Build product create/edit/archive and Inventory adjustments with validation and Admin authorization.
 5. Strengthen checkout with an idempotency key, tender/change handling, and a concurrent last-item integration test.
 6. Add history filters and complete reports based on agreed definitions.
 7. Add password reset, session management, and hardening before public access.
@@ -153,4 +153,5 @@ Store an image URL or path and show a placeholder when empty. If uploads are imp
 A strong demonstration is: Admin signs in â†’ Admin adds or adjusts stock with a reason â†’ Customer selects products â†’ checkout succeeds exactly once â†’ stock decreases â†’ the receipt appears in history â†’ dashboard and reports update.
 
 One complete, testable workflow is more valuable than many screens that are not connected to the database.
+
 

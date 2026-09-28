@@ -138,7 +138,7 @@ Catatan bug minimal berisi browser, viewport, langkah reproduksi, hasil yang dih
 
 # UI/UX Guide and Team Handoff â€” English Version
 
-**Capstone Project Title:** Inventori Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+**Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
 This document summarizes WADIMOR's visual system, interface behavior, next design work, and acceptance checklist.
 
@@ -156,7 +156,7 @@ Product images use neutral letter placeholders until real, optimized images are 
 
 - Separate Admin login with server-enforced role checks.
 - Dashboard with revenue, transactions, low stock, seven-day sales, a daily table, and top products.
-- Inventori summaries, search, category filter, low-stock filter, and product table.
+- Inventory summaries, search, category filter, low-stock filter, and product table.
 - Low-stock shortcut that resets conflicting filters.
 - Transaction history and reports backed by stored checkout data.
 
@@ -174,7 +174,7 @@ An unpaid basket exists only in browser memory and is cleared by reload. The log
 
 ## Responsiveness and accessibility
 
-On narrow screens, navigation moves above the page, summary cards remain compact, the inventori table can scroll horizontally, and the basket follows the catalog. The full page should not scroll horizontally.
+On narrow screens, navigation moves above the page, summary cards remain compact, the Inventory table can scroll horizontally, and the basket follows the catalog. The full page should not scroll horizontally.
 
 Current accessibility foundations:
 
@@ -206,7 +206,7 @@ Use 4- or 8-pixel spacing increments, at least 16-pixel body text for longer rea
 ## Flows to design next
 
 1. **Authentication:** show/hide password, session expiry, recovery, field errors, rate-limit feedback, and loading. Role choice opens a login page; it does not grant a role.
-2. **Admin inventori:** product create/edit, validation, reasoned stock adjustment, archived products, duplicate SKU, unsaved changes, and destructive-action confirmation.
+2. **Admin Inventory:** product create/edit, validation, reasoned stock adjustment, archived products, duplicate SKU, unsaved changes, and destructive-action confirmation.
 3. **Customer shopping:** empty catalog/basket, unavailable product, quantity limit, changed price/stock at checkout, login required, duplicate-click protection, success, and printable receipt.
 4. **Cashier workflow:** fast barcode/search, keyboard-friendly basket, cash received, change, payment failure, double-submit prevention, and receipt printing.
 5. **History:** date range, transaction details, payment/refund status, empty period, and accessible receipt.
@@ -222,7 +222,7 @@ Use 4- or 8-pixel spacing increments, at least 16-pixel body text for longer rea
 - [ ] Logout revokes the session; Back does not restore protected data.
 - [ ] Reload preserves a valid session but clears an unpaid basket.
 
-### Inventori and filtering
+### Inventory and filtering
 
 - [ ] Initial data shows six products, 388 units, and one low-stock item.
 - [ ] `Tango Coklat` shows `Menipis`; a zero-stock fixture shows `Habis` and cannot be added.
@@ -254,7 +254,7 @@ Use 4- or 8-pixel spacing increments, at least 16-pixel body text for longer rea
 - [ ] Focus remains visible and is not trapped.
 - [ ] Inputs and buttons have meaningful names.
 - [ ] Check 320, 390, 768, and 1440-pixel widths.
-- [ ] Only the inventori table scrolls horizontally.
+- [ ] Only the Inventory table scrolls horizontally.
 - [ ] Check 200% zoom, long names, empty categories, large prices, and large stock.
 - [ ] Test Chrome, Edge, Firefox, and at least one mobile browser.
 
@@ -264,9 +264,10 @@ A bug report should include browser, viewport, reproduction steps, expected resu
 
 | Role | Immediate output |
 |---|---|
-| Coordinator | Milestones: inventori write â†’ checkout hardening â†’ history/report â†’ acceptance/presentation |
+| Coordinator | Milestones: Inventory write â†’ checkout hardening â†’ history/report â†’ acceptance/presentation |
 | Analyst | Permission matrix, checkout/refund rules, reporting terms, ERD, and Customer/Cashier distinction |
 | Designer | Component library and happy/error/empty/loading states for every flow |
 | Developer | One complete, tested vertical feature at a time; all migrations versioned |
 | Tester/Documentation | Acceptance runs, role/concurrency cases, bug evidence, and real screenshots |
+
 

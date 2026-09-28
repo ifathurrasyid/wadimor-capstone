@@ -110,24 +110,24 @@ WADIMOR masih merupakan proyek capstone yang berjalan secara lokal, bukan layana
 
 # WADIMOR â€” English Version
 
-**Capstone Project Title:** Inventori Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+**Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
 [Read the Indonesian version](#wadimor)
 
 ## About the project
 
-WADIMOR is a web application that helps micro retail businesses, particularly neighborhood grocery stores, manage inventori and sales transactions. The application provides separate areas for Admin and Customer users.
+WADIMOR is a web application that helps micro retail businesses, particularly neighborhood grocery stores, manage Inventory and sales transactions. The application provides separate areas for Admin and Customer users.
 
-Admins can monitor inventori, transactions, and reports. Customers can browse the catalog, build a basket, complete an in-store payment, and print a receipt. The system is designed for in-store transactions and does not include delivery.
+Admins can monitor Inventory, transactions, and reports. Customers can browse the catalog, build a basket, complete an in-store payment, and print a receipt. The system is designed for in-store transactions and does not include delivery.
 
 ## Main features
 
 - Separate Admin and Customer authentication and permissions.
-- Admin dashboard with inventori, revenue, transaction, low-stock, and seven-day sales summaries.
+- Admin dashboard with Inventory, revenue, transaction, low-stock, and seven-day sales summaries.
 - Product catalog, search, category filters, and a digital basket.
 - Atomic checkout: prices are verified by the server and stock is reduced only when the transaction succeeds.
 - Printable receipts, transaction history, and sales reports.
-- PostgreSQL storage for accounts, products, inventori, and transactions.
+- PostgreSQL storage for accounts, products, Inventory, and transactions.
 
 ## Technology stack
 
@@ -213,4 +213,5 @@ Run all commands from the main `wadimor-capstone` folder. The documentation uses
 ## Project status
 
 WADIMOR remains a locally run capstone project, not a production service. Public deployment requires HTTPS, a same-origin `/api` reverse proxy, secret management, tested backups, and additional hardening.
+
 

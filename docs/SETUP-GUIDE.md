@@ -626,7 +626,7 @@ Kemudian buka `http://localhost:5173`.
 
 # WADIMOR Setup Guide â€” English Version
 
-**Capstone Project Title:** Inventori Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+**Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
 This guide explains how to install WADIMOR on Windows from the beginning. Every step is written for readers who have never used Git, PowerShell, React, Docker, or PostgreSQL.
 
@@ -660,7 +660,7 @@ WADIMOR has three parts that must work together:
 |---|---|---|
 | Frontend | The React interface opened in a browser | `http://localhost:5173` |
 | Backend | The Express server that processes login, products, checkout, and reports | `http://localhost:5000` |
-| Database | PostgreSQL stores accounts, products, inventori, and transactions | `127.0.0.1:5434` with Docker |
+| Database | PostgreSQL stores accounts, products, Inventory, and transactions | `127.0.0.1:5434` with Docker |
 
 The frontend cannot work fully when the backend is stopped. The backend also cannot work when PostgreSQL is stopped or its database configuration is incorrect.
 
@@ -1204,7 +1204,7 @@ This also revokes old sessions for the account.
 | Dependency | Another code package required by the project |
 | Frontend | The part users see in a browser |
 | Backend/API | The server that runs business rules and communicates with the database |
-| Database | Structured storage for accounts, products, inventori, and transactions |
+| Database | Structured storage for accounts, products, Inventory, and transactions |
 | Container | An isolated environment that runs software, PostgreSQL in this project |
 | Environment variable | A configuration value such as a port or database password |
 | Schema | The initial definition of tables, relationships, constraints, and demo data |
@@ -1228,4 +1228,5 @@ npm.cmd --prefix frontend run dev
 ```
 
 Then open `http://localhost:5173`.
+
 
