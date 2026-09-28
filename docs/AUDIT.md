@@ -1,87 +1,237 @@
-﻿# Project assessment — 23 September 2026
+# Audit Teknis dan Roadmap
 
-## Assessment
+**Judul Capstone Project:** Sistem Informasi Inventory untuk Usaha Mikro Retail (Studi Kasus: Warung Kelontong)
 
-I chose the stack well suited to a five-person college capstone. Keep React + Vite, Tailwind v4, Express 5, node-postgres, and PostgreSQL. The original deliverable was a working database-to-table proof of concept, not yet a POS. No framework replacement, microservices, Redis, or ORM is needed to complete it.
+**Terakhir diperbarui:** 28 September 2026
 
-## Audit findings and disposition
+Dokumen ini mencatat penilaian teknis, perbaikan yang sudah diterapkan, batasan, dan rekomendasi WADIMOR. Dokumen ini bukan sertifikasi keamanan atau jaminan kesiapan production.
 
-| Priority | Finding | Disposition |
+[Baca versi bahasa Inggris](#english-version)
+
+## Ringkasan penilaian
+
+React + Vite, Tailwind CSS, Express, node-postgres, dan PostgreSQL sesuai untuk proyek capstone lima orang. Stack ini cukup sederhana untuk dipelajari, mendukung transaksi database yang aman, dan tidak memerlukan microservices, Redis, ORM, atau penggantian framework untuk scope saat ini.
+
+Prototype awal sudah berkembang menjadi aplikasi inventory dan POS lokal dengan authentication, katalog, checkout, receipt, history, dan analytics. Struktur source perlu dipecah sebelum fitur besar berikutnya ditambahkan.
+
+## Temuan dan penyelesaian
+
+| Priority | Temuan | Status |
 |---|---|---|
-| High | Startup pool.connect() never released its client | Removed; pool.query() acquires/releases connections automatically. Added connection/query limits and idle error handling. |
-| High | SQL bootstrap dropped all five tables | Replaced with transactional, empty-database-only bootstrap. Existing tables now cause failure instead of deletion. |
-| High | Seeded user passwords stored in plaintext | Removed user seeds from bootstrap. Existing plaintext demo passwords disabled via migration 003; admin_w was provisioned with a scrypt hash. |
-| High | No authentication or backend role enforcement | Added separate Admin/Customer login endpoints, server-side role checks, PostgreSQL sessions, and Admin-only analytics. |
-| High | No constraints against negative prices/stock, invalid quantities, orphan detail rows, or inconsistent detail subtotals | Revised bootstrap plus separately prepared migration. Migration 001 was applied to the backed-up local database. |
-| Medium | Failed HTTP response could become products state and crash .map() | Added HTTP and payload checks, error UI, retry, timeout, and request cleanup. |
-| Medium | Hardcoded browser localhost:5000 | Relative /api with Vite proxy. Production needs equivalent reverse proxy. |
-| Medium | Status claimed success even when DB was unavailable | Readiness now queries PostgreSQL and returns 503 when unavailable. |
-| Medium | Unrestricted CORS, default Express errors, no JSON size bound | Origin allowlist, JSON errors, 32 KB body limit, x-powered-by disabled. CORS is not access control. |
-| Medium | Docker DB published on all interfaces with literal default credentials | Compose configured for localhost and external env. Running container unchanged pending recreation. Current credentials still need rotation before deployment. |
-| Medium | No graceful shutdown | SIGINT/SIGTERM close HTTP and pool with a 15-second upper bound. |
-| Medium | No root ignore rules or environment template | Added root .gitignore and redacted .env.example. No Git repository exists at project root; initialize version control before collaboration. |
-| Low | Backend main pointed to nonexistent entry and no start/test scripts | Corrected entry; added production start and Node test runner scripts. |
-| Low | Tailwind v3-style config unused by v4, redundant Autoprefixer | Removed unused config and Autoprefixer package/plugin; kept working v4 PostCSS setup. |
-| Low | Vite title/favicon and unused starter styling | Branded title/favicon, replaced App.css, Indonesian document language. Unused source artwork remains harmless; it is not imported into the bundle. |
+| High | Client `pool.connect()` saat startup tidak dilepas | Selesai: koneksi dikelola pool dengan connection/query timeout dan idle error handling. |
+| High | Bootstrap SQL lama menghapus tabel | Selesai: bootstrap baru transactional dan hanya untuk database kosong; tabel lama menyebabkan kegagalan, bukan penghapusan. |
+| High | Password demo disimpan sebagai plaintext | Selesai: user seed dihapus, migration `003` menonaktifkan password lama, dan akun baru memakai hash `scrypt`. |
+| High | Tidak ada authentication dan role enforcement backend | Selesai untuk scope lokal: login terpisah, role check server, session PostgreSQL, dan analytics khusus Admin. |
+| High | Constraint data penting belum tersedia | Selesai: constraint harga, stok, jumlah, subtotal, foreign key, dan index utama ditambahkan. |
+| High | Checkout berisiko menyimpan data parsial | Selesai untuk alur utama: checkout menggunakan transaction, row lock, harga server, dan rollback. |
+| Medium | Respons HTTP gagal dapat diperlakukan sebagai data produk | Selesai: status/payload check, error UI, retry, timeout, dan cleanup ditambahkan. |
+| Medium | URL API browser di-hard-code | Selesai untuk development: frontend memakai `/api` relatif dan Vite proxy. Production memerlukan reverse proxy. |
+| Medium | Endpoint status sukses ketika database mati | Selesai: readiness melakukan query PostgreSQL dan mengembalikan `503` saat database tidak tersedia. |
+| Medium | CORS luas, error default, dan body tanpa batas kecil | Selesai: origin allowlist, JSON error, batas 32 KB, dan `x-powered-by` dinonaktifkan. |
+| Medium | Database Docker terbuka ke semua interface | Selesai untuk setup baru: port terikat ke `127.0.0.1` dan credential berasal dari `.env`. |
+| Medium | Tidak ada graceful shutdown | Selesai: `SIGINT` dan `SIGTERM` menutup HTTP server dan pool dengan batas 15 detik. |
+| Medium | Root ignore dan environment template belum tersedia | Selesai: `.gitignore` dan `backend/.env.example` tersedia. |
+| Low | Entry backend dan npm scripts belum lengkap | Selesai: script development, production, test, dan setup Admin tersedia. |
+| Low | Konfigurasi Tailwind lama tidak digunakan | Selesai: konfigurasi lama dan Autoprefixer berlebih dihapus. |
+| Low | Branding Vite dan starter styling tersisa | Sebagian besar selesai; asset starter yang tidak di-import masih dapat dibersihkan. |
 
-## Structure
+## Struktur teknis
 
-- backend/src/index.js: environment, connection pool, HTTP lifecycle.
-- backend/src/app.js: injectable Express application, authentication routes, and SQL analytics.
-- backend/src/auth.js: password hashing, PostgreSQL-backed sessions, role/CSRF checks, and login limits.
-- backend/test/app.test.js: five API regression tests using Node's built-in runner.
-- backend/schema.sql: safe bootstrap for new databases.
-- backend/migrations/001_integrity.sql: one-time migration for original databases.
-- backend/migrations/002_sessions.sql and 003_reset_legacy_passwords.sql: session storage and removal of original plaintext demo passwords.
-- backend/scripts/create-admin.js: local admin provisioning and password rotation.
-- frontend/src/App.jsx: separate sign-in pages, Admin dashboard/inventory/reports, in-store customer basket, printable receipts, and transaction history.
-- frontend/src/App.css: responsive visual system; index.css imports Tailwind v4.
-- docker-compose.yml: local PostgreSQL service and persistent volume.
+| Lokasi | Tanggung jawab |
+|---|---|
+| `backend/src/index.js` | Environment, PostgreSQL pool, HTTP lifecycle, graceful shutdown |
+| `backend/src/app.js` | Express app, authentication, produk, checkout, history, dan report endpoint |
+| `backend/src/auth.js` | Password hashing, session, role/CSRF check, dan login limit |
+| `backend/test/app.test.js` | API regression test dengan Node test runner |
+| `backend/schema.sql` | Bootstrap aman hanya untuk database baru dan kosong |
+| `backend/migrations/` | Perubahan berurutan untuk database lama |
+| `backend/scripts/create-admin.js` | Provisioning dan rotasi password Admin lokal |
+| `frontend/src/App.jsx` | Halaman dan alur Admin/Customer saat ini |
+| `frontend/src/App.css` | Styling aplikasi yang responsive |
+| `docker-compose.yml` | PostgreSQL lokal, health check, port, dan persistent volume |
 
-As features grow, split frontend into pages, components, hooks, and API helpers; split backend into routes, services, validation, and repositories. The application now has several flows in App.jsx; extract pages, components, and API hooks before extending checkout, product editing, or reports.
+`frontend/src/App.jsx` menangani terlalu banyak flow. Sebelum menambah CRUD produk, stock adjustment, reset password, atau kasir, pecah frontend menjadi pages, components, hooks, dan API helpers. Backend sebaiknya dipisah menjadi routes, services, validation, dan repositories.
 
-## Stack and performance
+## Performa dan skalabilitas
 
-React/Vite is appropriate for an interactive POS where server-rendered SEO is not the primary requirement. Tailwind v4 is valid through the existing PostCSS integration; it already handles vendor prefixing. Express and pg are sufficient for transactional CRUD. PostgreSQL supplies exact NUMERIC values, constraints, transactions, and row locking. Docker makes the database repeatable; persist data and test restoration, not just container startup.
+React/Vite sesuai untuk aplikasi interaktif yang tidak berfokus pada SEO server-rendered. Express dan `pg` cukup untuk transactional CRUD. PostgreSQL menyediakan `NUMERIC`, constraint, transaction, dan row locking yang diperlukan sistem inventory.
 
-No performance load test was performed. Six catalog rows do not establish production capacity. The API still returns the full catalog and filtering is client-side: fine for this demo, but add parameterized server-side search/category/stock filters and bounded pagination before large inventories. Do not silently cap the existing array response, because summaries would become misleading. Prefer an explicit paginated response contract with separate counts/aggregates. Debounce search only when it starts making network requests.
+Belum ada load test. Enam produk demo tidak membuktikan kapasitas production. API catalog masih mengembalikan seluruh produk dan filter dijalankan di browser. Katalog besar memerlukan search/filter server-side, bounded pagination, dan aggregate terpisah.
 
-Use backend SQL aggregates for charts instead of downloading transaction histories. Preserve numeric precision in checkout: use integer minor units or a decimal library; frontend totals are estimates. Current display rounds to whole Rupiah; decide whether fractional prices are permitted. The unpaid basket is memory-only and resets on reload. Completed checkout locks product rows, calculates prices from the database, stores cost snapshots, and decrements stock atomically.
+Jangan membatasi array secara diam-diam karena ringkasan inventory dapat salah. Ubah kontrak API secara eksplisit jika pagination ditambahkan. Gunakan aggregate SQL untuk chart dan laporan.
 
-Installed Node was v22.20.0. Keep the team on a patched supported LTS release. Keep lockfiles and use npm ci. Neither package audit reported known vulnerabilities at audit time; this is not proof of application security.
+Harga ditampilkan dalam Rupiah tanpa pecahan, sedangkan database memakai `NUMERIC(..., 2)`. Tim perlu memutuskan apakah pecahan harga diperbolehkan. Untuk kalkulasi kompleks, gunakan integer minor units atau decimal library.
 
-## Feature and data-model gaps
+## Authentication dan security
 
-1. Decide cashier/admin/customer permissions. transactions.user_id currently ambiguously means cashier or buyer. Use separate cashier_id and nullable customer_id if both need attribution.
-2. Authentication now has scrypt hashes, server-side sessions, role middleware, login limits, SameSite/HttpOnly cookies, origin checks, and CSRF protection for logout. Add account recovery, customer password reset, session management, stronger distributed rate limiting, and deployment hardening before public access.
-3. Product/category CRUD with input validation, SKU/barcode uniqueness, archive flags, and stock movement records (actor, reason, quantity, time). Audit adjustments instead of silently overwriting stock.
-4. Atomic checkout is implemented with a checked-out pg client, consistent product ordering, row locks, server-calculated prices, transaction details, and rollback. Add an idempotency key to prevent double submission and concurrency integration tests.
-5. Persist receipt identifiers, payment state, tender/change for cash, and product-name/SKU snapshots on receipt details. Add refunds/cancellations deliberately. Header/detail totals are not automatically reconciled by current SQL checks; checkout must enforce this transactionally.
-6. Admin analytics, transaction history, and period reports use real checkout data. Product cost and cost-at-transaction snapshots support gross-profit estimates. Define the Asia/Jakarta reporting boundary, refunds, discounts, operating costs, and the exact difference between gross profit and net profit.
-7. Existing timestamps lack timezone. New bootstrap uses TIMESTAMPTZ, but the existing migration leaves them alone: establish how old timestamps were recorded before converting. Product updated_at now has a trigger in bootstrap/migration.
-8. Add integration tests for concurrent last-item purchases, duplicate checkout, rollback on failure, role access, and stock adjustment history. Add browser tests for cart and retry behavior.
+Kontrol saat ini mencakup hash `scrypt`, session server-side, cookie `HttpOnly` dan `SameSite=Strict`, role middleware, origin check, CSRF token untuk logout, dan pembatasan login per IP dalam memory.
 
-Use Zod (or equivalent) for more complex request bodies, React Router when navigation expands, and a chart library if analytics grows beyond the current accessible seven-day chart and table. TanStack Query and React Hook Form may help as caching, mutations, and forms grow. These are scoped recommendations, not installed dependencies.
+Sebelum akses publik, tambahkan:
 
-## Verification and limits
+- HTTPS dan cookie `Secure`.
+- Same-origin reverse proxy untuk `/api`.
+- Secret management dan rotasi credential.
+- Password reset/recovery dan session management.
+- Rate limiting terdistribusi jika server lebih dari satu.
+- Security headers, logging aman, monitoring, dan alerting.
+- Backup terenkripsi dan restore drill.
+- Dependency update policy dan security review berkala.
 
-- Frontend ESLint and Vite production build passed. Initial measured application JS: approximately 230 KB / 72 KB gzip; CSS approximately 16 KB / 4 KB gzip.
-- Five API tests passed: readiness, customer registration and role boundaries, Admin analytics, session revocation/CSRF, and rejection of plaintext passwords.
-- Both npm audits returned zero known vulnerabilities.
-- Live Admin login, analytics, and logout through the Vite proxy worked. Analytics returned six products, 388 units, one low-stock item, and zero transactions/revenue.
-- Process inspection showed two npm wrappers, one nodemon watcher and its one backend child, and one Vite process. Listeners were backend 5000 and frontend 5173. No duplicate server or zombie evidence; no user processes were killed.
-- PostgreSQL retained six products and two users. A backup is saved in the ignored backups folder; the three migrations were applied.
-- The original bootstrap and integrity migration were first validated in isolated schemas and rolled back. Integrity, sessions, and legacy-password migrations were then applied to the backed-up live database.
-- Chrome headless rendering verified the desktop access-choice page after session initialization. Its minimum viewport is 500 px here, so a requested 390 px screenshot was cropped rather than a true mobile emulation. The 500 px page rendered fully after narrowing the grid/card CSS. Admin/Customer pages and smaller mobile interaction still need the manual acceptance checks in UI-UX.md.
+`CORS` bukan authentication. Keputusan role harus selalu dibuat oleh server.
 
-## References
+## Gap data model dan fitur
 
-- [node-postgres pooling](https://node-postgres.com/features/pooling): release checked-out clients; pool.query handles simple queries.
-- [Tailwind v4 upgrade guide](https://tailwindcss.com/docs/upgrade-guide): v4 configuration and built-in prefixing.
-- [Express security practices](https://expressjs.com/en/advanced/best-practice-security.html): authentication-related security and deployment hardening.
-- [OWASP session guidance](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html): HttpOnly and SameSite cookie design.
-- [OWASP CSRF guidance](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html): CSRF token defense.
-- [PostgreSQL row locking](https://www.postgresql.org/docs/17/explicit-locking.html): concurrent inventory checkout design.
-- [Vite deployment](https://vite.dev/guide/static-deploy): static hosting and preview limitations.
-- [Node.js releases](https://nodejs.org/en/about/previous-releases): supported runtime selection.
+1. Pisahkan `cashier_id` dan `customer_id` jika staf memproses transaksi Customer.
+2. Tambahkan validasi produk, SKU/barcode unik, archive flag, dan stock movement log.
+3. Tambahkan idempotency key agar retry atau double click tidak membuat transaksi ganda.
+4. Simpan nomor struk, payment status, uang diterima/kembalian, dan snapshot nama/SKU produk.
+5. Definisikan refund dan cancellation sebelum implementasi; semua perubahan harus dapat diaudit.
+6. Definisikan gross profit, net profit, diskon, refund, biaya operasional, dan batas `Asia/Jakarta`.
+7. Teliti timestamp database lama sebelum mengubahnya menjadi `TIMESTAMPTZ`.
+8. Tambahkan test concurrent last-item, duplicate checkout, rollback, stock adjustment, role access, dan browser end-to-end.
 
+Zod atau validator sejenis dapat membantu request body kompleks. React Router, TanStack Query, React Hook Form, dan chart library dapat dipertimbangkan saat kebutuhan nyata muncul.
+
+## Verifikasi yang sudah dilakukan
+
+- Frontend ESLint dan production build berhasil pada audit awal.
+- Tujuh API regression test mencakup readiness, registration/role boundary, analytics, session/CSRF, checkout, laporan laba, serta penolakan password plaintext dan bad request.
+- Kedua npm audit tidak melaporkan advisory yang diketahui pada waktu audit; hasil ini bukan bukti keamanan aplikasi.
+- Login Admin, analytics, dan logout melalui Vite proxy berhasil.
+- Data awal menghasilkan enam produk, 388 unit, satu produk menipis, serta nol transaksi dan pendapatan.
+- Bootstrap dan migration integrity diuji dalam schema terisolasi sebelum diterapkan pada database backup.
+- Rendering desktop diperiksa; acceptance manual penuh untuk role, mobile interaction, dan viewport tetap diperlukan.
+
+Hasil verifikasi adalah snapshot pada waktu audit. Jalankan kembali test, lint, build, dan dependency audit setelah perubahan relevan.
+
+## Referensi teknis
+
+- [node-postgres pooling](https://node-postgres.com/features/pooling)
+- [Tailwind CSS upgrade guide](https://tailwindcss.com/docs/upgrade-guide)
+- [Express production security](https://expressjs.com/en/advanced/best-practice-security.html)
+- [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
+- [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+- [PostgreSQL explicit locking](https://www.postgresql.org/docs/current/explicit-locking.html)
+- [Vite static deployment](https://vite.dev/guide/static-deploy)
+- [Node.js releases](https://nodejs.org/en/about/previous-releases)
+
+---
+
+<a id="english-version"></a>
+
+# Technical Audit and Roadmap — English Version
+
+**Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
+
+**Last updated:** 28 September 2026
+
+This document records WADIMOR's technical assessment, completed improvements, limitations, and recommendations. It is not a security certification or a production-readiness guarantee.
+
+[Read the Indonesian version](#audit-teknis-dan-roadmap)
+
+## Assessment summary
+
+React + Vite, Tailwind CSS, Express, node-postgres, and PostgreSQL fit a five-person capstone. The stack is learnable, supports safe database transactions, and does not require microservices, Redis, an ORM, or a framework replacement for the current scope.
+
+The original prototype has grown into a local inventory and POS application with authentication, catalog, checkout, receipts, history, and analytics. The source structure should be split before major additions.
+
+## Findings and disposition
+
+| Priority | Finding | Status |
+|---|---|---|
+| High | Startup `pool.connect()` client was not released | Completed: pool-managed connections now include connection/query timeouts and idle error handling. |
+| High | Old SQL bootstrap dropped tables | Completed: the new transactional bootstrap is for empty databases; existing tables cause failure instead of deletion. |
+| High | Demo passwords were plaintext | Completed: user seeds were removed, migration `003` disables legacy passwords, and new accounts use `scrypt`. |
+| High | No backend authentication or role enforcement | Completed for local scope: separate login, server role checks, PostgreSQL sessions, and Admin-only analytics. |
+| High | Important constraints were missing | Completed: price, stock, quantity, subtotal, foreign key, and index protections were added. |
+| High | Checkout could save partial data | Completed for the main flow: checkout uses transactions, row locks, server prices, and rollback. |
+| Medium | Failed HTTP responses could become product data | Completed: status/payload checks, error UI, retry, timeout, and cleanup were added. |
+| Medium | Browser API URL was hard-coded | Completed for development: relative `/api` and Vite proxy. Production needs a reverse proxy. |
+| Medium | Status succeeded when the database was down | Completed: readiness queries PostgreSQL and returns `503` when unavailable. |
+| Medium | Broad CORS, default errors, and no small body limit | Completed: origin allowlist, JSON errors, 32 KB limit, and disabled `x-powered-by`. |
+| Medium | Docker database exposed all interfaces | Completed for new setups: localhost binding and `.env` credentials. |
+| Medium | No graceful shutdown | Completed: `SIGINT` and `SIGTERM` close the server and pool within 15 seconds. |
+| Medium | Root ignore and environment template missing | Completed: `.gitignore` and `backend/.env.example` are present. |
+| Low | Backend entry and npm scripts incomplete | Completed: development, production, test, and Admin setup scripts are available. |
+| Low | Legacy Tailwind configuration unused | Completed: legacy configuration and redundant Autoprefixer were removed. |
+| Low | Vite branding and starter styling remained | Mostly completed; unimported starter assets may still be cleaned up. |
+
+## Technical structure
+
+| Location | Responsibility |
+|---|---|
+| `backend/src/index.js` | Environment, PostgreSQL pool, HTTP lifecycle, graceful shutdown |
+| `backend/src/app.js` | Express app, authentication, product, checkout, history, and report endpoints |
+| `backend/src/auth.js` | Password hashing, sessions, role/CSRF checks, and login limits |
+| `backend/test/app.test.js` | API regression tests with Node's test runner |
+| `backend/schema.sql` | Safe bootstrap for a new, empty database only |
+| `backend/migrations/` | Ordered changes for existing databases |
+| `backend/scripts/create-admin.js` | Local Admin provisioning and password rotation |
+| `frontend/src/App.jsx` | Current Admin and Customer pages and flows |
+| `frontend/src/App.css` | Responsive application styling |
+| `docker-compose.yml` | Local PostgreSQL, health check, port, and persistent volume |
+
+`frontend/src/App.jsx` handles too many flows. Before product CRUD, stock adjustment, password reset, or cashier features, split the frontend into pages, components, hooks, and API helpers. Split the backend into routes, services, validation, and repositories.
+
+## Performance and scalability
+
+React/Vite fits an interactive application without server-rendered SEO requirements. Express and `pg` are sufficient for transactional CRUD. PostgreSQL provides the `NUMERIC` values, constraints, transactions, and row locking needed by inventory management.
+
+No load test has been performed. Six demo products do not establish production capacity. The catalog API returns all products and filters in the browser. A larger catalog requires server-side search/filtering, bounded pagination, and separate aggregates.
+
+Do not silently cap arrays because inventory summaries may become incorrect. Change the API contract explicitly for pagination. Use SQL aggregates for charts and reports.
+
+Prices display as whole Rupiah while the database uses `NUMERIC(..., 2)`. The team should decide whether fractional prices are allowed. Use integer minor units or a decimal library for complex calculations.
+
+## Authentication and security
+
+Current controls include `scrypt`, server-side sessions, `HttpOnly` and `SameSite=Strict` cookies, role middleware, origin checks, a logout CSRF token, and in-memory per-IP login limits.
+
+Before public access, add:
+
+- HTTPS and `Secure` cookies.
+- A same-origin `/api` reverse proxy.
+- Secret management and credential rotation.
+- Password reset/recovery and session management.
+- Distributed rate limiting for multiple server instances.
+- Security headers, safe logging, monitoring, and alerting.
+- Encrypted backups and restore drills.
+- A dependency update policy and regular security review.
+
+`CORS` is not authentication. Role decisions must remain server-side.
+
+## Data-model and feature gaps
+
+1. Separate `cashier_id` and `customer_id` when staff process Customer sales.
+2. Add product validation, unique SKU/barcode, archive flags, and stock movement logs.
+3. Add an idempotency key so retries or double clicks cannot duplicate transactions.
+4. Store receipt identifiers, payment status, tender/change, and product name/SKU snapshots.
+5. Define refunds and cancellation before implementation; every change must be auditable.
+6. Define gross profit, net profit, discounts, refunds, operating costs, and `Asia/Jakarta` boundaries.
+7. Investigate legacy timestamps before converting them to `TIMESTAMPTZ`.
+8. Add concurrent last-item, duplicate-checkout, rollback, stock-adjustment, role-access, and browser end-to-end tests.
+
+Zod or a similar validator can help with complex request bodies. React Router, TanStack Query, React Hook Form, and a chart library may be considered when concrete needs appear.
+
+## Completed verification
+
+- Frontend ESLint and production build passed during the initial audit.
+- Seven API regression tests cover readiness, registration/role boundaries, analytics, session/CSRF, checkout, profit reports, and rejection of plaintext passwords and bad requests.
+- Both npm audits reported no known advisories at audit time; this is not proof of application security.
+- Admin login, analytics, and logout through the Vite proxy worked.
+- Initial data produced six products, 388 units, one low-stock product, and zero transactions and revenue.
+- Bootstrap and integrity migrations were tested in isolated schemas before application to a backed-up database.
+- Desktop rendering was checked; full role, mobile-interaction, and viewport acceptance testing remains necessary.
+
+Verification results are snapshots from the audit date. Rerun tests, lint, build, and dependency audits after relevant changes.
+
+## Technical references
+
+- [node-postgres pooling](https://node-postgres.com/features/pooling)
+- [Tailwind CSS upgrade guide](https://tailwindcss.com/docs/upgrade-guide)
+- [Express production security](https://expressjs.com/en/advanced/best-practice-security.html)
+- [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
+- [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+- [PostgreSQL explicit locking](https://www.postgresql.org/docs/current/explicit-locking.html)
+- [Vite static deployment](https://vite.dev/guide/static-deploy)
+- [Node.js releases](https://nodejs.org/en/about/previous-releases)
