@@ -119,7 +119,7 @@ Hasil verifikasi adalah snapshot pada waktu audit. Jalankan kembali test, lint, 
 
 <a id="english-version"></a>
 
-# Technical Audit and Roadmap â€” English Version
+# Technical Audit and Roadmap — English Version
 
 **Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
@@ -235,5 +235,7 @@ Verification results are snapshots from the audit date. Rerun tests, lint, build
 - [PostgreSQL explicit locking](https://www.postgresql.org/docs/current/explicit-locking.html)
 - [Vite static deployment](https://vite.dev/guide/static-deploy)
 - [Node.js releases](https://nodejs.org/en/about/previous-releases)
+
+
 
 

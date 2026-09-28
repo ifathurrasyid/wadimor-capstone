@@ -126,7 +126,7 @@ Catatan bug minimal berisi browser, viewport, langkah reproduksi, hasil yang dih
 
 | Role | Output terdekat |
 |---|---|
-| Coordinator | Milestone: inventori write â†’ checkout hardening â†’ history/report â†’ acceptance/presentation |
+| Coordinator | Milestone: inventori write → checkout hardening → history/report → acceptance/presentation |
 | Analyst | Permission matrix, aturan checkout/refund, istilah laporan, ERD, dan perbedaan Customer/Kasir |
 | Designer | Component library serta happy/error/empty/loading state untuk seluruh flow |
 | Developer | Satu vertical feature lengkap dan diuji pada satu waktu; migration selalu versioned |
@@ -136,7 +136,7 @@ Catatan bug minimal berisi browser, viewport, langkah reproduksi, hasil yang dih
 
 <a id="english-version"></a>
 
-# UI/UX Guide and Team Handoff â€” English Version
+# UI/UX Guide and Team Handoff — English Version
 
 **Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
@@ -264,10 +264,12 @@ A bug report should include browser, viewport, reproduction steps, expected resu
 
 | Role | Immediate output |
 |---|---|
-| Coordinator | Milestones: Inventory write â†’ checkout hardening â†’ history/report â†’ acceptance/presentation |
+| Coordinator | Milestones: Inventory write → checkout hardening → history/report → acceptance/presentation |
 | Analyst | Permission matrix, checkout/refund rules, reporting terms, ERD, and Customer/Cashier distinction |
 | Designer | Component library and happy/error/empty/loading states for every flow |
 | Developer | One complete, tested vertical feature at a time; all migrations versioned |
 | Tester/Documentation | Acceptance runs, role/concurrency cases, bug evidence, and real screenshots |
+
+
 
 

@@ -321,3 +321,5 @@ Do not use `git reset --hard` to resolve conflicts because it can erase uncommit
 Adding contributors is not enough. In GitHub, open **Settings -> Branches -> Add branch ruleset/rule** for main and enable required pull requests, at least one approval, passing status checks, blocked force pushes, and restricted direct pushes. Contributors need repository **Write** access, then they push feature branches and open pull requests.
 
 
+
+

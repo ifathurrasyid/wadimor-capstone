@@ -85,12 +85,12 @@ Semua perintah harus dijalankan dari folder utama `wadimor-capstone`. Dokumentas
 
 ## Dokumentasi
 
-- [Panduan setup](docs/SETUP-GUIDE.md) â€” instalasi yang sangat rinci untuk pemula.
-- [Panduan kolaborasi](docs/COLLABORATING.md) â€” branch, commit, push, dan pull request.
-- [Rencana fitur](docs/FEATURE-PLAN.md) â€” status fitur, keputusan produk, dan urutan pengembangan.
-- [Panduan UI/UX](docs/UI-UX.md) â€” sistem desain, handoff, dan acceptance checklist.
-- [Audit teknis](docs/AUDIT.md) â€” temuan teknis, batasan, dan rekomendasi.
-- [Catatan frontend](frontend/README.md) â€” ringkasan khusus aplikasi React.
+- [Panduan setup](docs/SETUP-GUIDE.md) — instalasi yang sangat rinci untuk pemula.
+- [Panduan kolaborasi](docs/COLLABORATING.md) — branch, commit, push, dan pull request.
+- [Rencana fitur](docs/FEATURE-PLAN.md) — status fitur, keputusan produk, dan urutan pengembangan.
+- [Panduan UI/UX](docs/UI-UX.md) — sistem desain, handoff, dan acceptance checklist.
+- [Audit teknis](docs/AUDIT.md) — temuan teknis, batasan, dan rekomendasi.
+- [Catatan frontend](frontend/README.md) — ringkasan khusus aplikasi React.
 
 ## Catatan keamanan dan data
 
@@ -108,7 +108,7 @@ WADIMOR masih merupakan proyek capstone yang berjalan secara lokal, bukan layana
 
 <a id="english-version"></a>
 
-# WADIMOR â€” English Version
+# WADIMOR — English Version
 
 **Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
@@ -195,12 +195,12 @@ Run all commands from the main `wadimor-capstone` folder. The documentation uses
 
 ## Documentation
 
-- [Setup guide](docs/SETUP-GUIDE.md#english-version) â€” highly detailed installation instructions for beginners.
-- [Collaboration guide](docs/COLLABORATING.md#english-version) â€” branches, commits, pushes, and pull requests.
-- [Feature plan](docs/FEATURE-PLAN.md#english-version) â€” feature status, product decisions, and development order.
-- [UI/UX guide](docs/UI-UX.md#english-version) â€” design system, handoff, and acceptance checklist.
-- [Technical audit](docs/AUDIT.md#english-version) â€” technical findings, limitations, and recommendations.
-- [Frontend notes](frontend/README.md#english-version) â€” notes specific to the React application.
+- [Setup guide](docs/SETUP-GUIDE.md#english-version) — highly detailed installation instructions for beginners.
+- [Collaboration guide](docs/COLLABORATING.md#english-version) — branches, commits, pushes, and pull requests.
+- [Feature plan](docs/FEATURE-PLAN.md#english-version) — feature status, product decisions, and development order.
+- [UI/UX guide](docs/UI-UX.md#english-version) — design system, handoff, and acceptance checklist.
+- [Technical audit](docs/AUDIT.md#english-version) — technical findings, limitations, and recommendations.
+- [Frontend notes](frontend/README.md#english-version) — notes specific to the React application.
 
 ## Security and data notes
 
@@ -213,5 +213,7 @@ Run all commands from the main `wadimor-capstone` folder. The documentation uses
 ## Project status
 
 WADIMOR remains a locally run capstone project, not a production service. Public deployment requires HTTPS, a same-origin `/api` reverse proxy, secret management, tested backups, and additional hardening.
+
+
 
 

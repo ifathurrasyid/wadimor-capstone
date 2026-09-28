@@ -31,7 +31,7 @@ WADIMOR tetap digunakan sebagai nama aplikasi. Scope sistem mencakup pengelolaan
 - Laba kotor: pendapatan dikurangi harga modal barang.
 - Laba bersih: laba setelah harga modal dan biaya operasional lain.
 
-Jangan menampilkan label â€œlaba bersihâ€ jika sistem hanya mengurangi harga modal produk.
+Jangan menampilkan label “laba bersih” jika sistem hanya mengurangi harga modal produk.
 
 ### 3. Simpan riwayat harga modal
 
@@ -70,7 +70,7 @@ Simpan URL atau path gambar dan tampilkan placeholder ketika kosong. Jika upload
 
 ## Target demo capstone
 
-Alur demo yang kuat adalah: Admin login â†’ Admin menambah atau menyesuaikan stok dengan alasan â†’ Customer memilih produk â†’ checkout berhasil tepat satu kali â†’ stok berkurang â†’ struk tampil di riwayat â†’ dashboard dan laporan ikut berubah.
+Alur demo yang kuat adalah: Admin login → Admin menambah atau menyesuaikan stok dengan alasan → Customer memilih produk → checkout berhasil tepat satu kali → stok berkurang → struk tampil di riwayat → dashboard dan laporan ikut berubah.
 
 Satu alur lengkap dan dapat diuji lebih bernilai daripada banyak menu yang belum terhubung ke database.
 
@@ -78,7 +78,7 @@ Satu alur lengkap dan dapat diuji lebih bernilai daripada banyak menu yang belum
 
 <a id="english-version"></a>
 
-# WADIMOR Feature Plan â€” English Version
+# WADIMOR Feature Plan — English Version
 
 **Approved Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
@@ -111,7 +111,7 @@ WADIMOR remains the application name. The system scope includes Inventory manage
 - Gross profit: revenue minus cost of goods sold.
 - Net profit: profit after product cost and other operating expenses.
 
-Do not display â€œnet profitâ€ when the system only subtracts product cost.
+Do not display “net profit” when the system only subtracts product cost.
 
 ### 3. Preserve cost history
 
@@ -150,8 +150,11 @@ Store an image URL or path and show a placeholder when empty. If uploads are imp
 
 ## Capstone demo target
 
-A strong demonstration is: Admin signs in â†’ Admin adds or adjusts stock with a reason â†’ Customer selects products â†’ checkout succeeds exactly once â†’ stock decreases â†’ the receipt appears in history â†’ dashboard and reports update.
+A strong demonstration is: Admin signs in → Admin adds or adjusts stock with a reason → Customer selects products → checkout succeeds exactly once → stock decreases → the receipt appears in history → dashboard and reports update.
 
 One complete, testable workflow is more valuable than many screens that are not connected to the database.
+
+
+
 
 
