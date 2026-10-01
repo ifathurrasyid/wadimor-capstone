@@ -195,6 +195,9 @@ Run all commands from the main `wadimor-capstone` folder. The documentation uses
 
 ## Documentation
 
+- [Pitch deck sederhana](docs/PITCH-DECK.md)
+- [Konstruksi dan infrastruktur sistem](docs/SYSTEM-ARCHITECTURE.md)
+
 - [Setup guide](docs/SETUP-GUIDE.md#english-version) — highly detailed installation instructions for beginners.
 - [Collaboration guide](docs/COLLABORATING.md#english-version) — branches, commits, pushes, and pull requests.
 - [Feature plan](docs/FEATURE-PLAN.md#english-version) — feature status, product decisions, and development order.
@@ -213,6 +216,7 @@ Run all commands from the main `wadimor-capstone` folder. The documentation uses
 ## Project status
 
 WADIMOR remains a locally run capstone project, not a production service. Public deployment requires HTTPS, a same-origin `/api` reverse proxy, secret management, tested backups, and additional hardening.
+
 
 
 
