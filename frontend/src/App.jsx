@@ -1,49 +1,13 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+﻿import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import './App.css'
-
-// ─── Store Logo Component (Using Uploaded Official Wadimor Logo) ───────────
-function WadimorStoreLogo({ size = 64, className = "" }) {
-  return (
-    <img
-      src="/wadimor-logo.png"
-      alt="Wadimor Logo"
-      style={{ width: size, height: 'auto', maxHeight: size }}
-      className={`wadimor-logo-img ${className}`}
-    />
-  )
-}
-
-function GoogleIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24">
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
-    </svg>
-  )
-}
-
-// Product thumbnail images dictionary
-const PRODUCT_THUMBNAILS = {
-  'Telur Ayam': 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&q=80&w=120',
-  'Minyak Goreng': 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&q=80&w=120',
-  'Minyak Goreng Bimoli 2L': 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&q=80&w=120',
-  'Indomie Goreng': 'https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&q=80&w=120',
-  'Susu Ultra': 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=120',
-  'Beras Sania 5kg': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=120',
-  'Le Minerale 600ml': 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&q=80&w=120',
-  'Kopi Good Day Moccacino': 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&q=80&w=120',
-  'Tango Coklat': 'https://images.unsplash.com/photo-1582293041079-7814c2f12063?auto=format&fit=crop&q=80&w=120'
-}
 
 // ─── i18n ──────────────────────────────────────────────────────────────────
 const LANGS = {
   id: {
     brand: 'Warung Digital Modern',
-    welcome: 'Selamat Datang di Wadimor',
+    welcome: 'SELAMAT DATANG DI WADIMOR',
     tagline: 'Satu warung, dua ruang yang tepat.',
-    taglineSub: 'Pengelolaan untuk admin. Pengalaman belanja mudah untuk pelanggan.',
+    taglineSub: 'Pengelolaan untuk admin. Pengalaman belanja sederhana untuk pelanggan.',
     taglineFooter: 'Kelola dengan jelas. Belanja dengan mudah.',
     chooseAccess: 'PILIH AKSES',
     enterYourSpace: 'Masuk ke ruang Anda',
@@ -51,34 +15,33 @@ const LANGS = {
     adminWarung: 'Admin warung',
     adminWarungDesc: 'Dasbor analitik dan manajemen toko',
     customer: 'Pelanggan',
-    customerDesc: 'Katalog belanja & riwayat pesanan',
+    customerDesc: 'Kasir digital & riwayat transaksi',
     adminSpace: 'RUANG ADMIN',
     customerSpace: 'RUANG PELANGGAN',
     adminLogin: 'Masuk sebagai admin',
     customerLogin: 'Masuk sebagai pelanggan',
     createAccount: 'Buat akun pelanggan',
-    registerDesc: 'Daftar untuk mulai berbelanja di warung online.',
+    registerDesc: 'Daftar untuk menggunakan kasir digital.',
     loginDesc: 'Masukkan akun Anda untuk melanjutkan.',
-    username: 'Email / Nama pengguna',
-    password: 'Password',
+    username: 'Nama pengguna',
+    password: 'Kata sandi',
     passwordMin: 'minimal 4 karakter',
     processing: 'Memproses…',
     create: 'Buat akun',
-    enter: 'Log in',
+    enter: 'Masuk',
     alreadyHaveAccount: 'Sudah punya akun?',
-    noAccount: "Don't have an account?",
-    registerLink: 'Sign up',
+    noAccount: 'Belum punya akun?',
+    registerLink: 'Daftar pelanggan',
     backToChoice: 'Pilih akses lain',
     backToLogin: 'Masuk sebagai pelanggan',
     accountCustomer: 'AKUN PELANGGAN',
-    logout: 'Keluar',
-    dashboard: 'Dashboard',
-    inventory: 'Daftar Barang',
+    logout: 'Keluar akun',
+    dashboard: 'Dasbor',
+    inventory: 'Inventori',
     orders: 'Riwayat Transaksi',
-    reports: 'Laporan Penjualan',
-    settings: 'Pengaturan',
-    catalog: 'Katalog Belanja',
-    myOrders: 'Pesanan Saya',
+    reports: 'Laporan',
+    catalog: 'Katalog',
+    myOrders: 'Struk Saya',
     refresh: '↻ Perbarui',
     adminRoom: 'Ruang admin',
     customerRoom: 'Ruang pelanggan',
@@ -89,15 +52,15 @@ const LANGS = {
     sessionCheck: 'Memeriksa sesi…',
     loadingProducts: 'Memuat katalog…',
     dataError: 'Data belum tersedia',
-    productCount: 'Total Jenis Barang',
-    stockUnits: 'Total Stok Tersedia',
+    productCount: 'Jenis Barang',
+    stockUnits: 'Total Stok',
     revenue: 'Pendapatan Kotor',
-    netProfit: 'Pendapatan Bersih',
+    netProfit: 'Estimasi Laba Bersih',
     activeOrders: 'Transaksi Hari Ini',
     lowStock: 'Stok Perlu Perhatian',
     transactionCount: 'Transaksi',
-    sevenDaySales: 'Grafik Penjualan',
-    topProducts: 'Produk Terlaris',
+    sevenDaySales: 'Penjualan 7 Hari Terakhir',
+    topProducts: 'Barang Terlaris',
     viewInventory: 'Lihat inventori →',
     noSales: 'Belum ada penjualan dalam 7 hari terakhir',
     noSalesDesc: 'Grafik akan terisi saat transaksi checkout tersimpan.',
@@ -137,8 +100,8 @@ const LANGS = {
     stock: 'Stok',
     minStock: 'Stok Minimum',
     productForm: 'Form Barang',
-    bannerTitle: 'Warung Online WADIMOR',
-    bannerSub: 'Pilih kebutuhan pokok dan bahan makanan segar untuk belanja Anda.',
+    bannerTitle: 'Kasir Digital WADIMOR',
+    bannerSub: 'Pilih barang, bayar langsung di kasir, lalu simpan struk Anda.',
     storeTagline: 'Pilihan di warung',
     cart: 'Keranjang',
     cartTitle: 'Keranjang Belanja',
@@ -148,13 +111,13 @@ const LANGS = {
     card: 'Kartu',
     qris: 'QRIS',
     estimatedTotal: 'Total Pembayaran',
-    checkout: 'Pesan Sekarang',
-    checkingOut: 'Menyimpan pesanan…',
-    checkoutSuccess: 'Pesanan berhasil diselesaikan.',
-    orderHistory: 'Pesanan Saya',
-    orderHistoryDesc: 'Riwayat belanja dan rincian pesanan Anda.',
-    noOrders: 'Belum ada pesanan',
-    noOrdersDesc: 'Pesanan akan muncul setelah Anda berbelanja di katalog.',
+    checkout: 'Bayar & Selesaikan',
+    checkingOut: 'Menyimpan transaksi…',
+    checkoutSuccess: 'Pembayaran berhasil. Struk sudah dibuat.',
+    orderHistory: 'Struk Saya',
+    orderHistoryDesc: 'Riwayat pembayaran dan rincian barang Anda.',
+    noOrders: 'Belum ada transaksi',
+    noOrdersDesc: 'Struk akan muncul setelah pembayaran diselesaikan.',
     orderNumber: 'Struk #',
     orderDate: 'Tanggal',
     total: 'Total',
@@ -178,13 +141,10 @@ const LANGS = {
     loadingReport: 'Memuat laporan…',
     collapseMenu: 'Ciutkan menu',
     expandMenu: 'Perluas menu',
-    forgotPassword: 'Forgot Password?',
-    rememberDetails: 'Remember sign in details',
-    continueWithGoogle: 'Continue with Google',
   },
   en: {
     brand: 'Digital Modern Grocery',
-    welcome: 'Welcome to Wadimor',
+    welcome: 'WELCOME TO WADIMOR',
     tagline: 'One store, two perfect spaces.',
     taglineSub: 'Management for admins. Simple shopping for customers.',
     taglineFooter: 'Manage clearly. Shop easily.',
@@ -194,34 +154,33 @@ const LANGS = {
     adminWarung: 'Store Admin',
     adminWarungDesc: 'Analytics dashboard and store management',
     customer: 'Customer',
-    customerDesc: 'Shopping catalog & order history',
+    customerDesc: 'Digital checkout & transaction history',
     adminSpace: 'ADMIN SPACE',
     customerSpace: 'CUSTOMER SPACE',
     adminLogin: 'Sign in as admin',
     customerLogin: 'Sign in as customer',
     createAccount: 'Create customer account',
-    registerDesc: 'Register to start shopping groceries online.',
+    registerDesc: 'Register to use the digital checkout.',
     loginDesc: 'Enter your account to continue.',
-    username: 'Email / Username',
+    username: 'Username',
     password: 'Password',
     passwordMin: 'minimum 4 characters',
     processing: 'Processing…',
     create: 'Create account',
-    enter: 'Log in',
+    enter: 'Sign in',
     alreadyHaveAccount: 'Already have an account?',
     noAccount: "Don't have an account?",
-    registerLink: 'Sign up',
+    registerLink: 'Register',
     backToChoice: 'Choose another access',
     backToLogin: 'Sign in as customer',
     accountCustomer: 'CUSTOMER ACCOUNT',
     logout: 'Sign out',
     dashboard: 'Dashboard',
-    inventory: 'Product List',
+    inventory: 'Inventori',
     orders: 'Transaction History',
-    reports: 'Sales Reports',
-    settings: 'Settings',
-    catalog: 'Shopping Catalog',
-    myOrders: 'My Orders',
+    reports: 'Reports',
+    catalog: 'Catalog',
+    myOrders: 'My Receipts',
     refresh: '↻ Refresh',
     adminRoom: 'Admin space',
     customerRoom: 'Customer space',
@@ -232,16 +191,16 @@ const LANGS = {
     sessionCheck: 'Checking session…',
     loadingProducts: 'Loading catalog…',
     dataError: 'Data not available',
-    productCount: 'Total Product Types',
-    stockUnits: 'Total Available Stock',
+    productCount: 'Product Types',
+    stockUnits: 'Total Stock',
     revenue: 'Gross Revenue',
-    netProfit: 'Net Income',
+    netProfit: 'Estimated Net Profit',
     activeOrders: "Today's Transactions",
     lowStock: 'Low Stock Alert',
     transactionCount: 'Transactions',
-    sevenDaySales: 'Sales Chart',
+    sevenDaySales: 'Last 7 Days Sales',
     topProducts: 'Top Products',
-    viewInventory: 'View inventory →',
+    viewInventory: 'Lihat inventori →',
     noSales: 'No sales in the last 7 days',
     noSalesDesc: 'Chart will fill up once checkout transactions are recorded.',
     noTopProducts: 'No products sold yet.',
@@ -290,23 +249,23 @@ const LANGS = {
     cash: 'Cash',
     card: 'Card',
     qris: 'QRIS',
-    estimatedTotal: 'Total Payment',
-    checkout: 'Pay & Checkout',
-    checkingOut: 'Processing transaction…',
-    checkoutSuccess: 'Payment successful. Receipt created.',
+    estimatedTotal: 'Payment Total',
+    checkout: 'Pay & Complete',
+    checkingOut: 'Saving transaction…',
+    checkoutSuccess: 'Payment successful. Your receipt is ready.',
     orderHistory: 'My Receipts',
-    orderHistoryDesc: 'Your payment history and item breakdown.',
+    orderHistoryDesc: 'Your payment history and purchased items.',
     noOrders: 'No transactions yet',
-    noOrdersDesc: 'Receipts will appear once payment is completed.',
+    noOrdersDesc: 'Your receipt will appear after payment is completed.',
     orderNumber: 'Receipt #',
     orderDate: 'Date',
     total: 'Total',
     items_ordered: 'Items',
     allOrders: 'Transaction History',
-    adminOrdersDesc: 'View all completed checkout transactions.',
+    adminOrdersDesc: 'View completed checkout transactions.',
     customer_name: 'Customer',
     payment: 'Payment',
-    orderDetail: 'Receipt Detail',
+    orderDetail: 'Receipt Details',
     filterAll: 'All',
     reportsTitle: 'Sales Reports',
     reportsDesc: 'Financial analytics by selected period.',
@@ -321,9 +280,6 @@ const LANGS = {
     loadingReport: 'Loading report…',
     collapseMenu: 'Collapse menu',
     expandMenu: 'Expand menu',
-    forgotPassword: 'Forgot Password?',
-    rememberDetails: 'Remember sign in details',
-    continueWithGoogle: 'Continue with Google',
   }
 }
 
@@ -347,14 +303,15 @@ async function api(url, options = {}) {
 
 const money = v => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(v || 0))
 const categoryOf = item => item.category_name || '—'
-const paths = { choice: '/', adminLogin: '/admin/login', customerLogin: '/customer/login', register: '/customer/register', admin: '/admin', inventory: '/admin/inventory', adminOrders: '/admin/orders', adminReports: '/admin/reports', customer: '/customer', myOrders: '/customer/receipts' }
+const paths = { choice: '/', adminLogin: '/admin/login', customerLogin: '/customer/login', register: '/customer/register', admin: '/admin', inventory: '/admin/inventory', adminOrders: '/admin/transactions', adminReports: '/admin/reports', customer: '/customer', myOrders: '/customer/receipts' }
 
 // ─── UI Atoms ───────────────────────────────────────────────────────────────
 function Brand({ collapsed }) {
+  const t = useT()
   return (
     <span className="brand">
-      <WadimorStoreLogo size={34} color="#ffffff" />
-      {!collapsed && <span className="brand-text">Wadimor</span>}
+      <span className="brand-mark">W</span>
+      {!collapsed && <span>WADIMOR<small>{t('brand')}</small></span>}
     </span>
   )
 }
@@ -368,14 +325,13 @@ function StatePanel({ title, children, retry }) {
   )
 }
 
-// ─── Auth Screen (Matches Mockup Image 1) ──────────────────────────────────
+// ─── Auth Screen ─────────────────────────────────────────────────────────────
 function AuthScreen({ page, navigate, onAuthenticated }) {
   const t = useT()
   const { theme, setTheme } = useTheme()
   const { lang, setLang } = useContext(I18nContext)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const isAdmin = page === 'adminLogin'
@@ -394,27 +350,26 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
 
   return (
     <div className="auth-screen">
-      {/* Left panel matching Mockup Image 1 */}
       <div className="auth-feature">
-        <div className="auth-feature-content">
-          <WadimorStoreLogo size={130} color="#ffffff" />
-          <h1 className="brand-title-large">WADIMOR</h1>
+        <Brand collapsed={false} />
+        <div>
+          <p className="eyebrow">{t('welcome')}</p>
+          <h1>{t('tagline')}</h1>
+          <p>{t('taglineSub')}</p>
         </div>
-        <span className="ver-tag">ver 13.17.026</span>
+        <span>{t('taglineFooter')}</span>
       </div>
-
-      {/* Right panel matching Mockup Image 1 */}
       <main id="main" className="auth-main">
         <div className="auth-topbar">
           <button className="lang-btn" onClick={() => setLang(lang === 'id' ? 'en' : 'id')} title="Switch language">{lang === 'id' ? '🇺🇸 EN' : '🇮🇩 ID'}</button>
           <button className="theme-btn" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} title="Toggle theme">{theme === 'light' ? '🌙' : '☀️'}</button>
         </div>
-
         <div className="auth-card">
           {isChoice ? (
             <>
-              <h2 className="auth-heading">{t('welcome')}</h2>
-              <p className="auth-subtext">{t('chooseSpaceDesc')}</p>
+              <p className="eyebrow">{t('chooseAccess')}</p>
+              <h2>{t('enterYourSpace')}</h2>
+              <p className="muted">{t('chooseSpaceDesc')}</p>
               <button className="role-choice" onClick={() => navigate('adminLogin')}>
                 <span className="role-icon">▦</span>
                 <span><strong>{t('adminWarung')}</strong><small>{t('adminWarungDesc')}</small></span>
@@ -428,75 +383,19 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
             </>
           ) : (
             <>
-              <button className="text-link back-link" onClick={() => navigate(isRegister ? 'customerLogin' : 'choice')}>
+              <button className="text-link" onClick={() => navigate(isRegister ? 'customerLogin' : 'choice')}>
                 ← {isRegister ? t('backToLogin') : t('backToChoice')}
               </button>
-              <h2 className="auth-heading">{t('welcome')}</h2>
-              
+              <p className="eyebrow">{isRegister ? t('accountCustomer') : isAdmin ? t('adminSpace') : t('customerSpace')}</p>
+              <h2>{isRegister ? t('createAccount') : isAdmin ? t('adminLogin') : t('customerLogin')}</h2>
+              <p className="muted">{isRegister ? t('registerDesc') : t('loginDesc')}</p>
               <form onSubmit={submit} className="auth-form">
-                <div className="input-group">
-                  <input
-                    type="text"
-                    autoComplete="username"
-                    required
-                    minLength={3}
-                    maxLength={50}
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                    placeholder={t('username')}
-                    className="pill-input"
-                  />
-                </div>
-                <div className="input-group">
-                  <input
-                    type="password"
-                    autoComplete={isRegister ? 'new-password' : 'current-password'}
-                    required
-                    minLength={isRegister ? 4 : 1}
-                    maxLength={128}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder={t('password')}
-                    className="pill-input"
-                  />
-                </div>
-
-                <div className="auth-options">
-                  <a href="#forgot" className="forgot-link" onClick={e => { e.preventDefault(); alert("Silakan hubungi administrator warung untuk mereset kata sandi.") }}>
-                    {t('forgotPassword')}
-                  </a>
-                  <label className="toggle-label">
-                    <span>{t('rememberDetails')}</span>
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={e => setRememberMe(e.target.checked)}
-                      className="toggle-checkbox"
-                    />
-                    <span className="toggle-switch"></span>
-                  </label>
-                </div>
-
+                <label>{t('username')}<input autoComplete="username" required minLength={3} maxLength={50} pattern="[a-zA-Z0-9_]+" value={username} onChange={e => setUsername(e.target.value)} placeholder={t('username')} /></label>
+                <label>{t('password')}<input type="password" autoComplete={isRegister ? 'new-password' : 'current-password'} required minLength={isRegister ? 4 : 1} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} placeholder={isRegister ? t('passwordMin') : t('password')} /></label>
                 {error && <p className="form-error" role="alert">{error}</p>}
-
-                <button className="button auth-submit-pill" disabled={submitting}>
-                  {submitting ? t('processing') : isRegister ? t('create') : t('enter')}
-                </button>
+                <button className="button auth-submit" disabled={submitting}>{submitting ? t('processing') : isRegister ? t('create') : t('enter')}</button>
               </form>
-
-              <div className="or-divider"><span>or</span></div>
-
-              <button className="google-btn" onClick={() => alert("Simulasi Login dengan Google berhasil! Gunakan form login di atas untuk melanjutkan.")}>
-                <GoogleIcon />
-                <span>{t('continueWithGoogle')}</span>
-              </button>
-
-              <p className="auth-switch">
-                {isRegister ? t('alreadyHaveAccount') : t('noAccount')}{' '}
-                <button onClick={() => { setError(''); navigate(isRegister ? 'customerLogin' : 'register') }}>
-                  {isRegister ? t('enter') : t('registerLink')}
-                </button>
-              </p>
+              {!isAdmin && <p className="auth-switch">{isRegister ? t('alreadyHaveAccount') : t('noAccount')} <button onClick={() => { setError(''); navigate(isRegister ? 'customerLogin' : 'register') }}>{isRegister ? t('enter') : t('registerLink')}</button></p>}
             </>
           )}
         </div>
@@ -505,7 +404,7 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
   )
 }
 
-// ─── Dashboard (Matches Mockup Image 2) ──────────────────────────────────
+// ─── Dashboard ───────────────────────────────────────────────────────────────
 function Dashboard({ analytics, loading, error, retry, navigate }) {
   const t = useT()
   if (loading) return <StatePanel title={t('loadingProducts')}>{t('loadingProducts')}</StatePanel>
@@ -513,91 +412,39 @@ function Dashboard({ analytics, loading, error, retry, navigate }) {
   if (!analytics) return null
   const { summary, daily, topProducts } = analytics
   const maxRevenue = Math.max(1, ...daily.map(d => Number(d.revenue)))
-
-  // Sample default products for Terlaris preview if analytics list is empty
-  const displayTopProducts = topProducts && topProducts.length > 0 ? topProducts : [
-    { name: 'Telur Ayam', units_sold: 60, revenue: 120000 },
-    { name: 'Minyak Goreng Bimoli 2L', units_sold: 79, revenue: 2686000 },
-    { name: 'Indomie Goreng', units_sold: 120, revenue: 360000 },
-    { name: 'Le Minerale 600ml', units_sold: 79, revenue: 276500 }
-  ]
-
   return (
     <>
-      {/* 4 Pastel Stat Cards matching Mockup Image 2 */}
       <section className="stats dashboard-stats">
-        <article className="stat-card card-blue">
-          <span className="stat-title">{t('productCount')}</span>
-          <strong className="stat-value">{summary.product_count}</strong>
-        </article>
-        <article className="stat-card card-mint">
-          <span className="stat-title">{t('stockUnits')}</span>
-          <strong className="stat-value">{Number(summary.stock_units).toLocaleString('id-ID')}</strong>
-        </article>
-        <article className="stat-card card-slate">
-          <span className="stat-title">{t('revenue')}</span>
-          <strong className="stat-value currency-stat">{money(summary.revenue)}</strong>
-        </article>
-        <article className="stat-card card-purple">
-          <span className="stat-title">{t('netProfit')}</span>
-          <strong className="stat-value currency-stat">{money(summary.revenue * 0.15)}</strong>
-        </article>
+        <article><span>{t('productCount')}</span><strong>{summary.product_count}<small>jenis</small></strong></article>
+        <article><span>{t('revenue')}</span><strong className="currency-stat">{money(summary.revenue)}</strong></article>
+        <article><span>{t('transactionCount')}</span><strong>{Number(summary.transaction_count).toLocaleString('id-ID')}<small>tx</small></strong></article>
+        <article className="attention"><span>{t('lowStock')}</span><strong>{summary.low_stock_count}<small>barang</small></strong></article>
+        <article><span>{t('stockUnits')}</span><strong>{Number(summary.stock_units).toLocaleString('id-ID')}<small>unit</small></strong></article>
       </section>
-
-      {/* Main Grid matching Mockup Image 2 */}
       <div className="dashboard-grid">
-        {/* Left Card: Grafik Penjualan */}
         <section className="inventory-panel chart-panel">
-          <div className="panel-heading">
-            <div><h2>{t('sevenDaySales')}</h2></div>
-          </div>
+          <div className="panel-heading"><div><h2>{t('sevenDaySales')}</h2></div></div>
           {daily.some(d => Number(d.revenue) > 0) ? (
             <div className="sales-chart">
               <div className="chart-columns">
                 {daily.map(d => (
                   <div className="chart-column" key={d.day}>
-                    <div className="bar-space">
-                      <span className="bar" style={{ height: `${Math.max(4, Number(d.revenue) / maxRevenue * 100)}%` }} />
-                    </div>
+                    <div className="bar-space"><span className="bar" style={{ height: `${Math.max(2, Number(d.revenue) / maxRevenue * 100)}%` }} /></div>
                     <small>{new Date(`${String(d.day).slice(0, 10)}T12:00:00`).toLocaleDateString('id-ID', { weekday: 'short' })}</small>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="chart-empty">
-              <strong>{t('noSales')}</strong>
-              <p>{t('noSalesDesc')}</p>
-            </div>
+            <div className="chart-empty"><strong>{t('noSales')}</strong><p>{t('noSalesDesc')}</p></div>
           )}
         </section>
-
-        {/* Right Card: Produk Terlaris matching Mockup Image 2 */}
         <section className="inventory-panel highlights-panel">
-          <div className="panel-heading">
-            <h2>{t('topProducts')}</h2>
-          </div>
-          {displayTopProducts.length ? (
-            <div className="top-products-list">
-              {displayTopProducts.map(item => {
-                const thumb = PRODUCT_THUMBNAILS[item.name] || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=120'
-                return (
-                  <div className="top-product-item" key={item.name}>
-                    <img src={thumb} alt={item.name} className="product-thumb" />
-                    <div className="product-item-info">
-                      <strong className="product-item-name">{item.name}</strong>
-                    </div>
-                    <span className="product-pcs-badge">{item.units_sold} pcs</span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="state-panel"><p>{t('noTopProducts')}</p></div>
-          )}
-          <div className="panel-footer">
-            <button className="text-link" onClick={() => navigate('inventory')}>{t('viewInventory')}</button>
-          </div>
+          <div className="panel-heading"><h2>{t('topProducts')}</h2></div>
+          {topProducts.length ? (
+            <ol className="top-list">{topProducts.map(item => <li key={item.name}><strong>{item.name}</strong><span>{item.units_sold} × · {money(item.revenue)}</span></li>)}</ol>
+          ) : <div className="state-panel"><p>{t('noTopProducts')}</p></div>}
+          <div className="panel-footer"><button className="text-link" onClick={() => navigate('inventory')}>{t('viewInventory')}</button></div>
         </section>
       </div>
     </>
@@ -611,7 +458,7 @@ function Inventory({ products, csrfToken, onRefresh }) {
   const [category, setCategory] = useState('')
   const [lowOnly, setLowOnly] = useState(false)
   const [categories, setCategories] = useState([])
-  const [modal, setModal] = useState(null)
+  const [modal, setModal] = useState(null) // null | { mode: 'add'|'edit', product? }
   const [form, setForm] = useState({ name: '', category_id: '', price: '', cost_price: '', stock: '', min_stock: '5' })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
@@ -689,16 +536,10 @@ function Inventory({ products, csrfToken, onRefresh }) {
               <tbody>{visible.map((item, i) => {
                 const m = margin(item)
                 const st = item.stock === 0 ? 'empty' : item.stock <= item.min_stock ? 'low' : 'available'
-                const thumb = PRODUCT_THUMBNAILS[item.name]
                 return (
                   <tr key={item.id}>
                     <td>{i + 1}</td>
-                    <td>
-                      <div className="product-name">
-                        {thumb ? <img src={thumb} alt="" className="table-thumb" /> : <span className="product-monogram" aria-hidden>{item.name.slice(0, 1)}</span>}
-                        <div><strong>{item.name}</strong><small>BRG-{String(item.id).padStart(4, '0')}</small></div>
-                      </div>
-                    </td>
+                    <td><div className="product-name"><span className="product-monogram" aria-hidden>{item.name.slice(0, 1)}</span><div><strong>{item.name}</strong><small>BRG-{String(item.id).padStart(4, '0')}</small></div></div></td>
                     <td>{categoryOf(item)}</td>
                     <td className="numeric price">{money(item.price)}</td>
                     <td className="numeric">{money(item.cost_price)}</td>
@@ -726,7 +567,7 @@ function Inventory({ products, csrfToken, onRefresh }) {
         <footer className="panel-footer">{t('showing')} {visible.length} {t('of')} {products.length} {t('items')}</footer>
       </section>
 
-      {/* Modal Form */}
+      {/* Product Modal */}
       {modal && (
         <div className="modal-backdrop" onClick={() => setModal(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
@@ -775,16 +616,10 @@ function AdminOrders() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [detail, setDetail] = useState(null)
-
   const load = useCallback(() => {
-    api('/api/admin/orders').then(data => { setTransactions(data); setLoading(false) }).catch(() => setLoading(false))
+    api('/api/admin/transactions').then(data => { setTransactions(data); setLoading(false) }).catch(() => setLoading(false))
   }, [])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true)
-    load()
-  }, [load])
+  useEffect(() => { load() }, [load])
 
   return (
     <section className="inventory-panel">
@@ -793,49 +628,27 @@ function AdminOrders() {
         <button className="button secondary" onClick={load}>↻</button>
       </div>
       {loading ? <StatePanel title="…">Loading</StatePanel> : transactions.length === 0 ? <StatePanel title={t('noOrders')}>{t('noOrdersDesc')}</StatePanel> : (
-        <div className="table-scroll">
-          <table>
-            <thead><tr>
-              <th>ID</th><th>{t('customer_name')}</th><th>{t('orderDate')}</th>
-              <th>{t('payment')}</th><th className="numeric">{t('total')}</th><th>{t('actions')}</th>
-            </tr></thead>
-            <tbody>{transactions.map(order => (
-              <tr key={order.id}>
-                <td>#{order.id}</td>
-                <td>{order.customer_name}</td>
-                <td>{new Date(order.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                <td><span className="badge">{t(order.payment_method)}</span></td>
-                <td className="numeric price">{money(order.total_amount)}</td>
-                <td>
-                  <button className="action-btn" onClick={() => setDetail(order)}>🔍 Detail</button>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
+        <div className="table-scroll"><table><thead><tr>
+          <th>ID</th><th>{t('customer_name')}</th><th>{t('orderDate')}</th><th>{t('items_ordered')}</th><th>{t('payment')}</th><th className="numeric">{t('total')}</th><th>{t('actions')}</th>
+        </tr></thead><tbody>{transactions.map(transaction => <tr key={transaction.id}>
+          <td>#{transaction.id}</td><td>{transaction.customer_name || '—'}</td>
+          <td>{new Date(transaction.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</td>
+          <td>{transaction.items.reduce((sum, item) => sum + item.quantity, 0)}</td><td>{t(transaction.payment_method)}</td>
+          <td className="numeric price">{money(transaction.total_amount)}</td>
+          <td><button className="action-btn" onClick={() => setDetail(transaction)}>🔍</button></td>
+        </tr>)}</tbody></table></div>
       )}
-
-      {detail && (
-        <div className="modal-backdrop" onClick={() => setDetail(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>{t('orderDetail')} #{detail.id}</h2>
-            <div className="order-meta">
-              <p><strong>{t('customer_name')}:</strong> {detail.customer_name}</p>
-              <p><strong>{t('payment')}:</strong> {t(detail.payment_method)}</p>
-            </div>
-            {detail.items?.length > 0 && (
-              <ul className="order-items">
-                {detail.items.map((it, i) => <li key={i}>{it.product_name} × {it.quantity}</li>)}
-              </ul>
-            )}
-            <div className="modal-actions"><button className="button secondary" onClick={() => setDetail(null)}>{t('cancel')}</button></div>
-          </div>
-        </div>
-      )}
+      {detail && <div className="modal-backdrop" onClick={() => setDetail(null)}><div className="modal receipt" onClick={event => event.stopPropagation()}>
+        <h2>{t('orderDetail')} #{detail.id}</h2>
+        <p className="muted">{new Date(detail.created_at).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}</p>
+        <div className="order-meta"><p><strong>{t('customer_name')}:</strong> {detail.customer_name || '—'}</p><p><strong>{t('payment')}:</strong> {t(detail.payment_method)}</p></div>
+        <ul className="order-items">{detail.items.map((item, index) => <li key={index}><span>{item.product_name} × {item.quantity}</span><span>{money(item.subtotal)}</span></li>)}</ul>
+        <div className="receipt-total"><span>{t('total')}</span><strong>{money(detail.total_amount)}</strong></div>
+        <div className="modal-actions"><button className="button secondary" onClick={() => window.print()}>Print</button><button className="button" onClick={() => setDetail(null)}>{t('cancel')}</button></div>
+      </div></div>}
     </section>
   )
 }
-
 // ─── Admin Reports ────────────────────────────────────────────────────────────
 function AdminReports() {
   const t = useT()
@@ -844,8 +657,7 @@ function AdminReports() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true)
+    setLoading(true) // eslint-disable-line react-hooks/set-state-in-effect
     api(`/api/admin/reports?period=${period}`).then(setReport).catch(() => {}).finally(() => setLoading(false))
   }, [period])
 
@@ -871,20 +683,7 @@ function AdminReports() {
           </div>
           <div className="panel-heading"><h2>{t('topProducts')}</h2></div>
           {report.topProducts?.length ? (
-            <div className="top-products-list">
-              {report.topProducts.map(p => {
-                const thumb = PRODUCT_THUMBNAILS[p.name] || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=120'
-                return (
-                  <div className="top-product-item" key={p.name}>
-                    <img src={thumb} alt={p.name} className="product-thumb" />
-                    <div className="product-item-info">
-                      <strong className="product-item-name">{p.name}</strong>
-                    </div>
-                    <span className="product-pcs-badge">{p.units_sold} pcs</span>
-                  </div>
-                )
-              })}
-            </div>
+            <ol className="top-list">{report.topProducts.map(p => <li key={p.name}><strong>{p.name}</strong><span>{p.units_sold} × · {money(p.revenue)}</span></li>)}</ol>
           ) : <div className="state-panel"><p>{t('noTopProducts')}</p></div>}
         </>
       )}
@@ -892,12 +691,14 @@ function AdminReports() {
   )
 }
 
-// ─── Customer Catalog (Kasir Digital) ─────────────────────────────────────────
+// ─── Customer Catalog ─────────────────────────────────────────────────────────
 function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess }) {
   const t = useT()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
+  const [cartOpen, setCartOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [receipt, setReceipt] = useState(null)
   const [checkingOut, setCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
 
@@ -915,15 +716,16 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess }) {
   async function checkout() {
     setCheckingOut(true); setCheckoutError('')
     try {
-      const items = cartItems.map(p => ({ productId: p.id, quantity: p.quantity }))
-      await api('/api/transactions/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify({ items, paymentMethod }) })
-      setCart({}); onCheckoutSuccess()
+      const items = cartItems.map(product => ({ productId: product.id, quantity: product.quantity }))
+      const result = await api('/api/transactions/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify({ items, paymentMethod }) })
+      setCart({}); setCartOpen(false); setReceipt(result.receipt)
+      onCheckoutSuccess()
     } catch (err) { setCheckoutError(err.message) }
     finally { setCheckingOut(false) }
   }
-
   return (
     <div className="catalog-layout">
+      {/* Catalog Section */}
       <section className="catalog-section">
         <div className="store-banner">
           <strong>{t('bannerTitle')}</strong>
@@ -934,7 +736,7 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess }) {
             <h2>{t('storeTagline')} <span>{visible.length}</span></h2>
           </div>
           <div className="filters">
-            <label className="search-field"><span>Cari Barang</span><input type="search" placeholder={t('searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} /></label>
+            <label className="search-field"><span>{t('username')}</span><input type="search" placeholder={t('searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} /></label>
             <label><span>{t('category')}</span>
               <select value={category} onChange={e => setCategory(e.target.value)}>
                 <option value="">{t('allCategories')}</option>
@@ -948,12 +750,9 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess }) {
                 const inCart = cart[item.id] || 0
                 const outOfStock = item.stock === 0
                 const lowStockItem = item.stock > 0 && item.stock <= item.min_stock
-                const thumb = PRODUCT_THUMBNAILS[item.name]
                 return (
                   <article className={`product-card ${outOfStock ? 'out-of-stock' : ''}`} key={item.id}>
-                    <div className="card-art">
-                      {thumb ? <img src={thumb} alt={item.name} className="card-img" /> : item.name.slice(0, 1)}
-                    </div>
+                    <div className="card-art" aria-hidden>{item.name.slice(0, 1)}<span>WADIMOR / {categoryOf(item)}</span></div>
                     {lowStockItem && <span className="low-stock-tag">⚠️ Stok Terbatas</span>}
                     <small>{categoryOf(item)}</small>
                     <h3>{item.name}</h3>
@@ -964,9 +763,9 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess }) {
                         <button className="button" disabled={outOfStock} onClick={() => changeQty(item, 1)}>+ {t('cart')}</button>
                       ) : (
                         <div className="quantity">
-                          <button aria-label="Kurangi" onClick={() => changeQty(item, -1)}>−</button>
+                          <button aria-label={`Kurangi`} onClick={() => changeQty(item, -1)}>−</button>
                           <output>{inCart}</output>
-                          <button aria-label="Tambah" disabled={inCart >= item.stock} onClick={() => changeQty(item, 1)}>+</button>
+                          <button aria-label={`Tambah`} disabled={inCart >= item.stock} onClick={() => changeQty(item, 1)}>+</button>
                         </div>
                       )}
                     </div>
@@ -980,9 +779,19 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess }) {
         </div>
       </section>
 
-      {/* Cart Panel Side */}
-      <aside className="cart-panel">
-        <h2>{t('cartTitle')} <span>{cartCount}</span></h2>
+      {/* Cart Fab */}
+      {cartCount > 0 && (
+        <button className="cart-fab" onClick={() => setCartOpen(true)}>
+          🛒 {cartCount}
+        </button>
+      )}
+
+      {/* Cart Slide-over */}
+      <div className={`cart-slideover ${cartOpen ? 'open' : ''}`}>
+        <div className="cart-header">
+          <h2>{t('cartTitle')} <span>{cartCount}</span></h2>
+          <button className="close-btn" onClick={() => setCartOpen(false)}>✕</button>
+        </div>
         {cartItems.length === 0 ? (
           <p className="cart-empty">{t('cartEmpty')}</p>
         ) : (
@@ -999,14 +808,9 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess }) {
                 </div>
               ))}
             </div>
-            <div className="cart-delivery">
-              <label>{t('paymentMethod')}
-                <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
-                  <option value="cash">{t('cash')}</option>
-                  <option value="card">{t('card')}</option>
-                  <option value="qris">{t('qris')}</option>
-                </select>
-              </label>
+            <div className="cart-payment">
+              <label>{t('paymentMethod')}<select value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)}><option value="cash">{t('cash')}</option><option value="card">{t('card')}</option><option value="qris">{t('qris')}</option></select></label>
+              <p className="muted">Pembayaran dilakukan langsung di kasir WADIMOR.</p>
             </div>
             <div className="cart-total">
               <span>{t('estimatedTotal')}</span><strong>{money(total)}</strong>
@@ -1017,63 +821,44 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess }) {
             </button>
           </>
         )}
-      </aside>
+      </div>
+      {cartOpen && <div className="cart-overlay" onClick={() => setCartOpen(false)} />}
+      {receipt && <div className="modal-backdrop"><div className="modal receipt">
+        <p className="eyebrow">WADIMOR · STRUK PEMBAYARAN</p><h2>Struk #{receipt.id}</h2>
+        <p className="muted">{new Date(receipt.createdAt).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}</p>
+        <div className="order-meta"><p><strong>{t('payment')}:</strong> {t(receipt.paymentMethod)}</p></div>
+        <ul className="order-items">{receipt.items.map(item => <li key={item.productId}><span>{item.name} × {item.quantity}</span><span>{money(item.subtotal)}</span></li>)}</ul>
+        <div className="receipt-total"><span>{t('total')}</span><strong>{money(receipt.totalAmount)}</strong></div>
+        <p className="receipt-thanks">Terima kasih sudah berbelanja di WADIMOR.</p>
+        <div className="modal-actions"><button className="button secondary" onClick={() => window.print()}>Print</button><button className="button" onClick={() => setReceipt(null)}>Selesai</button></div>
+      </div></div>}
     </div>
   )
 }
 
-// ─── My Orders (Struk Saya) ───────────────────────────────────────────────────
+// ─── My Orders ────────────────────────────────────────────────────────────────
 function MyOrders() {
   const t = useT()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
-
   const load = useCallback(() => {
-    api('/api/orders/my-orders').then(data => { setTransactions(data); setLoading(false) }).catch(() => setLoading(false))
+    api('/api/transactions/mine').then(data => { setTransactions(data); setLoading(false) }).catch(() => setLoading(false))
   }, [])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true)
-    load()
-  }, [load])
-
+  useEffect(() => { load() }, [load])
   if (loading) return <StatePanel title="…">Loading</StatePanel>
 
-  return (
-    <section className="inventory-panel">
-      <div className="panel-heading">
-        <div><h2>{t('orderHistory')} <span>{transactions.length}</span></h2><p className="muted">{t('orderHistoryDesc')}</p></div>
-        <button className="button secondary" onClick={load}>↻</button>
-      </div>
-      {transactions.length === 0 ? <StatePanel title={t('noOrders')}>{t('noOrdersDesc')}</StatePanel> : (
-        <div className="orders-list">
-          {transactions.map(transaction => (
-            <div key={transaction.id} className="order-card">
-              <button className="order-card-header" onClick={() => setExpanded(expanded === transaction.id ? null : transaction.id)}>
-                <span><strong>{t('orderNumber')}{transaction.id}</strong><small>{new Date(transaction.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</small></span>
-                <span className="order-card-right"><span>{t(transaction.payment_method)}</span><strong>{money(transaction.total_amount)}</strong><span>{expanded === transaction.id ? '▲' : '▼'}</span></span>
-              </button>
-              {expanded === transaction.id && (
-                <div className="order-card-body">
-                  <ul className="order-items">
-                    {transaction.items.map((item, index) => (
-                      <li key={index}><span>{item.product_name} × {item.quantity} @ {money(item.price_at_transaction)}</span><span>{money(item.subtotal)}</span></li>
-                    ))}
-                  </ul>
-                  <div className="receipt-total"><span>{t('total')}</span><strong>{money(transaction.total_amount)}</strong></div>
-                  <button className="button secondary receipt-print" onClick={() => window.print()}>Print Struk</button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  )
+  return <section className="inventory-panel">
+    <div className="panel-heading"><div><h2>{t('orderHistory')} <span>{transactions.length}</span></h2><p className="muted">{t('orderHistoryDesc')}</p></div><button className="button secondary" onClick={load}>↻</button></div>
+    {transactions.length === 0 ? <StatePanel title={t('noOrders')}>{t('noOrdersDesc')}</StatePanel> : <div className="orders-list">{transactions.map(transaction => <div key={transaction.id} className="order-card">
+      <button className="order-card-header" onClick={() => setExpanded(expanded === transaction.id ? null : transaction.id)}>
+        <span><strong>{t('orderNumber')}{transaction.id}</strong><small>{new Date(transaction.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</small></span>
+        <span className="order-card-right"><span>{t(transaction.payment_method)}</span><strong>{money(transaction.total_amount)}</strong><span>{expanded === transaction.id ? '▲' : '▼'}</span></span>
+      </button>
+      {expanded === transaction.id && <div className="order-card-body"><ul className="order-items">{transaction.items.map((item, index) => <li key={index}><span>{item.product_name} × {item.quantity} @ {money(item.price_at_transaction)}</span><span>{money(item.subtotal)}</span></li>)}</ul><div className="receipt-total"><span>{t('total')}</span><strong>{money(transaction.total_amount)}</strong></div><button className="button secondary receipt-print" onClick={() => window.print()}>Print</button></div>}
+    </div>)}</div>}
+  </section>
 }
-
 // ─── App Shell ────────────────────────────────────────────────────────────────
 export default function App() {
   const [path, setPath] = useState(window.location.pathname)
@@ -1126,7 +911,6 @@ export default function App() {
     setCheckoutMsg(t('checkoutSuccess'))
     setTimeout(() => setCheckoutMsg(''), 5000)
     refresh()
-    navigate('myOrders')
   }
 
   useEffect(() => { const onPop = () => setPath(window.location.pathname); window.addEventListener('popstate', onPop); return () => window.removeEventListener('popstate', onPop) }, [])
@@ -1136,7 +920,7 @@ export default function App() {
       if (!active) return
       setSession(data)
       const home = data.user.role === 'admin' ? paths.admin : paths.customer
-      if (!window.location.pathname.startsWith(home.replace('/receipts', '').replace('/reports', '').replace('/orders', ''))) {
+      if (!window.location.pathname.startsWith(home.replace('/transactions', '').replace('/reports', '').replace('/receipts', ''))) {
         window.history.replaceState({}, '', home); setPath(home)
       }
     }).catch(() => {}).finally(() => { if (active) setChecking(false) })
@@ -1184,10 +968,9 @@ export default function App() {
   const cartCount = Object.values(cart).reduce((s, v) => s + v, 0)
 
   const adminNav = [
-    { key: 'admin', label: t('dashboard'), icon: '🏠' },
-    { key: 'inventory', label: t('inventory'), icon: '📋', count: products.length },
-    { key: 'customer', label: t('catalog'), icon: '🛒' },
-    { key: 'adminOrders', label: t('orders'), icon: '🔄' },
+    { key: 'admin', label: t('dashboard'), icon: '▥' },
+    { key: 'inventory', label: t('inventory'), icon: '▦', count: products.length },
+    { key: 'adminOrders', label: t('orders'), icon: '📦' },
     { key: 'adminReports', label: t('reports'), icon: '📊' },
   ]
   const customerNav = [
@@ -1216,7 +999,7 @@ export default function App() {
         <div className={`app-shell ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''}`}>
           <a className="skip-link" href="#main">{t('skip')}</a>
 
-          {/* Sidebar Matching Mockup Image 2 */}
+          {/* Sidebar */}
           <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
             <div className="sidebar-brand">
               <Brand collapsed={sidebarCollapsed} />
@@ -1224,7 +1007,7 @@ export default function App() {
                 {sidebarCollapsed ? '›' : '‹'}
               </button>
             </div>
-            
+            {!sidebarCollapsed && <p className="nav-label">{isAdmin ? t('adminSpace') : t('customerSpace')}</p>}
             <nav aria-label="Navigasi utama">
               {navItems.map(item => (
                 <button key={item.key} className={`nav-button ${page === item.key ? 'active' : ''}`} onClick={() => navigate(item.key)} aria-current={page === item.key ? 'page' : undefined} title={sidebarCollapsed ? item.label : undefined}>
@@ -1233,29 +1016,30 @@ export default function App() {
                 </button>
               ))}
             </nav>
-
-            <div className="sidebar-bottom-menu">
-              <button className="nav-button" onClick={() => alert("Menu Pengaturan Toko")}>
-                <span className="nav-icon">⚙️</span>
-                {!sidebarCollapsed && <span>{t('settings')}</span>}
-              </button>
-              <button className={`logout-button ${sidebarCollapsed ? 'icon-only' : ''}`} onClick={logout} title={t('logout')}>
-                <span className="nav-icon">🚪</span>
-                {!sidebarCollapsed && <span>{t('logout')}</span>}
-              </button>
+            {!sidebarCollapsed && (
+              <div className="sidebar-note">
+                <span className="note-dot" /> Lebih rapi, setiap hari.
+                <p>Kelola kebutuhan warung dalam satu tempat.</p>
+              </div>
+            )}
+            <div className={`workspace ${sidebarCollapsed ? 'collapsed' : ''}`}>
+              <span className="avatar" title={session.user.username}>{session.user.username.slice(0, 1).toUpperCase()}</span>
+              {!sidebarCollapsed && <div>{session.user.username}<small>{isAdmin ? t('adminWarung') : t('customer')}</small></div>}
             </div>
+            <button className={`logout-button ${sidebarCollapsed ? 'icon-only' : ''}`} onClick={logout} title={t('logout')}>
+              {sidebarCollapsed ? '⏻' : t('logout')}
+            </button>
           </aside>
 
-          {/* Main Area Matching Mockup Image 2 */}
+          {/* Main */}
           <div className="main-shell">
             <header className="topbar">
-              <div className="topbar-left">
-                <span className="environment">{productError || analyticsError ? t('connError') : t('active')}</span>
-              </div>
+              <span>{isAdmin ? t('adminRoom') : t('customerRoom')} <span className="breadcrumb">/ {t(page === 'admin' ? 'dashboard' : page === 'inventory' ? 'inventory' : page === 'adminOrders' ? 'orders' : page === 'adminReports' ? 'reports' : page === 'myOrders' ? 'myOrders' : 'catalog')}</span></span>
               <div className="topbar-right">
                 <button className="lang-btn" onClick={() => setLang(lang === 'id' ? 'en' : 'id')}>{lang === 'id' ? '🇺🇸 EN' : '🇮🇩 ID'}</button>
                 <button className="theme-btn" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>{theme === 'light' ? '🌙' : '☀️'}</button>
                 <button className="button secondary" onClick={refresh} disabled={loadingProducts}>↻</button>
+                <span className="environment">{productError || analyticsError ? t('connError') : t('active')}</span>
               </div>
             </header>
 
@@ -1263,11 +1047,12 @@ export default function App() {
               {checkoutMsg && <div className="checkout-success" role="alert">{checkoutMsg}</div>}
               <div className="page-heading">
                 <div>
+                  <p className="eyebrow">{isAdmin ? 'PANTAU WARUNG ANDA' : 'BELANJA LEBIH MUDAH'}</p>
                   <h1>{t(page === 'admin' ? 'dashboard' : page === 'inventory' ? 'inventoryTitle' : page === 'adminOrders' ? 'allOrders' : page === 'adminReports' ? 'reportsTitle' : page === 'myOrders' ? 'orderHistory' : 'storeTagline')}</h1>
-                  <p className="sub-heading">{isAdmin ? 'Selamat datang di sistem WADIMOR' : 'Warung Digital Modern WADIMOR'}</p>
                 </div>
               </div>
               {renderContent()}
+              <footer className="page-footer">WADIMOR <span>Warung Digital Modern · Dibuat untuk keseharian.</span></footer>
             </main>
           </div>
         </div>
@@ -1275,3 +1060,5 @@ export default function App() {
     </I18nContext.Provider>
   )
 }
+
+
