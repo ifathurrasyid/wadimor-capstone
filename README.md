@@ -6,17 +6,17 @@
 
 ## Tentang proyek
 
-WADIMOR adalah aplikasi web untuk membantu usaha mikro retail, khususnya warung kelontong, mengelola inventori dan transaksi penjualan. Aplikasi menyediakan area terpisah untuk Admin dan Customer.
+WADIMOR adalah aplikasi web untuk membantu usaha mikro retail, khususnya warung kelontong, mengelola inventori dan transaksi penjualan. Aplikasi menyediakan area terpisah untuk Admin, Kasir, dan Customer. Kasir menangani transaksi walk-in tanpa perlu akun Customer.
 
-Admin dapat memantau stok, transaksi, dan laporan. Customer dapat melihat katalog, membuat keranjang, menyelesaikan pembayaran di toko, dan mencetak struk. Sistem dirancang untuk transaksi langsung di toko dan tidak memiliki fitur pengiriman.
+Admin mengelola barang, stok, akun, dan laporan. Kasir memasukkan ID produk atau memindai barcode, memproses pembayaran, lalu mencetak faktur. Customer tetap dapat masuk, memilih barang, checkout, dan melihat struk melalui fitur belanja yang sudah tersedia. Sistem dirancang untuk transaksi langsung di toko dan tidak memiliki fitur pengiriman.
 
 ## Fitur utama
 
-- Login dan hak akses terpisah untuk Admin dan Customer.
+- Login dan hak akses terpisah untuk Admin, Kasir, dan Customer.
 - Dashboard Admin dengan ringkasan stok, pendapatan, transaksi, stok menipis, dan penjualan tujuh hari.
-- Katalog produk, pencarian, filter kategori, dan keranjang digital.
+- POS Kasir dengan pencarian, input ID/barcode, dan keranjang yang selalu terlihat; katalog serta keranjang Customer tetap tersedia.
 - Checkout atomik: harga diperiksa oleh server dan stok hanya berkurang jika transaksi berhasil.
-- Struk yang dapat dicetak, riwayat transaksi, dan laporan penjualan.
+- Faktur berisi barang dan harga yang dapat dicetak dari checkout maupun riwayat transaksi; laporan penjualan dan badge peringatan stok rendah.
 - Penyimpanan akun, produk, inventori, dan transaksi menggunakan PostgreSQL.
 
 ## Teknologi
@@ -45,6 +45,8 @@ Get-Content -Raw backend/schema.sql | docker compose --env-file backend/.env exe
 npm.cmd --prefix backend run setup:admin -- admin_w ChooseYourAdminPassword
 ```
 
+Masuk sebagai Super Admin, lalu buat akun Admin atau Kasir melalui menu **Kelola Staf**. Password sementara hanya ditampilkan satu kali dan wajib diganti saat login pertama.
+
 Perintah schema hanya boleh dijalankan satu kali pada database yang benar-benar baru. Untuk database lama, gunakan migration sesuai [panduan setup](docs/SETUP-GUIDE.md#10-menggunakan-database-yang-sudah-ada).
 
 Jalankan backend di terminal pertama:
@@ -59,7 +61,7 @@ Jalankan frontend di terminal kedua:
 npm.cmd --prefix frontend run dev
 ```
 
-Buka `http://localhost:5173` di browser. Gunakan akun Admin yang dibuat melalui perintah `setup:admin`, atau buat akun Customer melalui halaman registrasi.
+Buka `http://localhost:5173` di browser. Gunakan akun Admin atau Kasir yang dibuat melalui command setup masing-masing. Akun Customer tetap bisa dibuat melalui halaman registrasi.
 
 ## Alamat lokal
 
@@ -67,6 +69,7 @@ Buka `http://localhost:5173` di browser. Gunakan akun Admin yang dibuat melalui 
 |---|---|
 | `http://localhost:5173` | Aplikasi utama |
 | `http://localhost:5173/admin/login` | Login Admin |
+| `http://localhost:5173/cashier/login` | Login Kasir |
 | `http://localhost:5173/customer/login` | Login Customer |
 | `http://localhost:5173/customer/register` | Registrasi Customer |
 | `http://localhost:5000/api/status` | Pemeriksaan status backend dan database |
@@ -85,12 +88,12 @@ Semua perintah harus dijalankan dari folder utama `wadimor-capstone`. Dokumentas
 
 ## Dokumentasi
 
-- [Panduan setup](docs/SETUP-GUIDE.md) — instalasi yang sangat rinci untuk pemula.
-- [Panduan kolaborasi](docs/COLLABORATING.md) — branch, commit, push, dan pull request.
-- [Rencana fitur](docs/FEATURE-PLAN.md) — status fitur, keputusan produk, dan urutan pengembangan.
-- [Panduan UI/UX](docs/UI-UX.md) — sistem desain, handoff, dan acceptance checklist.
-- [Audit teknis](docs/AUDIT.md) — temuan teknis, batasan, dan rekomendasi.
-- [Catatan frontend](frontend/README.md) — ringkasan khusus aplikasi React.
+- [Panduan setup](docs/SETUP-GUIDE.md) â€” instalasi yang sangat rinci untuk pemula.
+- [Panduan kolaborasi](docs/COLLABORATING.md) â€” branch, commit, push, dan pull request.
+- [Rencana fitur](docs/FEATURE-PLAN.md) â€” status fitur, keputusan produk, dan urutan pengembangan.
+- [Panduan UI/UX](docs/UI-UX.md) â€” sistem desain, handoff, dan acceptance checklist.
+- [Audit teknis](docs/AUDIT.md) â€” temuan teknis, batasan, dan rekomendasi.
+- [Catatan frontend](frontend/README.md) â€” ringkasan khusus aplikasi React.
 
 ## Catatan keamanan dan data
 
@@ -108,7 +111,7 @@ WADIMOR masih merupakan proyek capstone yang berjalan secara lokal, bukan layana
 
 <a id="english-version"></a>
 
-# WADIMOR — English Version
+# WADIMOR â€” English Version
 
 **Capstone Project Title:** Inventory Information System for Micro Retail Businesses (Case Study: Neighborhood Grocery Store)
 
@@ -116,17 +119,17 @@ WADIMOR masih merupakan proyek capstone yang berjalan secara lokal, bukan layana
 
 ## About the project
 
-WADIMOR is a web application that helps micro retail businesses, particularly neighborhood grocery stores, manage Inventory and sales transactions. The application provides separate areas for Admin and Customer users.
+WADIMOR is a web application that helps micro retail businesses, particularly neighborhood grocery stores, manage Inventory and sales transactions. The application provides separate areas for Admin, Cashier, and Customer users. Cashiers handle walk-in sales without requiring a Customer account.
 
-Admins can monitor Inventory, transactions, and reports. Customers can browse the catalog, build a basket, complete an in-store payment, and print a receipt. The system is designed for in-store transactions and does not include delivery.
+Admins manage products, stock, accounts, and reports. Cashiers enter a product ID or scan a barcode, take payment, and print an invoice. Customers can still sign in, shop, check out, and view receipts through the existing customer features. The system is designed for in-store transactions and does not include delivery.
 
 ## Main features
 
-- Separate Admin and Customer authentication and permissions.
+- Separate Admin, Cashier, and Customer authentication and permissions.
 - Admin dashboard with Inventory, revenue, transaction, low-stock, and seven-day sales summaries.
-- Product catalog, search, category filters, and a digital basket.
+- Cashier POS with product ID/barcode entry and a persistent cart, while keeping the customer catalog and basket.
 - Atomic checkout: prices are verified by the server and stock is reduced only when the transaction succeeds.
-- Printable receipts, transaction history, and sales reports.
+- Printable invoices with purchased items from checkout and transaction history, sales reports, and a low-stock notification badge.
 - PostgreSQL storage for accounts, products, Inventory, and transactions.
 
 ## Technology stack
@@ -155,6 +158,8 @@ Get-Content -Raw backend/schema.sql | docker compose --env-file backend/.env exe
 npm.cmd --prefix backend run setup:admin -- admin_w ChooseYourAdminPassword
 ```
 
+Sign in as the Super Admin, then create Admin or Cashier accounts from **Manage Staff**. The temporary password is shown once and must be changed at first login.
+
 Run the schema command only once for a completely new database. For an existing database, use the migrations described in the [setup guide](docs/SETUP-GUIDE.md#10-using-an-existing-database).
 
 Start the backend in the first terminal:
@@ -169,7 +174,7 @@ Start the frontend in the second terminal:
 npm.cmd --prefix frontend run dev
 ```
 
-Open `http://localhost:5173` in a browser. Use the Admin account created with `setup:admin`, or create a Customer account from the registration page.
+Open `http://localhost:5173` in a browser. Use the Admin or Cashier account created with the matching setup command. Customer accounts remain available through registration.
 
 ## Local addresses
 
@@ -177,6 +182,7 @@ Open `http://localhost:5173` in a browser. Use the Admin account created with `s
 |---|---|
 | `http://localhost:5173` | Main application |
 | `http://localhost:5173/admin/login` | Admin login |
+| `http://localhost:5173/cashier/login` | Cashier login |
 | `http://localhost:5173/customer/login` | Customer login |
 | `http://localhost:5173/customer/register` | Customer registration |
 | `http://localhost:5000/api/status` | Backend and database health check |
@@ -198,12 +204,12 @@ Run all commands from the main `wadimor-capstone` folder. The documentation uses
 - [Pitch deck sederhana](docs/PITCH-DECK.md)
 - [Konstruksi dan infrastruktur sistem](docs/SYSTEM-ARCHITECTURE.md)
 
-- [Setup guide](docs/SETUP-GUIDE.md#english-version) — highly detailed installation instructions for beginners.
-- [Collaboration guide](docs/COLLABORATING.md#english-version) — branches, commits, pushes, and pull requests.
-- [Feature plan](docs/FEATURE-PLAN.md#english-version) — feature status, product decisions, and development order.
-- [UI/UX guide](docs/UI-UX.md#english-version) — design system, handoff, and acceptance checklist.
-- [Technical audit](docs/AUDIT.md#english-version) — technical findings, limitations, and recommendations.
-- [Frontend notes](frontend/README.md#english-version) — notes specific to the React application.
+- [Setup guide](docs/SETUP-GUIDE.md#english-version) â€” highly detailed installation instructions for beginners.
+- [Collaboration guide](docs/COLLABORATING.md#english-version) â€” branches, commits, pushes, and pull requests.
+- [Feature plan](docs/FEATURE-PLAN.md#english-version) â€” feature status, product decisions, and development order.
+- [UI/UX guide](docs/UI-UX.md#english-version) â€” design system, handoff, and acceptance checklist.
+- [Technical audit](docs/AUDIT.md#english-version) â€” technical findings, limitations, and recommendations.
+- [Frontend notes](frontend/README.md#english-version) â€” notes specific to the React application.
 
 ## Security and data notes
 
@@ -216,6 +222,9 @@ Run all commands from the main `wadimor-capstone` folder. The documentation uses
 ## Project status
 
 WADIMOR remains a locally run capstone project, not a production service. Public deployment requires HTTPS, a same-origin `/api` reverse proxy, secret management, tested backups, and additional hardening.
+
+
+
 
 
 

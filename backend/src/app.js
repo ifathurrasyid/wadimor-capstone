@@ -1,7 +1,13 @@
-﻿const express = require('express');
+const express = require('express');
+const { randomBytes } = require('node:crypto');
 const cors = require('cors');
-const { createAuth, hashPassword, verifyPassword, digest, ROLE_MAP, cookieName, cookieOptions } = require('./auth');
+const { createAuth, hashPassword, verifyPassword, digest, ROLE_MAP, cookieName, cookieOptions, publicUser } = require('./auth');
 
+function generateTemporaryPassword() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  const bytes = randomBytes(12);
+  return Array.from(bytes, byte => alphabet[byte % alphabet.length]).join('');
+}
 function createApp(pool, origins = []) {
   const app = express();
   const auth = createAuth(pool, origins);
@@ -26,8 +32,8 @@ function createApp(pool, origins = []) {
     }
     try {
       const passwordHash = await hashPassword(password);
-      const result = await pool.query(`INSERT INTO users (username, password, role) VALUES ($1, $2, 'pelanggan')
-        RETURNING id, username, role`, [username, passwordHash]);
+      const result = await pool.query(`INSERT INTO users (username, display_name, password, role, must_change_password) VALUES ($1, $1, $2, 'pelanggan', FALSE)
+        RETURNING id, username, display_name, role, must_change_password`, [username, passwordHash]);
       const session = await auth.createSession(res, result.rows[0]);
       res.status(201).json(session);
     } catch (error) {
@@ -36,16 +42,16 @@ function createApp(pool, origins = []) {
     }
   });
 
-  for (const [loginType, role] of Object.entries(ROLE_MAP)) {
+  for (const [loginType, roles] of Object.entries(ROLE_MAP)) {
     app.post(`/api/auth/login/${loginType}`, auth.limitLogin, async (req, res, next) => {
       const { username, password } = req.body || {};
       if (typeof username !== 'string' || typeof password !== 'string' || username.length > 50 || password.length > 128) {
         return res.status(400).json({ error: 'Masukkan nama pengguna dan kata sandi.' });
       }
       try {
-        const result = await pool.query('SELECT id, username, password, role FROM users WHERE username = $1', [username]);
+        const result = await pool.query('SELECT id, username, display_name, password, role, must_change_password FROM users WHERE username = $1', [username]);
         const user = result.rows[0];
-        if (!user || user.role !== role || !await verifyPassword(password, user.password)) {
+        if (!user || !roles.includes(user.role) || !await verifyPassword(password, user.password)) {
           auth.failedLogin(req.loginKey);
           return res.status(401).json({ error: 'Nama pengguna atau kata sandi tidak cocok.' });
         }
@@ -57,8 +63,8 @@ function createApp(pool, origins = []) {
   }
 
   app.get('/api/auth/me', auth.requireUser, (req, res) => {
-    const { id, username, role, csrf_token: csrfToken } = req.account;
-    res.json({ user: { id, username, role }, csrfToken });
+    const { csrf_token: csrfToken } = req.account;
+    res.json({ user: publicUser(req.account), csrfToken });
   });
 
   app.post('/api/auth/logout', auth.requireUser, auth.csrfGuard, async (req, res, next) => {
@@ -68,9 +74,81 @@ function createApp(pool, origins = []) {
       res.status(204).end();
     } catch (error) { next(error); }
   });
+  app.post('/api/auth/change-password', auth.requireUser, auth.csrfGuard, async (req, res, next) => {
+    const { currentPassword = '', newPassword } = req.body || {};
+    if (typeof newPassword !== 'string' || newPassword.length < 8 || newPassword.length > 128) {
+      return res.status(400).json({ error: 'Kata sandi baru harus 8-128 karakter.' });
+    }
+    try {
+      const result = await pool.query('SELECT password, must_change_password FROM users WHERE id = $1', [req.account.id]);
+      const user = result.rows[0];
+      if (!user) return res.status(404).json({ error: 'Akun tidak ditemukan.' });
+      if (!user.must_change_password && !await verifyPassword(currentPassword, user.password)) {
+        return res.status(401).json({ error: 'Kata sandi saat ini tidak cocok.' });
+      }
+      const passwordHash = await hashPassword(newPassword);
+      await pool.query('UPDATE users SET password = $1, must_change_password = FALSE WHERE id = $2', [passwordHash, req.account.id]);
+      await pool.query('DELETE FROM sessions WHERE user_id = $1 AND token_hash <> $2', [req.account.id, req.account.token_hash]);
+      res.json({ message: 'Kata sandi berhasil diperbarui.', mustChangePassword: false });
+    } catch (error) { next(error); }
+  });
+
+  app.patch('/api/account/profile', auth.requireReady, auth.csrfGuard, async (req, res, next) => {
+    const displayName = typeof req.body?.displayName === 'string' ? req.body.displayName.trim() : '';
+    if (displayName.length < 2 || displayName.length > 100) return res.status(400).json({ error: 'Nama harus 2-100 karakter.' });
+    try {
+      const result = await pool.query(`UPDATE users SET display_name = $1 WHERE id = $2
+        RETURNING id, username, display_name, role, must_change_password`, [displayName, req.account.id]);
+      res.json({ user: publicUser(result.rows[0]) });
+    } catch (error) { next(error); }
+  });
+
+  app.get('/api/admin/staff', auth.requireReady, auth.requireSuperAdmin, async (_req, res, next) => {
+    try {
+      const result = await pool.query(`SELECT id, username, display_name, role, must_change_password, created_at
+        FROM users WHERE role IN ('super_admin', 'admin', 'kasir') ORDER BY role, display_name, username`);
+      res.json(result.rows.map(user => ({ ...publicUser(user), createdAt: user.created_at })));
+    } catch (error) { next(error); }
+  });
+
+  app.post('/api/admin/staff', auth.requireReady, auth.requireSuperAdmin, auth.csrfGuard, async (req, res, next) => {
+    const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
+    const displayName = typeof req.body?.displayName === 'string' ? req.body.displayName.trim() : '';
+    const requestedRole = req.body?.role;
+    const role = requestedRole === 'cashier' ? 'kasir' : requestedRole === 'admin' ? 'admin' : null;
+    if (!/^[a-zA-Z0-9_]{3,50}$/.test(username) || displayName.length < 2 || displayName.length > 100 || !role) {
+      return res.status(400).json({ error: 'Isi nama, username valid, dan role Admin/Kasir.' });
+    }
+    try {
+      const temporaryPassword = generateTemporaryPassword();
+      const passwordHash = await hashPassword(temporaryPassword);
+      const result = await pool.query(`INSERT INTO users
+        (username, display_name, password, role, must_change_password, created_by)
+        VALUES ($1, $2, $3, $4, TRUE, $5)
+        RETURNING id, username, display_name, role, must_change_password`,
+      [username, displayName, passwordHash, role, req.account.id]);
+      res.status(201).json({ staff: publicUser(result.rows[0]), temporaryPassword });
+    } catch (error) {
+      if (error.code === '23505') return res.status(409).json({ error: 'Username sudah digunakan.' });
+      next(error);
+    }
+  });
+
+  app.post('/api/admin/staff/:id/reset-password', auth.requireReady, auth.requireSuperAdmin, auth.csrfGuard, async (req, res, next) => {
+    try {
+      const temporaryPassword = generateTemporaryPassword();
+      const passwordHash = await hashPassword(temporaryPassword);
+      const result = await pool.query(`UPDATE users SET password = $1, must_change_password = TRUE
+        WHERE id = $2 AND role IN ('admin', 'kasir') RETURNING id, username, display_name, role, must_change_password`,
+      [passwordHash, req.params.id]);
+      if (!result.rows.length) return res.status(404).json({ error: 'Staf tidak ditemukan atau tidak dapat direset.' });
+      await pool.query('DELETE FROM sessions WHERE user_id = $1', [req.params.id]);
+      res.json({ staff: publicUser(result.rows[0]), temporaryPassword });
+    } catch (error) { next(error); }
+  });
 
   // GET CATEGORIES
-  app.get('/api/categories', auth.requireUser, async (_req, res, next) => {
+  app.get('/api/categories', auth.requireReady, async (_req, res, next) => {
     try {
       const result = await pool.query('SELECT id, name, description FROM categories ORDER BY id ASC');
       res.json(result.rows);
@@ -78,18 +156,18 @@ function createApp(pool, origins = []) {
   });
 
   // GET PRODUCTS (Customers see without cost_price, Admins see cost_price)
-  app.get('/api/products', auth.requireUser, async (req, res, next) => {
+  app.get('/api/products', auth.requireReady, async (req, res, next) => {
     try {
-      const includeCost = req.account.role === 'admin';
+      const includeCost = ['admin', 'super_admin'].includes(req.account.role);
       const costField = includeCost ? ', p.cost_price' : '';
-      const result = await pool.query(`SELECT p.id, p.category_id, p.name, p.price, p.stock, p.min_stock, c.name AS category_name ${costField}
+      const result = await pool.query(`SELECT p.id, p.category_id, p.name, p.barcode, p.price, p.stock, p.min_stock, c.name AS category_name ${costField}
         FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id ASC`);
       res.json(result.rows);
     } catch (error) { next(error); }
   });
 
   // IN-STORE CHECKOUT (atomic stock update and receipt creation)
-  app.post('/api/transactions/checkout', auth.requireUser, auth.csrfGuard, async (req, res, next) => {
+  app.post('/api/transactions/checkout', auth.requireReady, auth.csrfGuard, async (req, res, next) => {
     const { items, paymentMethod = 'cash' } = req.body || {};
     const validPaymentMethods = ['cash', 'card', 'qris'];
     if (!Array.isArray(items) || items.length === 0 || !validPaymentMethods.includes(paymentMethod)) {
@@ -120,8 +198,12 @@ function createApp(pool, origins = []) {
         return { productId: product.id, name: product.name, quantity: item.quantity, unitPrice, cost: Number(product.cost_price), subtotal };
       });
 
-      const txResult = await client.query(`INSERT INTO transactions (user_id, total_amount, payment_method)
-        VALUES ($1, $2, $3) RETURNING id, created_at`, [req.account.id, totalAmount, paymentMethod]);
+      const txResult = await client.query(`INSERT INTO transactions (user_id, cashier_id, total_amount, payment_method)
+        VALUES ($1, $2, $3, $4) RETURNING id, created_at`, [
+        req.account.role === 'pelanggan' ? req.account.id : null,
+        ['super_admin', 'admin', 'kasir'].includes(req.account.role) ? req.account.id : null,
+        totalAmount, paymentMethod,
+      ]);
       const transactionId = txResult.rows[0].id;
       for (const detail of details) {
         await client.query('UPDATE products SET stock = stock - $1 WHERE id = $2', [detail.quantity, detail.productId]);
@@ -132,7 +214,7 @@ function createApp(pool, origins = []) {
       }
       await client.query('COMMIT');
       res.status(201).json({
-        receipt: { id: transactionId, createdAt: txResult.rows[0].created_at, customer: req.account.username, paymentMethod, items: details, totalAmount }
+        receipt: { id: transactionId, createdAt: txResult.rows[0].created_at, customer: req.account.role === 'pelanggan' ? req.account.username : null, cashier: ['super_admin', 'admin', 'kasir'].includes(req.account.role) ? (req.account.display_name || req.account.username) : null, paymentMethod, items: details, totalAmount }
       });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -141,13 +223,14 @@ function createApp(pool, origins = []) {
     } finally { client.release(); }
   });
 
-  async function transactionHistory(req, res, next, admin = false) {
+  async function transactionHistory(req, res, next, scope = 'customer') {
     try {
-      const params = admin ? [] : [req.account.id];
-      const where = admin ? '' : 'WHERE t.user_id = $1';
+      const params = scope === 'all' ? [] : [req.account.id];
+      const where = scope === 'all' ? '' : scope === 'cashier' ? 'WHERE t.cashier_id = $1' : 'WHERE t.user_id = $1';
       const result = await pool.query(`SELECT t.id, t.total_amount, t.payment_method, t.created_at,
-        u.username AS customer_name FROM transactions t
-        LEFT JOIN users u ON u.id = t.user_id ${where} ORDER BY t.created_at DESC`, params);
+        customer.username AS customer_name, COALESCE(cashier.display_name, cashier.username) AS cashier_name FROM transactions t
+        LEFT JOIN users customer ON customer.id = t.user_id
+        LEFT JOIN users cashier ON cashier.id = t.cashier_id ${where} ORDER BY t.created_at DESC`, params);
       const transactionIds = result.rows.map(row => row.id);
       const detailsByTransaction = {};
       if (transactionIds.length) {
@@ -164,39 +247,40 @@ function createApp(pool, origins = []) {
     } catch (error) { next(error); }
   }
 
-  app.get('/api/transactions/mine', auth.requireUser, (req, res, next) => transactionHistory(req, res, next));
-  app.get('/api/admin/transactions', auth.requireUser, auth.requireAdmin, (req, res, next) => transactionHistory(req, res, next, true));
+  app.get('/api/transactions/mine', auth.requireReady, (req, res, next) => transactionHistory(req, res, next));
+  app.get('/api/admin/transactions', auth.requireReady, auth.requireAdmin, (req, res, next) => transactionHistory(req, res, next, 'all'));
+  app.get('/api/cashier/transactions', auth.requireReady, auth.requireCashier, (req, res, next) => transactionHistory(req, res, next, 'cashier'));
   // ADMIN PRODUCT CRUD
-  app.post('/api/admin/products', auth.requireUser, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
+  app.post('/api/admin/products', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
     const { name, category_id, price, cost_price = 0, stock = 0, min_stock = 5 } = req.body;
-    if (!name || isNaN(price)) return res.status(400).json({ error: 'Data produk tidak lengkap.' });
-
+    const barcode = typeof req.body.barcode === 'string' && req.body.barcode.trim() ? req.body.barcode.trim() : null;
+    if (!name || isNaN(price) || (barcode && barcode.length > 64)) return res.status(400).json({ error: 'Data produk tidak lengkap atau kode produk tidak valid.' });
     try {
-      const result = await pool.query(`
-        INSERT INTO products (name, category_id, price, cost_price, stock, min_stock)
-        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
-      `, [name, category_id || null, price, cost_price, stock, min_stock]);
+      const result = await pool.query(`INSERT INTO products (name, category_id, barcode, price, cost_price, stock, min_stock)
+        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`, [name, category_id || null, barcode, price, cost_price, stock, min_stock]);
       res.status(201).json(result.rows[0]);
-    } catch (error) { next(error); }
+    } catch (error) {
+      if (error.code === '23505') return res.status(409).json({ error: 'Kode produk/barcode sudah digunakan.' });
+      next(error);
+    }
   });
 
-  app.put('/api/admin/products/:id', auth.requireUser, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
+  app.put('/api/admin/products/:id', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
     const { name, category_id, price, cost_price, stock, min_stock } = req.body;
-    if (!name || isNaN(price)) return res.status(400).json({ error: 'Data produk tidak lengkap.' });
-
+    const barcode = typeof req.body.barcode === 'string' && req.body.barcode.trim() ? req.body.barcode.trim() : null;
+    if (!name || isNaN(price) || (barcode && barcode.length > 64)) return res.status(400).json({ error: 'Data produk tidak lengkap atau kode produk tidak valid.' });
     try {
-      const result = await pool.query(`
-        UPDATE products
-        SET name = $1, category_id = $2, price = $3, cost_price = $4, stock = $5, min_stock = $6
-        WHERE id = $7 RETURNING *
-      `, [name, category_id || null, price, cost_price, stock, min_stock, req.params.id]);
-
+      const result = await pool.query(`UPDATE products
+        SET name = $1, category_id = $2, barcode = $3, price = $4, cost_price = $5, stock = $6, min_stock = $7
+        WHERE id = $8 RETURNING *`, [name, category_id || null, barcode, price, cost_price, stock, min_stock, req.params.id]);
       if (result.rowCount === 0) return res.status(404).json({ error: 'Produk tidak ditemukan.' });
       res.json(result.rows[0]);
-    } catch (error) { next(error); }
+    } catch (error) {
+      if (error.code === '23505') return res.status(409).json({ error: 'Kode produk/barcode sudah digunakan.' });
+      next(error);
+    }
   });
-
-  app.patch('/api/admin/products/:id/stock', auth.requireUser, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
+  app.patch('/api/admin/products/:id/stock', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
     const { amount } = req.body; // e.g. +5 or -1
     if (isNaN(amount)) return res.status(400).json({ error: 'Amount harus berupa angka.' });
 
@@ -210,7 +294,7 @@ function createApp(pool, origins = []) {
     } catch (error) { next(error); }
   });
 
-  app.delete('/api/admin/products/:id', auth.requireUser, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
+  app.delete('/api/admin/products/:id', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
     try {
       const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING id', [req.params.id]);
       if (result.rowCount === 0) return res.status(404).json({ error: 'Produk tidak ditemukan.' });
@@ -222,7 +306,7 @@ function createApp(pool, origins = []) {
   });
 
   // ADMIN ANALYTICS / REPORTS
-  app.get('/api/admin/reports', auth.requireUser, auth.requireAdmin, async (req, res, next) => {
+  app.get('/api/admin/reports', auth.requireReady, auth.requireAdmin, async (req, res, next) => {
     const period = req.query.period || 'all'; // today, week, month, all
     let dateFilter = '';
 
@@ -266,7 +350,7 @@ function createApp(pool, origins = []) {
   });
 
   // Legacy analytics (if still needed by existing frontend before refactoring)
-  app.get('/api/admin/analytics', auth.requireUser, auth.requireAdmin, async (_req, res, next) => {
+  app.get('/api/admin/analytics', auth.requireReady, auth.requireAdmin, async (_req, res, next) => {
     try {
       const [summary, daily, topProducts] = await Promise.all([
         pool.query(`SELECT
@@ -299,4 +383,7 @@ function createApp(pool, origins = []) {
   return app;
 }
 module.exports = { createApp };
+
+
+
 

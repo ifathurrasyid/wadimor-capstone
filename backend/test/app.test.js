@@ -1,4 +1,4 @@
-﻿const { test } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { once } = require('node:events');
 const { createApp } = require('../src/app');
@@ -24,16 +24,29 @@ function fakeDatabase() {
       if (sql === 'SELECT 1') return { rows: [{ '?column?': 1 }] };
       if (sql.startsWith('INSERT INTO users')) {
         if (users.has(params[0])) { const error = new Error('duplicate'); error.code = '23505'; throw error; }
-        const user = { id: nextId++, username: params[0], password: params[1], role: 'pelanggan' };
+        const user = { id: nextId++, username: params[0], display_name: params[0], password: params[1], role: 'pelanggan', must_change_password: false };
         users.set(user.username, user);
         return { rows: [user] };
       }
-      if (sql.startsWith('SELECT id, username, password, role FROM users')) return { rows: users.has(params[0]) ? [users.get(params[0])] : [] };
+      if (sql.includes('FROM users WHERE username = ')) return { rows: users.has(params[0]) ? [users.get(params[0])] : [] };
       if (sql.startsWith('INSERT INTO sessions')) { sessions.set(params[0], { token_hash: params[0], user_id: params[1], csrf_token: params[2] }); return { rows: [] }; }
       if (sql.includes('FROM sessions s JOIN users')) {
         const session = sessions.get(params[0]);
         const user = [...users.values()].find(item => item.id === session?.user_id);
-        return { rows: user ? [{ ...session, id: user.id, username: user.username, role: user.role }] : [] };
+        return { rows: user ? [{ ...session, id: user.id, username: user.username, display_name: user.display_name || user.username, role: user.role, must_change_password: Boolean(user.must_change_password) }] : [] };
+      }
+      if (sql.startsWith('SELECT password, must_change_password FROM users')) {
+        const user = [...users.values()].find(item => item.id === params[0]);
+        return { rows: user ? [{ password: user.password, must_change_password: user.must_change_password }] : [] };
+      }
+      if (sql.startsWith('UPDATE users SET password = $1, must_change_password = FALSE')) {
+        const user = [...users.values()].find(item => item.id === params[1]);
+        if (user) { user.password = params[0]; user.must_change_password = false; }
+        return { rows: [], rowCount: user ? 1 : 0 };
+      }
+      if (sql.startsWith('DELETE FROM sessions WHERE user_id')) {
+        for (const [key, session] of sessions) if (session.user_id === params[0] && (!params[1] || key !== params[1])) sessions.delete(key);
+        return { rows: [] };
       }
       if (sql.startsWith('DELETE FROM sessions')) { sessions.delete(params[0]); return { rows: [] }; }
       if (sql.includes('FROM products p LEFT JOIN')) return { rows: [{ id: 1, name: 'Beras', price: '75000.00', stock: 4, min_stock: 5, category_name: null }] };
@@ -54,7 +67,7 @@ async function post(url, path, body, headers = {}) {
   return fetch(url + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:5173', ...headers }, body: JSON.stringify(body) });
 }
 async function adminLogin(url, pool) {
-  pool.users.set('admin_w', { id: 99, username: 'admin_w', password: await hashPassword('admin-password-123'), role: 'admin' });
+  pool.users.set('admin_w', { id: 99, username: 'admin_w', display_name: 'Admin WADIMOR', password: await hashPassword('admin-password-123'), role: 'admin', must_change_password: false });
   const response = await post(url, '/api/auth/login/admin', { username: 'admin_w', password: 'admin-password-123' });
   return { response, cookie: response.headers.get('set-cookie').split(';')[0], body: await response.json() };
 }
@@ -143,10 +156,10 @@ test('admin can retrieve net profit reports', async t => {
   // override query for admin logic
   const originalQuery = pool.query;
   pool.query = async (sql, params = []) => {
-    if (sql.includes('SELECT id, username, password, role FROM users')) return { rows: [{ id: 99, username: 'admin_w', password: await hashPassword('admin123'), role: 'admin' }] };
+    if (sql.includes('FROM users WHERE username = ')) return { rows: [{ id: 99, username: 'admin_w', display_name: 'Admin WADIMOR', password: await hashPassword('admin123'), role: 'admin', must_change_password: false }] };
     if (sql.includes('INSERT INTO sessions')) { pool.sessions.set(params[0], { token_hash: params[0], user_id: 99, csrf_token: params[2] }); return { rows: [] }; }
     if (sql.includes('SELECT * FROM sessions')) return { rows: [{ user_id: 99 }] };
-    if (sql.includes('FROM sessions s JOIN users')) return { rows: [{ id: 99, username: 'admin_w', role: 'admin', token_hash: params[0] }] };
+    if (sql.includes('FROM sessions s JOIN users')) return { rows: [{ id: 99, username: 'admin_w', display_name: 'Admin WADIMOR', role: 'admin', must_change_password: false, token_hash: params[0] }] };
     if (sql.includes('laba_bersih')) return { rows: [{ omset: 150000, hpp: 132000, laba_bersih: 18000, total_orders: 1 }] };
     if (sql.includes('units_sold')) return { rows: [{ name: 'Beras', units_sold: 2, revenue: 150000 }] };
     return originalQuery(sql, params);
@@ -162,9 +175,23 @@ test('admin can retrieve net profit reports', async t => {
   assert.equal(data.topProducts[0].name, 'Beras');
 });
 
+test('temporary-password cashier is blocked until choosing a private password', async t => {
+  const { url, pool } = await serve(t);
+  pool.users.set('cashier_one', { id: 42, username: 'cashier_one', display_name: 'Sinta', password: await hashPassword('TempPass123'), role: 'kasir', must_change_password: true });
+  const login = await post(url, '/api/auth/login/cashier', { username: 'cashier_one', password: 'TempPass123' });
+  assert.equal(login.status, 200);
+  const body = await login.json();
+  assert.equal(body.user.mustChangePassword, true);
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  assert.equal((await fetch(url + '/api/products', { headers: { Cookie: cookie } })).status, 428);
+  const changed = await post(url, '/api/auth/change-password', { newPassword: 'PrivatePass456' }, { Cookie: cookie, 'x-csrf-token': body.csrfToken });
+  assert.equal(changed.status, 200);
+  assert.equal(pool.users.get('cashier_one').must_change_password, false);
+  assert.equal((await fetch(url + '/api/products', { headers: { Cookie: cookie } })).status, 200);
+});
 test('plaintext legacy passwords and bad requests cannot authenticate', async t => {
   const { url, pool } = await serve(t);
-  pool.users.set('legacy', { id: 1, username: 'legacy', password: 'cust123', role: 'pelanggan' });
+  pool.users.set('legacy', { id: 1, username: 'legacy', display_name: 'Legacy', password: 'cust123', role: 'pelanggan', must_change_password: false });
   assert.equal((await post(url, '/api/auth/login/customer', { username: 'legacy', password: 'cust123' })).status, 401);
   assert.equal((await post(url, '/api/auth/register', { username: 'x', password: 'abc' })).status, 400);
   const malformed = await fetch(url + '/api/auth/login/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{' });

@@ -1,10 +1,13 @@
-﻿-- Bootstrap only: run against an EMPTY database. Existing tables cause a rollback.
+-- Bootstrap only: run against an EMPTY database. Existing tables cause a rollback.
 BEGIN;
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
+    display_name VARCHAR(100) NOT NULL,
     password VARCHAR(255) NOT NULL, -- Password HASH only; never plaintext.
-    role VARCHAR(20) NOT NULL DEFAULT 'pelanggan' CHECK (role IN ('admin', 'pelanggan')),
+    role VARCHAR(20) NOT NULL DEFAULT 'pelanggan' CHECK (role IN ('super_admin', 'admin', 'kasir', 'pelanggan')),
+    must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE categories (
@@ -16,6 +19,7 @@ CREATE TABLE products (
     id SERIAL PRIMARY KEY,
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
     name VARCHAR(150) NOT NULL,
+    barcode VARCHAR(64) UNIQUE,
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
     cost_price NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (cost_price >= 0),
     stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
@@ -26,6 +30,7 @@ CREATE TABLE products (
 CREATE TABLE transactions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    cashier_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     total_amount NUMERIC(12, 2) NOT NULL CHECK (total_amount >= 0),
     payment_method VARCHAR(50) NOT NULL DEFAULT 'cash',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -50,6 +55,7 @@ CREATE INDEX sessions_user_idx ON sessions(user_id);
 CREATE INDEX sessions_expiry_idx ON sessions(expires_at);
 CREATE INDEX products_category_idx ON products(category_id);
 CREATE INDEX transactions_user_idx ON transactions(user_id);
+CREATE INDEX transactions_cashier_idx ON transactions(cashier_id);
 CREATE INDEX transactions_created_idx ON transactions(created_at);
 CREATE INDEX details_transaction_idx ON transaction_details(transaction_id);
 CREATE INDEX details_product_idx ON transaction_details(product_id);
@@ -72,3 +78,5 @@ INSERT INTO products (category_id, name, price, cost_price, stock, min_stock) VA
 (3, 'Indomie Goreng', 3000, 2400, 200, 40),
 (3, 'Tango Coklat', 8000, 6800, 3, 10);
 COMMIT;
+
+

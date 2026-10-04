@@ -2,7 +2,7 @@ const { randomBytes, createHash, scrypt: scryptCallback, timingSafeEqual } = req
 const { promisify } = require('node:util');
 const scrypt = promisify(scryptCallback);
 const SESSION_DAYS = 7;
-const ROLE_MAP = { admin: 'admin', customer: 'pelanggan' };
+const ROLE_MAP = { admin: ['admin', 'super_admin'], cashier: ['kasir'], customer: ['pelanggan'] };
 
 async function hashPassword(password) {
   const salt = randomBytes(16).toString('hex');
@@ -28,13 +28,22 @@ function getCookie(req) {
   const value = raw?.slice(prefix.length);
   return value && /^[0-9a-f]{64}$/.test(value) ? value : null;
 }
+function publicUser(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.display_name || user.displayName || user.username,
+    role: user.role,
+    mustChangePassword: Boolean(user.must_change_password ?? user.mustChangePassword),
+  };
+}
 async function createSession(pool, res, user) {
   const token = randomBytes(32).toString('hex');
   const csrfToken = randomBytes(32).toString('hex');
   await pool.query(`INSERT INTO sessions (token_hash, user_id, csrf_token, expires_at)
     VALUES ($1, $2, $3, NOW() + INTERVAL '7 days')`, [digest(token), user.id, csrfToken]);
   res.cookie(cookieName(), token, cookieOptions());
-  return { user: { id: user.id, username: user.username, role: user.role }, csrfToken };
+  return { user: publicUser(user), csrfToken };
 }
 function createAuth(pool, origins) {
   const attempts = new Map();
@@ -48,7 +57,7 @@ function createAuth(pool, origins) {
     const token = getCookie(req);
     if (!token) return res.status(401).json({ error: 'Silakan masuk terlebih dahulu' });
     try {
-      const result = await pool.query(`SELECT s.token_hash, s.csrf_token, u.id, u.username, u.role
+      const result = await pool.query(`SELECT s.token_hash, s.csrf_token, u.id, u.username, u.display_name, u.role, u.must_change_password
         FROM sessions s JOIN users u ON u.id = s.user_id
         WHERE s.token_hash = $1 AND s.expires_at > NOW()`, [digest(token)]);
       if (!result.rows.length) return res.status(401).json({ error: 'Sesi berakhir. Silakan masuk kembali.' });
@@ -56,8 +65,19 @@ function createAuth(pool, origins) {
       next();
     } catch (error) { next(error); }
   }
+  function requireReady(req, res, next) {
+    return requireUser(req, res, () => req.account.must_change_password
+      ? res.status(428).json({ error: 'Ganti kata sandi sementara sebelum melanjutkan.', code: 'PASSWORD_CHANGE_REQUIRED' })
+      : next());
+  }
   function requireAdmin(req, res, next) {
-    return req.account.role === 'admin' ? next() : res.status(403).json({ error: 'Khusus admin' });
+    return ['admin', 'super_admin'].includes(req.account.role) ? next() : res.status(403).json({ error: 'Khusus admin' });
+  }
+  function requireSuperAdmin(req, res, next) {
+    return req.account.role === 'super_admin' ? next() : res.status(403).json({ error: 'Khusus super admin' });
+  }
+  function requireCashier(req, res, next) {
+    return req.account.role === 'kasir' ? next() : res.status(403).json({ error: 'Khusus kasir' });
   }
   function csrfGuard(req, res, next) {
     const supplied = req.get('x-csrf-token');
@@ -82,6 +102,6 @@ function createAuth(pool, origins) {
     attempts.set(key, current && current.until > now ? { ...current, count: current.count + 1 } : { count: 1, until: now + 900000 });
   }
   function clearLogin(key) { attempts.delete(key); }
-  return { originGuard, requireUser, requireAdmin, csrfGuard, limitLogin, failedLogin, clearLogin, createSession: (res, user) => createSession(pool, res, user), getCookie };
+  return { originGuard, requireUser, requireReady, requireAdmin, requireSuperAdmin, requireCashier, csrfGuard, limitLogin, failedLogin, clearLogin, createSession: (res, user) => createSession(pool, res, user), getCookie, publicUser };
 }
-module.exports = { createAuth, hashPassword, verifyPassword, digest, ROLE_MAP, cookieName, cookieOptions };
+module.exports = { createAuth, hashPassword, verifyPassword, digest, ROLE_MAP, cookieName, cookieOptions, publicUser };

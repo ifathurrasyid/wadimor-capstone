@@ -11,19 +11,18 @@ WADIMOR tetap digunakan sebagai nama aplikasi. Scope sistem mencakup pengelolaan
 | Area | Status saat ini | Langkah berikutnya |
 |---|---|---|
 | Dashboard | Menampilkan jumlah produk, total unit stok, pendapatan kotor, transaksi, stok menipis, serta penjualan tujuh hari dari data tersimpan. | Tambahkan perbandingan periode setelah aturan tanggal dan zona waktu ditetapkan. |
-| Daftar Barang | Menampilkan nama, kategori, stok, batas minimum, harga jual, harga modal, status, pencarian, dan filter. | Tambahkan create/edit/archive produk dan penyesuaian stok dengan alasan. |
-| Kasir Digital | Menyediakan katalog, jumlah, keranjang, metode pembayaran di toko, checkout atomik, dan struk. | Tambahkan SKU/barcode, uang diterima, kembalian, dan idempotency key untuk mencegah transaksi ganda. |
-| Riwayat Transaksi | Admin dan Customer dapat melihat ID, waktu, item, metode pembayaran, dan total sesuai hak akses. | Tambahkan filter tanggal dan snapshot nama/SKU produk. |
+| Daftar Barang | Menampilkan produk, stok, batas minimum, harga, kode/barcode opsional, status, pencarian, dan filter; Admin tetap dapat menambah, mengedit lewat modal, serta mengatur stok. | Tambahkan pencatatan audit untuk setiap mutasi stok. |
+| Kasir Digital | Kasir memproses transaksi walk-in dengan input ID/barcode, keranjang tetap terlihat, checkout atomik, dan faktur; katalog dan akun Customer tetap dipertahankan. | Tambahkan uang diterima/kembalian dan idempotency key untuk mencegah transaksi ganda. |
+| Riwayat Transaksi | Admin melihat seluruh transaksi; Kasir melihat transaksi miliknya; Customer melihat struk akunnya. ID transaksi membuka faktur dengan daftar barang dan harga. | Tambahkan filter tanggal dan snapshot nama/kode produk. |
 | Laporan | Menyediakan laporan hari ini, tujuh hari, bulan berjalan, dan seluruh waktu. | Tetapkan definisi pendapatan, laba kotor, laba bersih, refund, diskon, dan zona waktu. |
-| Peringatan Stok | Menampilkan jumlah peringatan, sisa stok, batas minimum, status, dan filter stok menipis. | Buat halaman khusus jika katalog berkembang; filter inventori cukup untuk scope saat ini. |
-| Authentication | Login Admin/Customer terpisah, registrasi Customer, session PostgreSQL, dan role check server tersedia. | Tambahkan reset password, recovery, manajemen session, dan rate limiting untuk deployment publik. |
+| Peringatan Stok | Badge lonceng di navigasi Admin menghitung barang yang perlu di-restock dan membuka daftar stok menipis. | Tambahkan pengingat stok yang bisa diatur jika dibutuhkan. |
+| Authentication | Separate Admin/Cashier/Customer logins, Customer registration, PostgreSQL sessions, and server role checks are available. | Add password reset, recovery, session management, and production rate limiting. |
 
 ## Keputusan produk dan data
 
-### 1. Bedakan Customer dan Kasir
+### 1. Pisahkan peran Kasir dan Customer
 
-`transactions.user_id` saat ini mewakili pengguna yang melakukan checkout. Jika staf memproses transaksi untuk Customer, model data memerlukan `cashier_id` dan `customer_id` terpisah. Tim juga perlu menentukan apakah role `kasir` diperlukan atau Admin dapat bertindak sebagai kasir.
-
+Kasir memproses pembelian walk-in, jadi pembeli tidak perlu membuat akun Customer di kasir. Transaksi menyimpan `cashier_id`, sedangkan `user_id` Customer boleh kosong. Akun Customer dan katalog belanja tetap tersedia sebagai alur terpisah. Pemesanan jarak jauh belum termasuk alur inti.
 ### 2. Gunakan istilah keuangan yang tepat
 
 - Pendapatan kotor: total nilai penjualan sebelum pengurangan.
@@ -59,9 +58,9 @@ Simpan URL atau path gambar dan tampilkan placeholder ketika kosong. Jika upload
 
 ## Urutan implementasi
 
-1. Sepakati aktor checkout, permission matrix, istilah keuangan, pembayaran, dan zona waktu; perbarui ERD, use case, serta mockup.
+1. Lengkapi permission matrix Admin/Kasir/Customer dan perbarui ERD serta diagram sesuai alur Kasir.
 2. Pecah frontend dan backend menjadi page, component, route, service, validation, dan repository yang lebih kecil.
-3. Tambahkan migration untuk SKU, snapshot produk, arsip, dan mutasi stok; uji pada salinan database.
+3. Lanjutkan migration untuk audit mutasi stok, snapshot nama/kode produk, dan arsip.
 4. Bangun create/edit/archive produk dan penyesuaian stok dengan validasi serta hak akses Admin.
 5. Perkuat checkout dengan idempotency key, uang diterima/kembalian, dan integration test untuk pembelian stok terakhir secara bersamaan.
 6. Tambahkan filter riwayat dan sempurnakan laporan berdasarkan definisi tim.
@@ -70,7 +69,7 @@ Simpan URL atau path gambar dan tampilkan placeholder ketika kosong. Jika upload
 
 ## Target demo capstone
 
-Alur demo yang kuat adalah: Admin login → Admin menambah atau menyesuaikan stok dengan alasan → Customer memilih produk → checkout berhasil tepat satu kali → stok berkurang → struk tampil di riwayat → dashboard dan laporan ikut berubah.
+Alur demo yang kuat adalah: Admin login → Admin menambah stok → Kasir login → memasukkan ID/barcode barang → checkout berhasil tepat satu kali → stok berkurang → faktur muncul di riwayat → dashboard dan laporan ikut berubah. Fitur Customer tetap dapat didemonstrasikan secara terpisah.
 
 Satu alur lengkap dan dapat diuji lebih bernilai daripada banyak menu yang belum terhubung ke database.
 
@@ -92,18 +91,17 @@ WADIMOR remains the application name. The system scope includes Inventory manage
 |---|---|---|
 | Dashboard | Shows product count, total Inventory units, gross revenue, transactions, low-stock items, and seven-day sales from stored data. | Add period comparison after date and timezone rules are defined. |
 | Inventory | Shows name, category, stock, minimum stock, sale price, cost price, status, search, and filters. | Add product create/edit/archive and stock adjustments with reasons. |
-| Digital checkout | Provides catalog, quantities, basket, in-store payment method, atomic checkout, and receipt. | Add SKU/barcode, tendered amount, change, and an idempotency key to prevent duplicates. |
-| Transaction history | Admin and Customer users can view IDs, times, items, payment methods, and totals according to permission. | Add date filters and product name/SKU snapshots. |
+| Digital checkout | Cashiers process walk-in sales with product ID/barcode entry, a persistent cart, atomic checkout, and invoices; the customer catalog and accounts remain available. | Add tendered amount/change and an idempotency key to prevent duplicate sales. |
+| Transaction history | Admin sees all sales, Cashier sees their own, and Customers keep their account receipts. Clicking a transaction opens an invoice with item details and prices. | Add date filters and product name/code snapshots. |
 | Reports | Provides today, seven-day, current-month, and all-time reports. | Define revenue, gross profit, net profit, refunds, discounts, and timezone. |
-| Stock alerts | Shows alert count, remaining stock, minimum stock, status, and a low-stock filter. | Create a dedicated page if the catalog grows; the Inventory filter is enough for the current scope. |
-| Authentication | Separate Admin/Customer login, Customer registration, PostgreSQL sessions, and server role checks are available. | Add password reset, recovery, session management, and production-grade rate limiting. |
+| Stock alerts | The Admin sidebar bell counts products that need restocking and opens the low-stock list. | Add configurable reminders if needed. |
+| Authentication | Separate Admin/Cashier/Customer logins, Customer registration, PostgreSQL sessions, and server role checks are available. | Add password reset, recovery, session management, and production rate limiting. |
 
 ## Product and data decisions
 
-### 1. Separate Customer and Cashier
+### 1. Separate the Cashier and Customer roles
 
-`transactions.user_id` currently identifies the user performing checkout. If staff process a sale for a Customer, the model needs separate `cashier_id` and `customer_id` fields. The team must also decide whether a `cashier` role is required or Admin can act as cashier.
-
+Cashiers process walk-in sales, so shoppers do not need a Customer account at the counter. Transactions store `cashier_id`; the Customer `user_id` can be empty. Customer accounts and the shopping catalog remain available separately. Remote ordering is outside the core workflow for now.
 ### 2. Use precise financial terms
 
 - Gross revenue: total sales before deductions.
@@ -150,9 +148,11 @@ Store an image URL or path and show a placeholder when empty. If uploads are imp
 
 ## Capstone demo target
 
-A strong demonstration is: Admin signs in → Admin adds or adjusts stock with a reason → Customer selects products → checkout succeeds exactly once → stock decreases → the receipt appears in history → dashboard and reports update.
+A strong demonstration is: Admin signs in → Admin adds stock → Cashier signs in → enters/scans item codes → checkout succeeds once → stock decreases → the invoice appears in history → dashboard and reports update. Customer shopping can be demonstrated separately.
 
 One complete, testable workflow is more valuable than many screens that are not connected to the database.
+
+
 
 
 

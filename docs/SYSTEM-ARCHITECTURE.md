@@ -25,10 +25,10 @@ Docker hanya membungkus PostgreSQL agar instalasinya sama di setiap laptop. Reac
 
 Frontend adalah halaman yang dilihat pengguna di browser. Frontend menangani:
 
-- halaman login Admin dan Customer;
+- halaman login Admin, Kasir, dan Customer;
 - dashboard Admin;
 - daftar Inventori;
-- katalog dan keranjang Customer;
+- POS Kasir dengan input ID/barcode dan keranjang tetap terlihat; katalog serta keranjang Customer;
 - formulir produk dan penyesuaian stok;
 - faktur pembayaran dan riwayat transaksi;
 - grafik serta status stok.
@@ -37,7 +37,7 @@ Frontend tidak boleh dipercaya untuk menghitung harga atau memberi akses Admin. 
 
 ## Vite — apa yang dilakukan?
 
-Vite menjalankan development server frontend pada `http://localhost:5173`. Vite juga meneruskan request `/api` ke backend port 5000 saat development. Saat production, Vite membuat file frontend statis melalui `npm run build`.
+Tailwind CSS mengatur styling melalui utility classes pada komponen React. Vite menjalankan development server frontend pada `http://localhost:5173`. Vite juga meneruskan request `/api` ke backend port 5000 saat development. Saat production, Vite membuat file frontend statis melalui `npm run build`.
 
 ## Backend — apa yang dilakukan?
 
@@ -59,10 +59,10 @@ Route utama memakai prefix `/api`, misalnya `/api/auth`, `/api/products`, dan `/
 
 Database menyimpan data permanen. Tabel utama meliputi:
 
-- `users`: username, password hash, dan role;
+- `users`: username, password hash, dan role (`admin`, `kasir`, atau `pelanggan`);
 - `categories`: kategori produk;
-- `products`: nama, harga jual, harga modal, stok, dan batas minimum;
-- `transactions`: ringkasan checkout, pengguna, waktu, dan total;
+- `products`: nama, kode/barcode opsional, harga jual, harga modal, stok, dan batas minimum;
+- `transactions`: ringkasan checkout, customer opsional, kasir opsional, waktu, total, dan metode pembayaran;
 - `transaction_details`: produk, jumlah, harga saat transaksi, dan subtotal;
 - `sessions`: session login yang masih aktif.
 
@@ -119,7 +119,16 @@ npm.cmd --prefix frontend run dev
 - **API:** pintu komunikasi antara frontend dan backend.
 - **Endpoint:** alamat API tertentu, misalnya `/api/products`.
 - **Session:** bukti login yang disimpan server dan dikirim melalui cookie.
-- **Role:** hak akses, yaitu `admin` atau `pelanggan`.
+- **Role:** hak akses, yaitu `super_admin`, `admin`, `kasir`, atau `pelanggan`. Kasir tidak memerlukan akun Customer untuk transaksi walk-in.
 - **Migration:** perubahan database yang diberi nomor dan dijalankan berurutan.
 - **Connection pool:** kumpulan koneksi database yang dipakai ulang backend.
 - **Direct invoice:** faktur pembayaran langsung setelah checkout di toko.
+## Menyiapkan akun staf
+
+Command `setup:admin` membuat atau memulihkan satu akun Super Admin. Setelah login, Super Admin membuat Admin biasa atau Kasir melalui menu **Kelola Staf**. Sistem menghasilkan password sementara yang hanya ditampilkan satu kali. Staf wajib menggantinya pada login pertama sebelum dapat membuka fitur operasional.
+
+Super Admin juga dapat mereset password staf dari menu yang sama. Admin biasa tidak dapat membuat atau mengubah akun staf. Kasir masuk melalui `/cashier/login`; akun Customer dan fitur belanja Customer tetap tersedia terpisah.
+
+Di Daftar Barang, Admin dapat mengisi barcode opsional. Jika belum ada barcode, Kasir tetap bisa memasukkan ID numerik yang ditampilkan di baris produk. Scanner USB dapat mengetikkan barcode ke kolom yang sama.
+
+

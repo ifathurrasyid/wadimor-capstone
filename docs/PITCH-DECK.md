@@ -18,16 +18,18 @@ Setelah pembayaran, sistem membuat **direct invoice/faktur langsung** yang bisa 
 ## Slide 4 — Siapa yang memakai?
 
 - **Admin:** mengelola produk, stok, harga, pengguna, transaksi, dan laporan.
-- **Customer:** melihat produk, memasukkan barang ke keranjang, checkout, dan melihat faktur serta riwayat pembelian.
+- **Kasir:** memproses barang yang dibawa pembeli, memasukkan ID atau memindai barcode, menerima pembayaran, dan mencetak faktur.
+- **Customer:** tetap bisa melihat katalog, memakai keranjang, checkout, dan melihat struk dari akun Customer.
 
-Admin dan Customer memiliki halaman login yang berbeda.
+Admin, Kasir, dan Customer memiliki halaman login serta izin akses masing-masing. Transaksi walk-in tidak membutuhkan akun Customer.
 
 ## Slide 5 — Fitur utama
 
 - Dashboard Admin dengan total produk, stok, pendapatan, dan grafik penjualan.
 - Daftar Inventori dengan kategori, harga modal, harga jual, stok minimum, dan status stok.
 - Penambahan, pengurangan, pengeditan, dan penghapusan produk.
-- Keranjang belanja dan checkout.
+- POS Kasir dengan input ID/barcode dan keranjang checkout.
+- Katalog, keranjang, dan riwayat Customer tetap tersedia.
 - Pengurangan stok otomatis setelah checkout berhasil.
 - Direct invoice/faktur pembayaran.
 - Riwayat transaksi.
@@ -36,14 +38,12 @@ Admin dan Customer memiliki halaman login yang berbeda.
 ## Slide 6 — Alur penggunaan
 
 1. Admin login dan memastikan produk serta stok sudah tersedia.
-2. Customer login dan memilih produk.
-3. Customer mengatur jumlah barang di keranjang.
-4. Customer melakukan checkout.
-5. Backend memeriksa stok dan menghitung total harga.
-6. Database menyimpan transaksi dan mengurangi stok.
-7. Sistem menampilkan faktur pembayaran.
-8. Admin dapat melihat transaksi dan laporan penjualan.
-
+2. Kasir login lalu memasukkan ID produk atau memindai barcode barang yang dibawa pembeli.
+3. Kasir memeriksa keranjang dan memilih metode pembayaran.
+4. Backend memeriksa stok dan menghitung total harga.
+5. Database menyimpan transaksi dan mengurangi stok.
+6. Sistem menampilkan faktur pembayaran untuk dicetak.
+7. Admin dapat melihat transaksi dan laporan penjualan.
 ## Slide 7 — Keunggulan
 
 - Data stok dan transaksi tersimpan terpusat.
@@ -63,8 +63,10 @@ Admin dan Customer memiliki halaman login yang berbeda.
 
 ## Slide 9 — Demo yang disarankan
 
-Tunjukkan urutan ini: Admin login → melihat dashboard → menambah stok → Customer memilih produk → checkout → faktur muncul → stok berkurang → Admin membuka riwayat dan laporan.
+Tunjukkan urutan ini: Admin login → melihat dashboard → menambah stok → Kasir login → memasukkan kode barang → checkout → faktur muncul → stok berkurang → Admin membuka riwayat dan laporan.
 
 ## Slide 10 — Penutup
 
 WADIMOR membantu toko offline mengurangi pencatatan manual dan melihat kondisi penjualan dengan lebih cepat. Sistem ini menjadi dasar yang dapat dikembangkan menjadi aplikasi toko yang lebih lengkap.
+
+
