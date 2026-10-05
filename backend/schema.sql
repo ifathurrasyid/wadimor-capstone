@@ -20,6 +20,7 @@ CREATE TABLE products (
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
     name VARCHAR(150) NOT NULL,
     barcode VARCHAR(64) UNIQUE,
+    image_url TEXT,
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
     cost_price NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (cost_price >= 0),
     stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
@@ -31,6 +32,7 @@ CREATE TABLE transactions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     cashier_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    cashier_name VARCHAR(100),
     total_amount NUMERIC(12, 2) NOT NULL CHECK (total_amount >= 0),
     payment_method VARCHAR(50) NOT NULL DEFAULT 'cash',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP

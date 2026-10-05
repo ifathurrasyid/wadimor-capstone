@@ -379,6 +379,8 @@ Migration yang tersedia:
 4. `004_pos_features.sql` menambahkan harga modal untuk laporan laba kotor.
 5. `005_cashier_barcode.sql` menambahkan role Kasir, kode/barcode produk, dan pencatatan kasir pada transaksi.
 6. `006_staff_management.sql` menambahkan Super Admin, nama staf, password sementara, dan pengelolaan akun staf.
+7. `007_product_images.sql` menambahkan lokasi foto produk.
+8. `008_transaction_cashier_snapshot.sql` mempertahankan nama kasir di riwayat transaksi setelah akun dihapus.
 
 Untuk database Docker, jalankan hanya file yang belum pernah diterapkan:
 
@@ -389,12 +391,14 @@ Get-Content -Raw backend/migrations/003_reset_legacy_passwords.sql | docker comp
 Get-Content -Raw backend/migrations/004_pos_features.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 Get-Content -Raw backend/migrations/005_cashier_barcode.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 Get-Content -Raw backend/migrations/006_staff_management.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
+Get-Content -Raw backend/migrations/007_product_images.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
+Get-Content -Raw backend/migrations/008_transaction_cashier_snapshot.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 ```
 
-Setelah migration `003`, buat atau reset Super Admin melalui `setup:admin`. Setelah migration `006`, buat Admin biasa dan Kasir melalui menu **Kelola Staf**. Pengguna lama yang password-nya berupa teks biasa harus mendaftar ulang atau menggunakan alur reset yang aman.
+Setelah migration `003`, buat atau reset Super Admin melalui `setup:admin`. Setelah migration `006`, buat Admin biasa dan Kasir melalui menu **Kelola Pengguna**. Setelah migration `007`, Admin dapat mengunggah foto JPG, PNG, atau WebP hingga 3 MB. File disimpan di `backend/uploads/products`; sertakan folder ini dalam backup. Migration `008` menyimpan nama kasir pada transaksi agar faktur tetap mencantumkan petugas setelah akun dihapus.
 
 Jika tidak yakin migration mana yang sudah diterapkan, jangan menebak. Periksa backup atau catatan tim. Repository belum memiliki migration tracker otomatis.
-Untuk database PostgreSQL lokal tanpa Docker, terapkan migration yang sama dengan `psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/005_cashier_barcode.sql`. Jalankan hanya jika migration 005 belum pernah dipakai. Database baru yang dibuat dari schema terbaru tidak memerlukan migration tersebut.
+Untuk PostgreSQL lokal tanpa Docker, jalankan file migration yang belum diterapkan secara berurutan. Contoh migration terbaru: `psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/007_product_images.sql`, lalu `psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/008_transaction_cashier_snapshot.sql`. Database baru yang dibuat dari schema terbaru tidak memerlukan migration ini.
 
 ## 11. Setup tanpa Docker
 
@@ -1001,6 +1005,8 @@ Available migrations:
 4. `004_pos_features.sql` adds cost data for gross-profit reports.
 5. `005_cashier_barcode.sql` adds the Cashier role, product codes/barcodes, and cashier attribution for sales.
 6. `006_staff_management.sql` adds the Super Admin, staff names, temporary passwords, and staff account management.
+7. `007_product_images.sql` adds product photo paths.
+8. `008_transaction_cashier_snapshot.sql` preserves cashier names on transaction history after account deletion.
 
 For Docker, run only files not previously applied:
 
@@ -1011,12 +1017,21 @@ Get-Content -Raw backend/migrations/003_reset_legacy_passwords.sql | docker comp
 Get-Content -Raw backend/migrations/004_pos_features.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 Get-Content -Raw backend/migrations/005_cashier_barcode.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 Get-Content -Raw backend/migrations/006_staff_management.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
+Get-Content -Raw backend/migrations/007_product_images.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
+Get-Content -Raw backend/migrations/008_transaction_cashier_snapshot.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 ```
 
-After migration `003`, create or reset the Super Admin with `setup:admin`. After migration `006`, create regular Admin and Cashier accounts through **Manage Staff**. Legacy plaintext-password users must register again or use a secure reset flow.
+After migration `003`, create or reset the Super Admin with `setup:admin`. After migration `006`, create regular Admin and Cashier accounts through **Manage Users**. After migration `007`, Admins can upload JPG, PNG, or WebP photos up to 3 MB. Files are stored in `backend/uploads/products`; include that folder in backups. Migration `008` stores cashier names on transactions so receipts continue to identify the cashier after account deletion. Legacy plaintext-password users must register again or use a secure reset flow.
 
 If migration history is unclear, do not guess. Check backups or team records. The repository has no automatic migration tracker yet.
-For local PostgreSQL without Docker, use `psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/005_cashier_barcode.sql` for migration 005 only if it has not already been applied. A new database initialized from the current schema does not need it.
+For local PostgreSQL without Docker, apply unapplied migration files in order. For product photos and cashier name history, run:
+
+```powershell
+psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/007_product_images.sql
+psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/008_transaction_cashier_snapshot.sql
+```
+
+A new database initialized from the current schema does not need these migrations.
 
 ## 11. Setup without Docker
 

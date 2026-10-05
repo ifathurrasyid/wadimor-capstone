@@ -105,7 +105,7 @@ Semua perintah harus dijalankan dari folder utama `wadimor-capstone`. Dokumentas
 
 ## Status proyek
 
-WADIMOR masih merupakan proyek capstone yang berjalan secara lokal, bukan layanan production. Deployment publik memerlukan HTTPS, reverse proxy `/api` dengan origin yang sama, pengelolaan secret, backup yang diuji, dan hardening tambahan.
+WADIMOR masih merupakan proyek capstone yang berjalan secara lokal, bukan layanan production. Deployment publik memerlukan HTTPS, reverse proxy `/api` dan `/uploads` dengan origin yang sama, pengelolaan secret, backup yang diuji, penyimpanan persisten untuk foto di `backend/uploads/products`, dan hardening tambahan.
 
 ---
 
@@ -221,7 +221,7 @@ Run all commands from the main `wadimor-capstone` folder. The documentation uses
 
 ## Project status
 
-WADIMOR remains a locally run capstone project, not a production service. Public deployment requires HTTPS, a same-origin `/api` reverse proxy, secret management, tested backups, and additional hardening.
+WADIMOR remains a locally run capstone project, not a production service. Public deployment requires HTTPS, same-origin `/api` and `/uploads` reverse proxies, secret management, tested backups, persistent storage for photos in `backend/uploads/products`, and additional hardening.
 
 
 

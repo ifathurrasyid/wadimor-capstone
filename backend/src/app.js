@@ -1,19 +1,59 @@
 const express = require('express');
-const { randomBytes } = require('node:crypto');
+const { randomBytes, randomUUID } = require('node:crypto');
+const fs = require('node:fs/promises');
+const path = require('node:path');
 const cors = require('cors');
 const { createAuth, hashPassword, verifyPassword, digest, ROLE_MAP, cookieName, cookieOptions, publicUser } = require('./auth');
+const PRODUCT_IMAGE_DIR = path.join(__dirname, '../uploads/products');
 
 function generateTemporaryPassword() {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
   const bytes = randomBytes(12);
   return Array.from(bytes, byte => alphabet[byte % alphabet.length]).join('');
 }
+function normalizeImageUrl(value) {
+  if (value == null || value === '') return null;
+  if (typeof value !== 'string' || value.length > 2048) return undefined;
+  if (/^\/uploads\/products\/[a-f0-9-]+\.(?:jpg|png|webp)$/i.test(value)) return value;
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) ? url.toString() : undefined;
+  } catch { return undefined; }
+}
+async function persistProductImage(imageData, imageUrl) {
+  if (!imageData) {
+    const normalized = normalizeImageUrl(imageUrl);
+    if (normalized === undefined) throw Object.assign(new Error('Product image must be a valid HTTPS link or uploaded image.'), { code: 'INVALID_IMAGE' });
+    return { url: normalized, filePath: null };
+  }
+  if (typeof imageData !== 'string' || imageData.length > 4_200_000) throw Object.assign(new Error('Image must be 3 MB or smaller.'), { code: 'INVALID_IMAGE' });
+  const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(imageData);
+  if (!match) throw Object.assign(new Error('Upload a JPG, PNG, or WebP image.'), { code: 'INVALID_IMAGE' });
+  const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer.length || buffer.length > 3 * 1024 * 1024) throw Object.assign(new Error('Image must be 3 MB or smaller.'), { code: 'INVALID_IMAGE' });
+  const validSignature = match[1] === 'image/png'
+    ? buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+    : match[1] === 'image/jpeg'
+      ? buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255
+      : buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP';
+  if (!validSignature) throw Object.assign(new Error('The selected file is not a valid image.'), { code: 'INVALID_IMAGE' });
+  const extension = match[1] === 'image/jpeg' ? 'jpg' : match[1].slice(6);
+  await fs.mkdir(PRODUCT_IMAGE_DIR, { recursive: true });
+  const filePath = path.join(PRODUCT_IMAGE_DIR, randomUUID() + '.' + extension);
+  await fs.writeFile(filePath, buffer, { flag: 'wx' });
+  return { url: '/uploads/products/' + path.basename(filePath), filePath };
+}
+async function removeProductImage(imageUrl) {
+  if (!/^\/uploads\/products\/[a-f0-9-]+\.(?:jpg|png|webp)$/i.test(imageUrl || '')) return;
+  await fs.rm(path.join(PRODUCT_IMAGE_DIR, path.basename(imageUrl)), { force: true });
+}
 function createApp(pool, origins = []) {
   const app = express();
   const auth = createAuth(pool, origins);
   app.disable('x-powered-by');
   app.use(cors({ origin: origins, credentials: true }));
-  app.use(express.json({ limit: '32kb' }));
+  app.use(express.json({ limit: '5mb' }));
+  app.use('/uploads/products', express.static(PRODUCT_IMAGE_DIR, { index: false, maxAge: '1d' }));
   app.use(auth.originGuard);
 
   app.get('/api/status', async (_req, res) => {
@@ -103,10 +143,10 @@ function createApp(pool, origins = []) {
     } catch (error) { next(error); }
   });
 
-  app.get('/api/admin/staff', auth.requireReady, auth.requireSuperAdmin, async (_req, res, next) => {
+  app.get('/api/admin/staff', auth.requireReady, auth.requireAdmin, async (_req, res, next) => {
     try {
       const result = await pool.query(`SELECT id, username, display_name, role, must_change_password, created_at
-        FROM users WHERE role IN ('super_admin', 'admin', 'kasir') ORDER BY role, display_name, username`);
+        FROM users ORDER BY CASE role WHEN 'super_admin' THEN 0 WHEN 'admin' THEN 1 WHEN 'kasir' THEN 2 ELSE 3 END, display_name, username`);
       res.json(result.rows.map(user => ({ ...publicUser(user), createdAt: user.created_at })));
     } catch (error) { next(error); }
   });
@@ -160,7 +200,7 @@ function createApp(pool, origins = []) {
     try {
       const includeCost = ['admin', 'super_admin'].includes(req.account.role);
       const costField = includeCost ? ', p.cost_price' : '';
-      const result = await pool.query(`SELECT p.id, p.category_id, p.name, p.barcode, p.price, p.stock, p.min_stock, c.name AS category_name ${costField}
+      const result = await pool.query(`SELECT p.id, p.category_id, p.name, p.barcode, p.image_url, p.price, p.stock, p.min_stock, c.name AS category_name ${costField}
         FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id ASC`);
       res.json(result.rows);
     } catch (error) { next(error); }
@@ -198,11 +238,13 @@ function createApp(pool, origins = []) {
         return { productId: product.id, name: product.name, quantity: item.quantity, unitPrice, cost: Number(product.cost_price), subtotal };
       });
 
-      const txResult = await client.query(`INSERT INTO transactions (user_id, cashier_id, total_amount, payment_method)
-        VALUES ($1, $2, $3, $4) RETURNING id, created_at`, [
+      const cashierName = ['super_admin', 'admin', 'kasir'].includes(req.account.role)
+        ? (req.account.display_name || req.account.username) : null;
+      const txResult = await client.query(`INSERT INTO transactions (user_id, cashier_id, cashier_name, total_amount, payment_method)
+        VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at`, [
         req.account.role === 'pelanggan' ? req.account.id : null,
         ['super_admin', 'admin', 'kasir'].includes(req.account.role) ? req.account.id : null,
-        totalAmount, paymentMethod,
+        cashierName, totalAmount, paymentMethod,
       ]);
       const transactionId = txResult.rows[0].id;
       for (const detail of details) {
@@ -214,7 +256,7 @@ function createApp(pool, origins = []) {
       }
       await client.query('COMMIT');
       res.status(201).json({
-        receipt: { id: transactionId, createdAt: txResult.rows[0].created_at, customer: req.account.role === 'pelanggan' ? req.account.username : null, cashier: ['super_admin', 'admin', 'kasir'].includes(req.account.role) ? (req.account.display_name || req.account.username) : null, paymentMethod, items: details, totalAmount }
+        receipt: { id: transactionId, createdAt: txResult.rows[0].created_at, customer: req.account.role === 'pelanggan' ? req.account.username : null, cashier: cashierName, paymentMethod, items: details, totalAmount }
       });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -228,7 +270,7 @@ function createApp(pool, origins = []) {
       const params = scope === 'all' ? [] : [req.account.id];
       const where = scope === 'all' ? '' : scope === 'cashier' ? 'WHERE t.cashier_id = $1' : 'WHERE t.user_id = $1';
       const result = await pool.query(`SELECT t.id, t.total_amount, t.payment_method, t.created_at,
-        customer.username AS customer_name, COALESCE(cashier.display_name, cashier.username) AS cashier_name FROM transactions t
+        customer.username AS customer_name, COALESCE(t.cashier_name, cashier.display_name, cashier.username) AS cashier_name FROM transactions t
         LEFT JOIN users customer ON customer.id = t.user_id
         LEFT JOIN users cashier ON cashier.id = t.cashier_id ${where} ORDER BY t.created_at DESC`, params);
       const transactionIds = result.rows.map(row => row.id);
@@ -252,30 +294,59 @@ function createApp(pool, origins = []) {
   app.get('/api/cashier/transactions', auth.requireReady, auth.requireCashier, (req, res, next) => transactionHistory(req, res, next, 'cashier'));
   // ADMIN PRODUCT CRUD
   app.post('/api/admin/products', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
-    const { name, category_id, price, cost_price = 0, stock = 0, min_stock = 5 } = req.body;
+    const { name, category_id, price, cost_price = 0, stock = 0, min_stock = 5, image_url = null, image_data = null } = req.body;
     const barcode = typeof req.body.barcode === 'string' && req.body.barcode.trim() ? req.body.barcode.trim() : null;
     if (!name || isNaN(price) || (barcode && barcode.length > 64)) return res.status(400).json({ error: 'Data produk tidak lengkap atau kode produk tidak valid.' });
+    let uploadedImage;
     try {
-      const result = await pool.query(`INSERT INTO products (name, category_id, barcode, price, cost_price, stock, min_stock)
-        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`, [name, category_id || null, barcode, price, cost_price, stock, min_stock]);
+      uploadedImage = await persistProductImage(image_data, image_url);
+      const result = await pool.query(`INSERT INTO products (name, category_id, barcode, image_url, price, cost_price, stock, min_stock)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`, [name, category_id || null, barcode, uploadedImage.url, price, cost_price, stock, min_stock]);
       res.status(201).json(result.rows[0]);
     } catch (error) {
+      if (uploadedImage?.filePath) await fs.rm(uploadedImage.filePath, { force: true });
+      if (error.code === 'INVALID_IMAGE') return res.status(400).json({ error: error.message });
       if (error.code === '23505') return res.status(409).json({ error: 'Kode produk/barcode sudah digunakan.' });
       next(error);
     }
   });
+  app.delete('/api/admin/staff/:id', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
+    const targetId = Number(req.params.id);
+    if (!Number.isInteger(targetId) || targetId < 1) return res.status(400).json({ error: 'Invalid user ID.' });
+    if (targetId === req.account.id) return res.status(400).json({ error: 'You cannot delete your own account.' });
+    try {
+      const result = await pool.query(`DELETE FROM users WHERE id = $1 AND role <> 'super_admin'
+        RETURNING id`, [targetId]);
+      if (!result.rowCount) return res.status(404).json({ error: 'User not found or protected.' });
+      res.json({ message: 'User deleted.' });
+    } catch (error) { next(error); }
+  });
 
   app.put('/api/admin/products/:id', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
-    const { name, category_id, price, cost_price, stock, min_stock } = req.body;
+    const { name, category_id, price, cost_price, stock, min_stock, image_url = null, image_data = null } = req.body;
     const barcode = typeof req.body.barcode === 'string' && req.body.barcode.trim() ? req.body.barcode.trim() : null;
     if (!name || isNaN(price) || (barcode && barcode.length > 64)) return res.status(400).json({ error: 'Data produk tidak lengkap atau kode produk tidak valid.' });
+    let uploadedImage;
+    let previousImageUrl;
+    let saved = false;
     try {
+      const previous = await pool.query('SELECT image_url FROM products WHERE id = $1', [req.params.id]);
+      if (!previous.rowCount) return res.status(404).json({ error: 'Produk tidak ditemukan.' });
+      previousImageUrl = previous.rows[0].image_url;
+      uploadedImage = await persistProductImage(image_data, image_url);
       const result = await pool.query(`UPDATE products
-        SET name = $1, category_id = $2, barcode = $3, price = $4, cost_price = $5, stock = $6, min_stock = $7
-        WHERE id = $8 RETURNING *`, [name, category_id || null, barcode, price, cost_price, stock, min_stock, req.params.id]);
-      if (result.rowCount === 0) return res.status(404).json({ error: 'Produk tidak ditemukan.' });
+        SET name = $1, category_id = $2, barcode = $3, image_url = $4, price = $5, cost_price = $6, stock = $7, min_stock = $8
+        WHERE id = $9 RETURNING *`, [name, category_id || null, barcode, uploadedImage.url, price, cost_price, stock, min_stock, req.params.id]);
+      if (result.rowCount === 0) {
+        if (uploadedImage.filePath) await fs.rm(uploadedImage.filePath, { force: true });
+        return res.status(404).json({ error: 'Produk tidak ditemukan.' });
+      }
+      saved = true;
+      if (previousImageUrl !== uploadedImage.url) await removeProductImage(previousImageUrl);
       res.json(result.rows[0]);
     } catch (error) {
+      if (!saved && uploadedImage?.filePath) await fs.rm(uploadedImage.filePath, { force: true });
+      if (error.code === 'INVALID_IMAGE') return res.status(400).json({ error: error.message });
       if (error.code === '23505') return res.status(409).json({ error: 'Kode produk/barcode sudah digunakan.' });
       next(error);
     }
@@ -296,8 +367,9 @@ function createApp(pool, origins = []) {
 
   app.delete('/api/admin/products/:id', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
     try {
-      const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING id', [req.params.id]);
+      const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING id, image_url', [req.params.id]);
       if (result.rowCount === 0) return res.status(404).json({ error: 'Produk tidak ditemukan.' });
+      await removeProductImage(result.rows[0].image_url);
       res.json({ message: 'Produk berhasil dihapus.' });
     } catch (error) {
       if (error.code === '23503') return res.status(409).json({ error: 'Produk tidak dapat dihapus karena sudah ada di riwayat transaksi.' });

@@ -7,6 +7,7 @@
 coverage/
 *.dump
 browser-check/
+backend/uploads/products/
 .vscode/
 .idea/
 .DS_Store

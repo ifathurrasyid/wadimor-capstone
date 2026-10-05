@@ -61,7 +61,7 @@ Database menyimpan data permanen. Tabel utama meliputi:
 
 - `users`: username, password hash, dan role (`admin`, `kasir`, atau `pelanggan`);
 - `categories`: kategori produk;
-- `products`: nama, kode/barcode opsional, harga jual, harga modal, stok, dan batas minimum;
+- `products`: nama, kode/barcode dan foto opsional, harga jual, harga modal, stok, dan batas minimum;
 - `transactions`: ringkasan checkout, customer opsional, kasir opsional, waktu, total, dan metode pembayaran;
 - `transaction_details`: produk, jumlah, harga saat transaksi, dan subtotal;
 - `sessions`: session login yang masih aktif.
@@ -127,7 +127,7 @@ npm.cmd --prefix frontend run dev
 
 Command `setup:admin` membuat atau memulihkan satu akun Super Admin. Setelah login, Super Admin membuat Admin biasa atau Kasir melalui menu **Kelola Staf**. Sistem menghasilkan password sementara yang hanya ditampilkan satu kali. Staf wajib menggantinya pada login pertama sebelum dapat membuka fitur operasional.
 
-Super Admin juga dapat mereset password staf dari menu yang sama. Admin biasa tidak dapat membuat atau mengubah akun staf. Kasir masuk melalui `/cashier/login`; akun Customer dan fitur belanja Customer tetap tersedia terpisah.
+Super Admin juga dapat mereset password staf dari menu yang sama. Admin biasa dapat menghapus akun selain Super Admin, tetapi tidak dapat membuat akun atau mereset password staf. Tidak ada endpoint yang dapat menaikkan role Admin menjadi Super Admin. Akun Super Admin dan akun yang sedang dipakai tidak dapat dihapus. Kasir masuk melalui `/cashier/login`; akun Customer dan fitur belanja Customer tetap tersedia terpisah.
 
 Di Daftar Barang, Admin dapat mengisi barcode opsional. Jika belum ada barcode, Kasir tetap bisa memasukkan ID numerik yang ditampilkan di baris produk. Scanner USB dapat mengetikkan barcode ke kolom yang sama.
 

@@ -29,6 +29,10 @@ const LANGS = {
     addByCode: 'Tambah Barang',
     codeNotFound: 'Kode produk tidak ditemukan.',
     productCode: 'ID / Barcode',
+    productImage: 'Foto produk',
+    imageUrlHint: 'Pilih JPG, PNG, atau WebP hingga 3 MB.',
+    imageInvalid: 'Pilih gambar JPG, PNG, atau WebP berukuran maksimal 3 MB.',
+    imageReadError: 'Gambar tidak dapat dibaca. Coba pilih file lain.',
     cashierCart: 'Keranjang Kasir',
     walkInCustomer: 'Pelanggan toko',
     customer: 'Belanja Customer',
@@ -158,9 +162,9 @@ const LANGS = {
     loadingReport: 'Memuat laporan…',
     collapseMenu: 'Ciutkan menu',
     expandMenu: 'Perluas menu',
-    staffManagement: 'Kelola Staf',
-    staffTitle: 'Kelola Admin & Kasir',
-    staffDesc: 'Buat akun staf dan berikan kata sandi sementara satu kali.',
+    staffManagement: 'Kelola Pengguna',
+    staffTitle: 'Kelola Akun Pengguna',
+    staffDesc: 'Super Admin dapat membuat Admin dan Kasir. Semua Admin dapat menghapus akun selain Super Admin.',
     addStaff: 'Tambah Staf',
     fullName: 'Nama lengkap',
     role: 'Peran',
@@ -175,6 +179,8 @@ const LANGS = {
     resetOtp: 'Reset Kata Sandi',
     waitingPasswordChange: 'Menunggu penggantian kata sandi',
     activeAccount: 'Aktif',
+    deleteUser: 'Hapus Akun',
+    confirmDeleteUser: 'Hapus akun ini? Tindakan ini tidak dapat dibatalkan.',
     passwordSetupTitle: 'Ganti kata sandi sementara',
     passwordSetupDesc: 'Untuk keamanan, buat kata sandi pribadi sebelum menggunakan WADIMOR.',
     newPassword: 'Kata sandi baru',
@@ -219,6 +225,10 @@ const LANGS = {
     addByCode: 'Add Item',
     codeNotFound: 'Product code not found.',
     productCode: 'ID / Barcode',
+    productImage: 'Product photo',
+    imageUrlHint: 'Choose a JPG, PNG, or WebP file up to 3 MB.',
+    imageInvalid: 'Choose a JPG, PNG, or WebP image up to 3 MB.',
+    imageReadError: 'The image could not be read. Try another file.',
     cashierCart: 'Cashier Cart',
     walkInCustomer: 'Walk-in customer',
     customer: 'Customer',
@@ -348,9 +358,9 @@ const LANGS = {
     loadingReport: 'Loading report…',
     collapseMenu: 'Collapse menu',
     expandMenu: 'Expand menu',
-    staffManagement: 'Manage Staff',
-    staffTitle: 'Manage Admins & Cashiers',
-    staffDesc: 'Create staff accounts and issue a one-time temporary password.',
+    staffManagement: 'Manage Users',
+    staffTitle: 'Manage User Accounts',
+    staffDesc: 'Super Admins can create Admins and Cashiers. All Admins can delete accounts except Super Admins.',
     addStaff: 'Add Staff',
     fullName: 'Full name',
     role: 'Role',
@@ -365,6 +375,8 @@ const LANGS = {
     resetOtp: 'Reset Password',
     waitingPasswordChange: 'Waiting for password change',
     activeAccount: 'Active',
+    deleteUser: 'Delete Account',
+    confirmDeleteUser: 'Delete this account? This cannot be undone.',
     passwordSetupTitle: 'Replace your temporary password',
     passwordSetupDesc: 'For security, create a private password before using WADIMOR.',
     newPassword: 'New password',
@@ -568,7 +580,7 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
   const [lowOnly, setLowOnly] = useState(initialLowOnly)
   const [categories, setCategories] = useState([])
   const [modal, setModal] = useState(null) // null | { mode: 'add'|'edit', product? }
-  const [form, setForm] = useState({ name: '', category_id: '', barcode: '', price: '', cost_price: '', stock: '', min_stock: '5' })
+  const [form, setForm] = useState({ name: '', category_id: '', barcode: '', image_url: '', image_data: '', image_preview: '', price: '', cost_price: '', stock: '', min_stock: '5' })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
@@ -585,13 +597,13 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
   const lowCount = products.filter(p => p.stock <= p.min_stock).length
   const catNames = [...new Set(products.map(categoryOf))].sort()
 
-  function openAdd() { setForm({ name: '', category_id: '', barcode: '', price: '', cost_price: '', stock: '', min_stock: '5' }); setFormError(''); setModal({ mode: 'add' }) }
-  function openEdit(product) { setForm({ name: product.name, category_id: product.category_id || '', barcode: product.barcode || '', price: product.price, cost_price: product.cost_price || '', stock: product.stock, min_stock: product.min_stock }); setFormError(''); setModal({ mode: 'edit', product }) }
+  function openAdd() { setForm({ name: '', category_id: '', barcode: '', image_url: '', image_data: '', image_preview: '', price: '', cost_price: '', stock: '', min_stock: '5' }); setFormError(''); setModal({ mode: 'add' }) }
+  function openEdit(product) { setForm({ name: product.name, category_id: product.category_id || '', barcode: product.barcode || '', image_url: product.image_url || '', image_data: '', image_preview: product.image_url || '', price: product.price, cost_price: product.cost_price || '', stock: product.stock, min_stock: product.min_stock }); setFormError(''); setModal({ mode: 'edit', product }) }
 
   async function saveProduct(e) {
     e.preventDefault(); setSaving(true); setFormError('')
     try {
-      const payload = { ...form, price: Number(form.price), cost_price: Number(form.cost_price || 0), stock: Number(form.stock), min_stock: Number(form.min_stock) }
+      const payload = { ...form, image_data: form.image_data || null, price: Number(form.price), cost_price: Number(form.cost_price || 0), stock: Number(form.stock), min_stock: Number(form.min_stock) }
       if (modal.mode === 'add') await api('/api/admin/products', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify(payload) })
       else await api(`/api/admin/products/${modal.product.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify(payload) })
       setModal(null); onRefresh()
@@ -648,7 +660,7 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
                 return (
                   <tr key={item.id}>
                     <td>{i + 1}</td>
-                    <td><div className="product-name"><span className="product-monogram" aria-hidden>{item.name.slice(0, 1)}</span><div><strong>{item.name}</strong><small>{item.barcode || `ID-${item.id}`}</small></div></div></td>
+                    <td><div className="product-name">{item.image_url ? <img className="product-thumb" src={item.image_url} alt="" loading="lazy" onError={event => { event.currentTarget.hidden = true }} /> : <span className="product-monogram" aria-hidden>{item.name.slice(0, 1)}</span>}<div><strong>{item.name}</strong><small>ID-{item.id}{item.barcode ? ` | ${item.barcode}` : ''}</small></div></div></td>
                     <td>{categoryOf(item)}</td>
                     <td className="numeric price">{money(item.price)}</td>
                     <td className="numeric">{money(item.cost_price)}</td>
@@ -684,6 +696,18 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
             <form onSubmit={saveProduct} className="product-form">
               <label>{t('productName')}<input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></label>
               <label>{t('productCode')}<input value={form.barcode} maxLength={64} onChange={e => setForm(f => ({ ...f, barcode: e.target.value }))} placeholder={t('productCode')} /></label>
+              <label>{t('productImage')}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => {
+                const file = event.target.files?.[0]
+                if (!file) return
+                if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024) {
+                  setFormError(t('imageInvalid')); event.target.value = ''; return
+                }
+                const reader = new FileReader()
+                reader.onload = () => { const imageData = String(reader.result || ''); setForm(current => ({ ...current, image_data: imageData, image_preview: imageData })); setFormError('') }
+                reader.onerror = () => setFormError(t('imageReadError'))
+                reader.readAsDataURL(file)
+              }} /><small className="muted">{t('imageUrlHint')}</small></label>
+              {form.image_preview && <div className="product-image-preview-wrap"><img className="product-image-preview" src={form.image_preview} alt={t('productImage')} /><button type="button" className="text-link" onClick={() => setForm(current => ({ ...current, image_url: '', image_data: '', image_preview: '' }))}>{t('delete')}</button></div>}
               <label>{t('category')}<select value={form.category_id} onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}><option value="">{t('allCategories')}</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
               <div className="form-row">
                 <label>{t('sellingPrice')} (Rp)<input type="number" required min={0} value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} /></label>
@@ -815,7 +839,7 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
 
   const categories = [...new Set(products.map(categoryOf))].sort()
   const visible = products.filter(p =>
-    p.name.toLocaleLowerCase('id').includes(search.toLocaleLowerCase('id')) &&
+    (p.name.toLocaleLowerCase('id').includes(search.toLocaleLowerCase('id')) || String(p.id).includes(search.trim()) || String(p.barcode || '').toLocaleLowerCase('id').includes(search.toLocaleLowerCase('id'))) &&
     (!category || categoryOf(p) === category)
   )
   const cartItems = products.filter(p => cart[p.id] > 0).map(p => ({ ...p, quantity: Math.min(cart[p.id], p.stock) })).filter(p => p.quantity > 0)
@@ -879,10 +903,11 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
                 const lowStockItem = item.stock > 0 && item.stock <= item.min_stock
                 return (
                   <article className={`product-card ${outOfStock ? 'out-of-stock' : ''}`} key={item.id}>
-                    <div className="card-art" aria-hidden>{item.name.slice(0, 1)}<span>WADIMOR / {categoryOf(item)}</span></div>
+                    <div className="card-art">{item.image_url ? <img src={item.image_url} alt={item.name} loading="lazy" onError={event => { event.currentTarget.hidden = true }} /> : <><span className="card-placeholder">{item.name.slice(0, 1)}</span><span>WADIMOR / {categoryOf(item)}</span></>}</div>
                     {lowStockItem && <span className="low-stock-tag">⚠️ Stok Terbatas</span>}
                     <small>{categoryOf(item)}</small>
                     <h3>{item.name}</h3>
+                    {cashierMode && <small className="cashier-product-id">ID: {item.id}{item.barcode ? ` | ${item.barcode}` : ''}</small>}
                     <strong>{money(item.price)}</strong>
                     <div className="card-bottom">
                       <span>{outOfStock ? t('empty') : `${item.stock} tersedia`}</span>
@@ -1028,7 +1053,7 @@ function PasswordChangeModal({ session, onComplete }) {
   </div>
 }
 
-function StaffManagement({ csrfToken }) {
+function StaffManagement({ csrfToken, isSuperAdmin, currentUserId }) {
   const t = useT()
   const [staff, setStaff] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1058,12 +1083,21 @@ function StaffManagement({ csrfToken }) {
       setCredential({ username: result.staff.username, password: result.temporaryPassword }); load()
     } catch (err) { setError(err.message) }
   }
+  async function deleteUser(member) {
+    if (!window.confirm(t('confirmDeleteUser'))) return
+    setError('')
+    try {
+      await api(`/api/admin/staff/${member.id}`, { method: 'DELETE', headers: { 'x-csrf-token': csrfToken } })
+      setCredential(null)
+      load()
+    } catch (err) { setError(err.message) }
+  }
   async function copyCredential() {
     if (!credential) return
     await navigator.clipboard.writeText(`${credential.username}\n${credential.password}`)
     setCopied(true); setTimeout(() => setCopied(false), 1800)
   }
-  const roleLabel = role => role === 'super_admin' ? t('superAdminRole') : role === 'admin' ? t('adminRole') : t('cashierRole')
+  const roleLabel = role => role === 'super_admin' ? t('superAdminRole') : role === 'admin' ? t('adminRole') : role === 'kasir' ? t('cashierRole') : t('customer')
   if (loading) return <StatePanel title={t('loadingProducts')}>{t('loadingProducts')}</StatePanel>
   return <>
     {credential && <div className="credential-card" role="status">
@@ -1072,11 +1106,11 @@ function StaffManagement({ csrfToken }) {
     </div>}
     {error && <p className="form-error" role="alert">{error}</p>}
     <section className="inventory-panel">
-      <div className="panel-heading"><div><h2>{t('staffTitle')} <span>{staff.length}</span></h2><p className="muted">{t('staffDesc')}</p></div><button className="button" onClick={() => setShowForm(true)}>{t('addStaff')}</button></div>
+      <div className="panel-heading"><div><h2>{t('staffTitle')} <span>{staff.length}</span></h2><p className="muted">{t('staffDesc')}</p></div>{isSuperAdmin && <button className="button" onClick={() => setShowForm(true)}>{t('addStaff')}</button>}</div>
       <div className="table-scroll"><table><thead><tr><th>{t('fullName')}</th><th>{t('username')}</th><th>{t('role')}</th><th>{t('status')}</th><th>{t('actions')}</th></tr></thead>
-      <tbody>{staff.map(member => <tr key={member.id}><td className="price">{member.displayName}</td><td>{member.username}</td><td>{roleLabel(member.role)}</td><td><span className={`badge ${member.mustChangePassword ? 'low' : ''}`}>{member.mustChangePassword ? t('waitingPasswordChange') : t('activeAccount')}</span></td><td>{member.role !== 'super_admin' && <button className="action-btn" onClick={() => resetPassword(member)}>{t('resetOtp')}</button>}</td></tr>)}</tbody></table></div>
+      <tbody>{staff.map(member => <tr key={member.id}><td className="price">{member.displayName}</td><td>{member.username}</td><td>{roleLabel(member.role)}</td><td><span className={`badge ${member.mustChangePassword ? 'low' : ''}`}>{member.mustChangePassword ? t('waitingPasswordChange') : t('activeAccount')}</span></td><td><div className="action-row">{isSuperAdmin && ['admin', 'kasir'].includes(member.role) && <button className="action-btn" onClick={() => resetPassword(member)}>{t('resetOtp')}</button>}{member.role !== 'super_admin' && member.id !== currentUserId && <button className="action-btn danger" onClick={() => deleteUser(member)}>{t('deleteUser')}</button>}</div></td></tr>)}</tbody></table></div>
     </section>
-    {showForm && <div className="modal-backdrop" onClick={() => setShowForm(false)}><form className="modal account-form" onSubmit={createStaff} onClick={event => event.stopPropagation()}>
+    {showForm && isSuperAdmin && <div className="modal-backdrop" onClick={() => setShowForm(false)}><form className="modal account-form" onSubmit={createStaff} onClick={event => event.stopPropagation()}>
       <h2>{t('addStaff')}</h2>
       <label>{t('fullName')}<input required minLength={2} maxLength={100} value={form.displayName} onChange={event => setForm(current => ({ ...current, displayName: event.target.value }))} /></label>
       <label>{t('username')}<input required minLength={3} maxLength={50} pattern="[a-zA-Z0-9_]+" value={form.username} onChange={event => setForm(current => ({ ...current, username: event.target.value }))} /><small>{t('usernameHint')}</small></label>
@@ -1251,7 +1285,7 @@ export default function App() {
     { key: 'myOrders', label: t('myOrders'), icon: '📋' },
     { key: 'customerSettings', label: t('settings'), icon: '⚙' },
   ]
-  const navItems = isAdmin ? adminNav : isCashier ? cashierNav : customerNav
+  const navItems = isAdmin ? [...adminNav.filter(item => item.key !== 'staff'), { key: 'staff', label: t('staffManagement'), icon: '👥' }] : isCashier ? cashierNav : customerNav
   function renderContent() {
     const needsProducts = !['staff', 'adminSettings', 'cashierSettings', 'customerSettings'].includes(page)
     if (needsProducts && loadingProducts && page !== 'admin') return <StatePanel title={t('loadingProducts')}>{t('loadingProducts')}</StatePanel>
@@ -1264,7 +1298,7 @@ export default function App() {
       case 'cashier': return <Catalog cashierMode products={products} cart={cart} setCart={setCart} csrfToken={session.csrfToken} onCheckoutSuccess={onCheckoutSuccess} />
       case 'cashierOrders': return <AdminOrders cashierMode />
       case 'adminReports': return <AdminReports />
-      case 'staff': return isSuperAdmin ? <StaffManagement csrfToken={session.csrfToken} /> : <StatePanel title={t('dataError')}>403</StatePanel>
+      case 'staff': return isAdmin ? <StaffManagement csrfToken={session.csrfToken} isSuperAdmin={isSuperAdmin} currentUserId={session.user.id} /> : <StatePanel title={t('dataError')}>403</StatePanel>
       case 'adminSettings':
       case 'cashierSettings':
       case 'customerSettings': return <AccountSettings session={session} onSessionUpdate={updateSessionUser} />
