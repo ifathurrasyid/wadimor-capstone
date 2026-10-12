@@ -66,14 +66,15 @@ function createApp(pool, origins = []) {
   });
 
   app.post('/api/auth/register', async (req, res, next) => {
-    const { username, password } = req.body || {};
-    if (typeof username !== 'string' || !/^[a-zA-Z0-9_]{3,50}$/.test(username) || typeof password !== 'string' || password.length < 4 || password.length > 128) {
-      return res.status(400).json({ error: 'Nama pengguna 3â€“50 karakter (huruf, angka, _) dan kata sandi minimal 4 karakter.' });
+    const { username, password, passwordConfirm } = req.body || {};
+    const displayName = typeof req.body?.displayName === 'string' ? req.body.displayName.trim() : '';
+    if (typeof username !== 'string' || !/^[a-zA-Z0-9_]{3,50}$/.test(username) || displayName.length < 2 || displayName.length > 100 || typeof password !== 'string' || password.length < 8 || password.length > 128 || password !== passwordConfirm) {
+      return res.status(400).json({ error: 'Nama pengguna 3â€“50 karakter (huruf, angka, _) dan kata sandi minimal 8 karakter dengan konfirmasi yang sama.' });
     }
     try {
       const passwordHash = await hashPassword(password);
-      const result = await pool.query(`INSERT INTO users (username, display_name, password, role, must_change_password) VALUES ($1, $1, $2, 'pelanggan', FALSE)
-        RETURNING id, username, display_name, role, must_change_password`, [username, passwordHash]);
+      const result = await pool.query(`INSERT INTO users (username, display_name, password, role, must_change_password) VALUES ($1, $2, $3, 'pelanggan', FALSE)
+        RETURNING id, username, display_name, role, must_change_password`, [username, displayName, passwordHash]);
       const session = await auth.createSession(res, result.rows[0]);
       res.status(201).json(session);
     } catch (error) {
@@ -151,12 +152,14 @@ function createApp(pool, origins = []) {
     } catch (error) { next(error); }
   });
 
-  app.post('/api/admin/staff', auth.requireReady, auth.requireSuperAdmin, auth.csrfGuard, async (req, res, next) => {
+  app.post('/api/admin/staff', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
     const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
     const displayName = typeof req.body?.displayName === 'string' ? req.body.displayName.trim() : '';
     const requestedRole = req.body?.role;
-    const role = requestedRole === 'cashier' ? 'kasir' : requestedRole === 'admin' ? 'admin' : null;
-    if (!/^[a-zA-Z0-9_]{3,50}$/.test(username) || displayName.length < 2 || displayName.length > 100 || !role) {
+    const roleMap = { cashier: 'kasir', admin: 'admin', customer: 'pelanggan' };
+    const role = roleMap[requestedRole] || null;
+    const allowed = req.account.role === 'super_admin' ? ['kasir', 'admin', 'pelanggan'] : ['kasir'];
+    if (!/^[a-zA-Z0-9_]{3,50}$/.test(username) || displayName.length < 2 || displayName.length > 100 || !allowed.includes(role)) {
       return res.status(400).json({ error: 'Isi nama, username valid, dan role Admin/Kasir.' });
     }
     try {
@@ -206,6 +209,13 @@ function createApp(pool, origins = []) {
     } catch (error) { next(error); }
   });
 
+  app.get('/api/public-config', auth.requireReady, (_req, res) => {
+    const configuredQr = process.env.QRIS_IMAGE_URL || '';
+    const localQr = configuredQr.startsWith('/') && !configuredQr.includes('..') && /^\/[a-z0-9_/-]+\.(?:jpe?g|png|webp)$/i.test(configuredQr);
+    const qrisImageUrl = (localQr ? configuredQr : normalizeImageUrl(configuredQr)) || null;
+    res.json({ qrisImageUrl, storeName: process.env.STORE_NAME || 'WADIMOR' });
+  });
+
   // IN-STORE CHECKOUT (atomic stock update and receipt creation)
   app.post('/api/transactions/checkout', auth.requireReady, auth.csrfGuard, async (req, res, next) => {
     const { items, paymentMethod = 'cash' } = req.body || {};
@@ -240,11 +250,14 @@ function createApp(pool, origins = []) {
 
       const cashierName = ['super_admin', 'admin', 'kasir'].includes(req.account.role)
         ? (req.account.display_name || req.account.username) : null;
-      const txResult = await client.query(`INSERT INTO transactions (user_id, cashier_id, cashier_name, total_amount, payment_method)
-        VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at`, [
+      const cashierId = ['super_admin', 'admin', 'kasir'].includes(req.account.role) ? req.account.id : null;
+      const paymentStatus = req.account.role === 'pelanggan' ? 'pending' : 'paid';
+      const txResult = await client.query(`INSERT INTO transactions (user_id, cashier_id, cashier_name, total_amount, payment_method, payment_status, payment_confirmed_at, payment_confirmed_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at, payment_status`, [
         req.account.role === 'pelanggan' ? req.account.id : null,
-        ['super_admin', 'admin', 'kasir'].includes(req.account.role) ? req.account.id : null,
-        cashierName, totalAmount, paymentMethod,
+        cashierId, cashierName, totalAmount, paymentMethod, paymentStatus,
+        paymentStatus === 'paid' ? new Date() : null,
+        paymentStatus === 'paid' ? cashierId : null,
       ]);
       const transactionId = txResult.rows[0].id;
       for (const detail of details) {
@@ -256,7 +269,7 @@ function createApp(pool, origins = []) {
       }
       await client.query('COMMIT');
       res.status(201).json({
-        receipt: { id: transactionId, createdAt: txResult.rows[0].created_at, customer: req.account.role === 'pelanggan' ? req.account.username : null, cashier: cashierName, paymentMethod, items: details, totalAmount }
+        receipt: { id: transactionId, createdAt: txResult.rows[0].created_at, customer: req.account.role === 'pelanggan' ? req.account.display_name : null, cashier: cashierName, paymentMethod, paymentStatus: txResult.rows[0].payment_status, items: details, totalAmount }
       });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -268,9 +281,9 @@ function createApp(pool, origins = []) {
   async function transactionHistory(req, res, next, scope = 'customer') {
     try {
       const params = scope === 'all' ? [] : [req.account.id];
-      const where = scope === 'all' ? '' : scope === 'cashier' ? 'WHERE t.cashier_id = $1' : 'WHERE t.user_id = $1';
-      const result = await pool.query(`SELECT t.id, t.total_amount, t.payment_method, t.created_at,
-        customer.username AS customer_name, COALESCE(t.cashier_name, cashier.display_name, cashier.username) AS cashier_name FROM transactions t
+      const where = scope === 'all' ? '' : scope === 'cashier' ? 'WHERE t.cashier_id = $1 OR t.payment_status = \'pending\'' : 'WHERE t.user_id = $1';
+      const result = await pool.query(`SELECT t.id, t.total_amount, t.payment_method, t.payment_status, t.payment_confirmed_at, t.created_at,
+        customer.display_name AS customer_name, COALESCE(t.cashier_name, cashier.display_name, cashier.username) AS cashier_name FROM transactions t
         LEFT JOIN users customer ON customer.id = t.user_id
         LEFT JOIN users cashier ON cashier.id = t.cashier_id ${where} ORDER BY t.created_at DESC`, params);
       const transactionIds = result.rows.map(row => row.id);
@@ -292,6 +305,39 @@ function createApp(pool, origins = []) {
   app.get('/api/transactions/mine', auth.requireReady, (req, res, next) => transactionHistory(req, res, next));
   app.get('/api/admin/transactions', auth.requireReady, auth.requireAdmin, (req, res, next) => transactionHistory(req, res, next, 'all'));
   app.get('/api/cashier/transactions', auth.requireReady, auth.requireCashier, (req, res, next) => transactionHistory(req, res, next, 'cashier'));
+  app.post('/api/transactions/:id/confirm-payment', auth.requireReady, (req, res, next) => ['admin', 'super_admin', 'kasir'].includes(req.account.role) ? next() : res.status(403).json({ error: 'Khusus staf toko.' }), auth.csrfGuard, async (req, res, next) => {
+    const transactionId = Number(req.params.id);
+    if (!Number.isInteger(transactionId) || transactionId < 1) return res.status(400).json({ error: 'ID transaksi tidak valid.' });
+    try {
+      const result = await pool.query(`UPDATE transactions SET payment_status = 'paid', payment_confirmed_at = NOW(), payment_confirmed_by = $2::integer,
+        cashier_id = $2::integer, cashier_name = COALESCE(cashier_name, (SELECT display_name FROM users WHERE id = $2::integer))
+        WHERE id = $1 AND payment_status = 'pending' RETURNING id, payment_status, payment_confirmed_at`, [transactionId, req.account.id]);
+      if (!result.rowCount) return res.status(409).json({ error: 'Transaksi tidak ditemukan atau statusnya sudah berubah.' });
+      res.json(result.rows[0]);
+    } catch (error) { next(error); }
+  });
+  app.post('/api/transactions/:id/cancel', auth.requireReady, auth.csrfGuard, async (req, res, next) => {
+    if (req.account.role !== 'pelanggan') return res.status(403).json({ error: 'Hanya pesanan Customer yang dapat dibatalkan di sini.' });
+    const transactionId = Number(req.params.id);
+    if (!Number.isInteger(transactionId) || transactionId < 1) return res.status(400).json({ error: 'ID transaksi tidak valid.' });
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const transaction = await client.query(`SELECT id FROM transactions WHERE id = $1 AND user_id = $2 AND payment_status = 'pending' FOR UPDATE`, [transactionId, req.account.id]);
+      if (!transaction.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'Pesanan tidak ditemukan atau sudah diproses.' });
+      }
+      await client.query(`UPDATE products p SET stock = p.stock + td.quantity FROM transaction_details td
+        WHERE td.transaction_id = $1 AND p.id = td.product_id`, [transactionId]);
+      await client.query(`UPDATE transactions SET payment_status = 'cancelled' WHERE id = $1`, [transactionId]);
+      await client.query('COMMIT');
+      res.json({ id: transactionId, payment_status: 'cancelled' });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      next(error);
+    } finally { client.release(); }
+  });
   // ADMIN PRODUCT CRUD
   app.post('/api/admin/products', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
     const { name, category_id, price, cost_price = 0, stock = 0, min_stock = 5, image_url = null, image_data = null } = req.body;
@@ -315,8 +361,8 @@ function createApp(pool, origins = []) {
     if (!Number.isInteger(targetId) || targetId < 1) return res.status(400).json({ error: 'Invalid user ID.' });
     if (targetId === req.account.id) return res.status(400).json({ error: 'You cannot delete your own account.' });
     try {
-      const result = await pool.query(`DELETE FROM users WHERE id = $1 AND role <> 'super_admin'
-        RETURNING id`, [targetId]);
+      const result = await pool.query(`DELETE FROM users WHERE id = $1 AND id <> $3
+        AND ($2::boolean OR role = 'kasir') RETURNING id`, [targetId, req.account.role === 'super_admin', req.account.id]);
       if (!result.rowCount) return res.status(404).json({ error: 'User not found or protected.' });
       res.json({ message: 'User deleted.' });
     } catch (error) { next(error); }
@@ -382,13 +428,13 @@ function createApp(pool, origins = []) {
     const period = req.query.period || 'all'; // today, week, month, all
     let dateFilter = '';
 
-    if (period === 'today') dateFilter = `WHERE created_at >= CURRENT_DATE`;
-    else if (period === 'week') dateFilter = `WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'`;
-    else if (period === 'month') dateFilter = `WHERE created_at >= date_trunc('month', CURRENT_DATE)`;
+    if (period === 'today') dateFilter = `WHERE payment_status = 'paid' AND created_at >= CURRENT_DATE`;
+    else if (period === 'week') dateFilter = `WHERE payment_status = 'paid' AND created_at >= CURRENT_DATE - INTERVAL '7 days'`;
+    else if (period === 'month') dateFilter = `WHERE payment_status = 'paid' AND created_at >= date_trunc('month', CURRENT_DATE)`;
 
     try {
       // 1. Overall Financials (Gross, Cost, Net)
-      const txDetailsFilter = dateFilter ? dateFilter.replace('created_at', 't.created_at') : '';
+      const txDetailsFilter = dateFilter ? dateFilter.replace('created_at', 't.created_at') : `WHERE t.payment_status = 'paid'`;
 
       const financialsResult = await pool.query(`
         SELECT
@@ -429,16 +475,17 @@ function createApp(pool, origins = []) {
           (SELECT COUNT(*)::int FROM products) AS product_count,
           (SELECT COALESCE(SUM(stock), 0)::int FROM products) AS stock_units,
           (SELECT COUNT(*)::int FROM products WHERE stock <= min_stock) AS low_stock_count,
-          (SELECT COUNT(*)::int FROM transactions) AS transaction_count,
-          (SELECT COALESCE(SUM(total_amount), 0) FROM transactions) AS revenue`),
+          (SELECT COUNT(*)::int FROM transactions WHERE payment_status = 'paid') AS transaction_count,
+          (SELECT COALESCE(SUM(total_amount), 0) FROM transactions WHERE payment_status = 'paid') AS revenue`),
         pool.query(`SELECT to_char(d.day, 'YYYY-MM-DD') AS day, COALESCE(COUNT(t.id), 0)::int AS orders,
           COALESCE(SUM(t.total_amount), 0) AS revenue
           FROM generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, INTERVAL '1 day') AS d(day)
-          LEFT JOIN transactions t ON t.created_at >= d.day AND t.created_at < d.day + INTERVAL '1 day'
+          LEFT JOIN transactions t ON t.created_at >= d.day AND t.created_at < d.day + INTERVAL '1 day' AND t.payment_status = 'paid'
           GROUP BY d.day ORDER BY d.day`),
         pool.query(`SELECT p.name, SUM(td.quantity)::int AS units_sold,
           SUM(td.subtotal) AS revenue FROM transaction_details td
           JOIN products p ON p.id = td.product_id
+          JOIN transactions t ON t.id = td.transaction_id AND t.payment_status = 'paid'
           GROUP BY p.id, p.name ORDER BY units_sold DESC, p.name ASC LIMIT 5`),
       ]);
       res.json({ summary: summary.rows[0], daily: daily.rows, topProducts: topProducts.rows });

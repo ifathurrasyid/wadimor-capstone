@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import './App.css'
+import wadimorLogo from './assets/wadimor-logo.svg'
 
 // ─── i18n ──────────────────────────────────────────────────────────────────
 const LANGS = {
@@ -46,6 +47,8 @@ const LANGS = {
     loginDesc: 'Masukkan akun Anda untuk melanjutkan.',
     username: 'Nama pengguna',
     password: 'Kata sandi',
+    confirmPassword: 'Konfirmasi kata sandi',
+    name: 'Nama lengkap',
     passwordMin: 'minimal 4 karakter',
     processing: 'Memproses…',
     create: 'Buat akun',
@@ -134,7 +137,23 @@ const LANGS = {
     estimatedTotal: 'Total Pembayaran',
     checkout: 'Bayar & Selesaikan',
     checkingOut: 'Menyimpan transaksi…',
-    checkoutSuccess: 'Pembayaran berhasil. Struk sudah dibuat.',
+    checkoutSuccess: 'Pembayaran berhasil dikonfirmasi kasir. Struk sudah dibuat.',
+    paymentPending: 'Menunggu konfirmasi pembayaran',
+    paymentPaid: 'Pembayaran berhasil',
+    paymentCancelled: 'Dibatalkan',
+    paymentStatus: 'Status pembayaran',
+    seeReceipt: 'Lihat struk',
+    seePaymentStatus: 'Lihat status pembayaran',
+    confirmPayment: 'Konfirmasi pembayaran',
+    cancelOrder: 'Batalkan pesanan',
+    confirmCancelOrder: 'Batalkan pesanan ini? Stok akan dikembalikan ke inventori.',
+    confirmPaymentSuccess: 'Pembayaran berhasil dikonfirmasi.',
+    qrisInstructions: 'Pindai QRIS menggunakan aplikasi pembayaran, masukkan jumlah yang tepat, lalu tunjukkan bukti pembayaran kepada kasir. Status berubah menjadi berhasil setelah kasir mengonfirmasi.',
+    qrisUnavailable: 'QRIS belum dikonfigurasi. Tunjukkan nomor transaksi ini kepada kasir untuk membayar di toko.',
+    inStorePayment: 'Pembayaran dilakukan langsung di toko. Tunjukkan nomor transaksi kepada kasir.',
+    receiptLegal: 'Struk ini merupakan bukti transaksi WADIMOR. Simpan struk ini untuk keperluan pengembalian atau pemeriksaan transaksi.',
+    noDelivery: 'Pesanan hanya dapat diambil langsung di toko. WADIMOR tidak menyediakan layanan pengiriman.',
+    imageUrl: 'Atau tempel URL gambar',
     orderHistory: 'Struk Saya',
     orderHistoryDesc: 'Riwayat pembayaran dan rincian barang Anda.',
     noOrders: 'Belum ada transaksi',
@@ -144,7 +163,7 @@ const LANGS = {
     total: 'Total',
     items_ordered: 'Item',
     allOrders: 'Riwayat Transaksi',
-    adminOrdersDesc: 'Lihat seluruh transaksi kasir yang sudah selesai.',
+    adminOrdersDesc: 'Pantau transaksi dan konfirmasi pembayaran yang sudah diterima.',
     customer_name: 'Pelanggan',
     payment: 'Pembayaran',
     orderDetail: 'Detail Struk',
@@ -164,16 +183,17 @@ const LANGS = {
     expandMenu: 'Perluas menu',
     staffManagement: 'Kelola Pengguna',
     staffTitle: 'Kelola Akun Pengguna',
-    staffDesc: 'Super Admin dapat membuat Admin dan Kasir. Semua Admin dapat menghapus akun selain Super Admin.',
-    addStaff: 'Tambah Staf',
+    staffDesc: 'Super Admin mengelola semua akun. Admin hanya dapat membuat dan menghapus akun Kasir.',
+    addStaff: 'Tambah Pengguna',
     fullName: 'Nama lengkap',
     role: 'Peran',
     adminRole: 'Admin',
     cashierRole: 'Kasir',
+    customerRole: 'Pelanggan',
     superAdminRole: 'Super Admin',
-    createStaff: 'Buat Akun Staf',
+    createStaff: 'Buat Akun',
     temporaryPassword: 'Kata Sandi Sementara',
-    temporaryPasswordNote: 'Salin sekarang. Kata sandi ini hanya ditampilkan satu kali.',
+    temporaryPasswordNote: 'Salin kata sandi saja. Hanya ditampilkan satu kali.',
     copyPassword: 'Salin',
     copied: 'Tersalin',
     resetOtp: 'Reset Kata Sandi',
@@ -242,6 +262,8 @@ const LANGS = {
     loginDesc: 'Enter your account to continue.',
     username: 'Username',
     password: 'Password',
+    confirmPassword: 'Confirm password',
+    name: 'Full name',
     passwordMin: 'minimum 4 characters',
     processing: 'Processing…',
     create: 'Create account',
@@ -330,7 +352,23 @@ const LANGS = {
     estimatedTotal: 'Payment Total',
     checkout: 'Pay & Complete',
     checkingOut: 'Saving transaction…',
-    checkoutSuccess: 'Payment successful. Your receipt is ready.',
+    checkoutSuccess: 'The cashier confirmed your payment. Your receipt is ready.',
+    paymentPending: 'Awaiting payment confirmation',
+    paymentPaid: 'Payment successful',
+    paymentCancelled: 'Cancelled',
+    paymentStatus: 'Payment status',
+    seeReceipt: 'View receipt',
+    seePaymentStatus: 'View payment status',
+    confirmPayment: 'Confirm payment',
+    cancelOrder: 'Cancel order',
+    confirmCancelOrder: 'Cancel this order? Its items will return to inventory.',
+    confirmPaymentSuccess: 'Payment confirmed successfully.',
+    qrisInstructions: 'Scan this QRIS with your payment app, enter the exact amount, then show proof of payment to the cashier. The status changes to successful after the cashier confirms it.',
+    qrisUnavailable: 'QRIS is not configured yet. Show this order number to the cashier to pay in store.',
+    inStorePayment: 'Pay in store. Show your order number to the cashier.',
+    receiptLegal: 'This receipt is proof of a WADIMOR transaction. Keep it for returns or transaction inquiries.',
+    noDelivery: 'Orders are for in-store pickup only. WADIMOR does not offer delivery.',
+    imageUrl: 'Or paste an image URL',
     orderHistory: 'My Receipts',
     orderHistoryDesc: 'Your payment history and purchased items.',
     noOrders: 'No transactions yet',
@@ -340,7 +378,7 @@ const LANGS = {
     total: 'Total',
     items_ordered: 'Items',
     allOrders: 'Transaction History',
-    adminOrdersDesc: 'View completed checkout transactions.',
+    adminOrdersDesc: 'Review transactions and confirm payments received in store.',
     customer_name: 'Customer',
     payment: 'Payment',
     orderDetail: 'Receipt Details',
@@ -360,16 +398,17 @@ const LANGS = {
     expandMenu: 'Expand menu',
     staffManagement: 'Manage Users',
     staffTitle: 'Manage User Accounts',
-    staffDesc: 'Super Admins can create Admins and Cashiers. All Admins can delete accounts except Super Admins.',
-    addStaff: 'Add Staff',
+    staffDesc: 'Super Admins manage all accounts. Admins can only create and delete Cashier accounts.',
+    addStaff: 'Add User',
     fullName: 'Full name',
     role: 'Role',
     adminRole: 'Admin',
     cashierRole: 'Cashier',
+    customerRole: 'Customer',
     superAdminRole: 'Super Admin',
-    createStaff: 'Create Staff Account',
+    createStaff: 'Create Account',
     temporaryPassword: 'Temporary Password',
-    temporaryPasswordNote: 'Copy it now. This password is displayed only once.',
+    temporaryPasswordNote: 'Copy the password only. It is shown once.',
     copyPassword: 'Copy',
     copied: 'Copied',
     resetOtp: 'Reset Password',
@@ -429,6 +468,10 @@ function Brand({ collapsed }) {
     </span>
   )
 }
+
+function ReceiptBrand() {
+  return <div className="receipt-brand"><img src={wadimorLogo} alt="WADIMOR" /></div>
+}
 function StatePanel({ title, children, retry }) {
   const t = useT()
   return (
@@ -446,6 +489,8 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
   const { lang, setLang } = useContext(I18nContext)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const isAdmin = page === 'adminLogin'
@@ -458,7 +503,8 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
     try {
       const loginRole = isAdmin ? 'admin' : isCashier ? 'cashier' : 'customer'
       const endpoint = isRegister ? '/api/auth/register' : `/api/auth/login/${loginRole}`
-      const session = await api(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username.trim(), password }) })
+      if (isRegister && password !== passwordConfirm) throw new Error(t('passwordsMismatch'))
+      const session = await api(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username.trim(), password, passwordConfirm, displayName: displayName.trim() }) })
       onAuthenticated(session)
     } catch (err) { setError(err.message) }
     finally { setSubmitting(false) }
@@ -511,8 +557,10 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
               <h2>{isRegister ? t('createAccount') : isAdmin ? t('adminLogin') : isCashier ? t('cashierLogin') : t('customerLogin')}</h2>
               <p className="muted">{isRegister ? t('registerDesc') : t('loginDesc')}</p>
               <form onSubmit={submit} className="auth-form">
+                {isRegister && <label>{t('name')}<input autoComplete="name" required minLength={2} maxLength={100} value={displayName} onChange={e => setDisplayName(e.target.value)} /></label>}
                 <label>{t('username')}<input autoComplete="username" required minLength={3} maxLength={50} pattern="[a-zA-Z0-9_]+" value={username} onChange={e => setUsername(e.target.value)} placeholder={t('username')} /></label>
-                <label>{t('password')}<input type="password" autoComplete={isRegister ? 'new-password' : 'current-password'} required minLength={isRegister ? 4 : 1} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} placeholder={isRegister ? t('passwordMin') : t('password')} /></label>
+                <label>{t('password')}<input type="password" autoComplete={isRegister ? 'new-password' : 'current-password'} required minLength={isRegister ? 8 : 1} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} placeholder={isRegister ? t('passwordMin8') : t('password')} /></label>
+                {isRegister && <label>{t('confirmPassword')}<input type="password" autoComplete="new-password" required minLength={8} maxLength={128} value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} /></label>}
                 {error && <p className="form-error" role="alert">{error}</p>}
                 <button className="button auth-submit" disabled={submitting}>{submitting ? t('processing') : isRegister ? t('create') : t('enter')}</button>
               </form>
@@ -707,6 +755,7 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
                 reader.onerror = () => setFormError(t('imageReadError'))
                 reader.readAsDataURL(file)
               }} /><small className="muted">{t('imageUrlHint')}</small></label>
+              <label>{t('imageUrl')}<input type="url" maxLength={2048} value={form.image_url.startsWith('/uploads/') ? '' : form.image_url} onChange={event => setForm(current => ({ ...current, image_url: event.target.value, image_data: '', image_preview: event.target.value }))} placeholder="https://example.com/product.jpg" /></label>
               {form.image_preview && <div className="product-image-preview-wrap"><img className="product-image-preview" src={form.image_preview} alt={t('productImage')} /><button type="button" className="text-link" onClick={() => setForm(current => ({ ...current, image_url: '', image_data: '', image_preview: '' }))}>{t('delete')}</button></div>}
               <label>{t('category')}<select value={form.category_id} onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}><option value="">{t('allCategories')}</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
               <div className="form-row">
@@ -745,39 +794,48 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
 }
 
 // ─── Admin Orders ─────────────────────────────────────────────────────────────
-function AdminOrders({ cashierMode = false }) {
+function AdminOrders({ cashierMode = false, csrfToken }) {
   const t = useT()
+  const { lang } = useContext(I18nContext)
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [detail, setDetail] = useState(null)
+  const [notice, setNotice] = useState('')
   const load = useCallback(() => {
     api(cashierMode ? '/api/cashier/transactions' : '/api/admin/transactions').then(data => { setTransactions(data); setLoading(false) }).catch(() => setLoading(false))
   }, [cashierMode])
   useEffect(() => { load() }, [load])
+  async function confirmPayment(transaction) {
+    try {
+      await api(`/api/transactions/${transaction.id}/confirm-payment`, { method: 'POST', headers: { 'x-csrf-token': csrfToken } })
+      setNotice(t('confirmPaymentSuccess')); load()
+    } catch (error) { setNotice(error.message) }
+  }
 
   return (
     <section className="inventory-panel">
+      {notice && <p className="checkout-success" role="status">{notice}</p>}
       <div className="panel-heading">
         <div><h2>{t('allOrders')} <span>{transactions.length}</span></h2><p className="muted">{t('adminOrdersDesc')}</p></div>
         <button className="button secondary" onClick={load}>↻</button>
       </div>
       {loading ? <StatePanel title="…">Loading</StatePanel> : transactions.length === 0 ? <StatePanel title={t('noOrders')}>{t('noOrdersDesc')}</StatePanel> : (
         <div className="table-scroll"><table><thead><tr>
-          <th>ID / Faktur</th><th>{t('cashierName')}</th><th>{t('orderDate')}</th><th>{t('items_ordered')}</th><th>{t('payment')}</th><th className="numeric">{t('total')}</th><th>{t('actions')}</th>
+          <th>ID / Faktur</th><th>{t('cashierName')}</th><th>{t('orderDate')}</th><th>{t('items_ordered')}</th><th>{t('payment')}</th><th>{t('paymentStatus')}</th><th className="numeric">{t('total')}</th><th>{t('actions')}</th>
         </tr></thead><tbody>{transactions.map(transaction => <tr key={transaction.id}>
           <td><button className="text-link" onClick={() => setDetail(transaction)}>#{transaction.id}</button></td><td>{transaction.cashier_name || transaction.customer_name || t('walkInCustomer')}</td>
-          <td>{new Date(transaction.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</td>
-          <td>{transaction.items.reduce((sum, item) => sum + item.quantity, 0)}</td><td>{t(transaction.payment_method)}</td>
+          <td>{new Date(transaction.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}</td>
+          <td>{transaction.items.reduce((sum, item) => sum + item.quantity, 0)}</td><td>{t(transaction.payment_method)}</td><td><span className={`badge ${transaction.payment_status === 'paid' ? '' : 'low'}`}>{t(transaction.payment_status === 'paid' ? 'paymentPaid' : transaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</span></td>
           <td className="numeric price">{money(transaction.total_amount)}</td>
-          <td><button className="action-btn" onClick={() => setDetail(transaction)}>🔍</button></td>
+          <td><div className="action-row"><button className="action-btn" onClick={() => setDetail(transaction)}>{t('orderDetail')}</button>{transaction.payment_status === 'pending' && <button className="button" onClick={() => confirmPayment(transaction)}>{t('confirmPayment')}</button>}</div></td>
         </tr>)}</tbody></table></div>
       )}
       {detail && <div className="modal-backdrop" onClick={() => setDetail(null)}><div className="modal receipt" onClick={event => event.stopPropagation()}>
-        <h2>{t('orderDetail')} #{detail.id}</h2>
-        <p className="muted">{new Date(detail.created_at).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}</p>
-        <div className="order-meta"><p><strong>{t('cashierName')}:</strong> {detail.cashier_name || detail.customer_name || t('walkInCustomer')}</p><p><strong>{t('payment')}:</strong> {t(detail.payment_method)}</p></div>
+        <ReceiptBrand /><h2>{t('orderDetail')} #{detail.id}</h2>
+        <p className="muted">{new Date(detail.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
+        <div className="order-meta"><p><strong>{t('cashierName')}:</strong> {detail.cashier_name || detail.customer_name || t('walkInCustomer')}</p><p><strong>{t('payment')}:</strong> {t(detail.payment_method)}</p><p><strong>{t('paymentStatus')}:</strong> {t(detail.payment_status === 'paid' ? 'paymentPaid' : detail.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p></div>
         <ul className="order-items">{detail.items.map((item, index) => <li key={index}><span>{item.product_name} × {item.quantity} @ {money(item.price_at_transaction)}</span><span>{money(item.subtotal)}</span></li>)}</ul>
-        <div className="receipt-total"><span>{t('total')}</span><strong>{money(detail.total_amount)}</strong></div>
+        <div className="receipt-total"><span>{t('total')}</span><strong>{money(detail.total_amount)}</strong></div><p className="receipt-thanks">{detail.payment_status === 'paid' ? t('receiptLegal') : t(detail.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p>
         <div className="modal-actions"><button className="button secondary" onClick={() => window.print()}>Print</button><button className="button" onClick={() => setDetail(null)}>{t('cancel')}</button></div>
       </div></div>}
     </section>
@@ -828,14 +886,18 @@ function AdminReports() {
 // ─── Customer Catalog ─────────────────────────────────────────────────────────
 function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashierMode = false }) {
   const t = useT()
+  const { lang } = useContext(I18nContext)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
   const [productCode, setProductCode] = useState('')
   const [cartOpen, setCartOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [receipt, setReceipt] = useState(null)
+  const [storeConfig, setStoreConfig] = useState({})
   const [checkingOut, setCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
+
+  useEffect(() => { api('/api/public-config').then(setStoreConfig).catch(() => {}) }, [])
 
   const categories = [...new Set(products.map(categoryOf))].sort()
   const visible = products.filter(p =>
@@ -866,12 +928,13 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
       const items = cartItems.map(product => ({ productId: product.id, quantity: product.quantity }))
       const result = await api('/api/transactions/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify({ items, paymentMethod }) })
       setCart({}); setCartOpen(false); setReceipt(result.receipt)
-      onCheckoutSuccess()
+      if (result.receipt.paymentStatus === 'paid') onCheckoutSuccess()
     } catch (err) { setCheckoutError(err.message) }
     finally { setCheckingOut(false) }
   }
   return (
     <div className={`catalog-layout ${cashierMode ? 'cashier-layout' : ''}`}>
+      {!cashierMode && <p className="pickup-note">{t('noDelivery')}</p>}
       {/* Catalog Section */}
       <section className="catalog-section">
         <div className="store-banner">
@@ -973,7 +1036,7 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
             </div>
             <div className="cart-payment">
               <label>{t('paymentMethod')}<select value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)}><option value="cash">{t('cash')}</option><option value="card">{t('card')}</option><option value="qris">{t('qris')}</option></select></label>
-              {!cashierMode && <p className="muted">Pembayaran dilakukan langsung di kasir WADIMOR.</p>}
+              {!cashierMode && <p className="muted">{t('inStorePayment')}</p>}
             </div>
             <div className="cart-total">
               <span>{t('estimatedTotal')}</span><strong>{money(total)}</strong>
@@ -987,39 +1050,83 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
       </div>
       {cartOpen && <div className="cart-overlay" onClick={() => setCartOpen(false)} />}
       {receipt && <div className="modal-backdrop"><div className="modal receipt">
-        <p className="eyebrow">WADIMOR · STRUK PEMBAYARAN</p><h2>Struk #{receipt.id}</h2>
-        <p className="muted">{new Date(receipt.createdAt).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}</p>
-        <div className="order-meta">{receipt.cashier && <p><strong>{t('cashierName')}:</strong> {receipt.cashier}</p>}<p><strong>{t('payment')}:</strong> {t(receipt.paymentMethod)}</p></div>
-        <ul className="order-items">{receipt.items.map(item => <li key={item.productId}><span>{item.name} × {item.quantity}</span><span>{money(item.subtotal)}</span></li>)}</ul>
-        <div className="receipt-total"><span>{t('total')}</span><strong>{money(receipt.totalAmount)}</strong></div>
-        <p className="receipt-thanks">Terima kasih sudah berbelanja di WADIMOR.</p>
-        <div className="modal-actions"><button className="button secondary" onClick={() => window.print()}>Print</button><button className="button" onClick={() => setReceipt(null)}>Selesai</button></div>
+        {receipt.paymentStatus === 'pending' ? <>
+          <ReceiptBrand /><p className="eyebrow">WADIMOR | #{receipt.id}</p><h2>{t('paymentPending')}</h2>
+          <p className="muted">{t('payment')} | {t(receipt.paymentMethod)} | {money(receipt.totalAmount)}</p>
+          {receipt.paymentMethod === 'qris' && storeConfig.qrisImageUrl && <img className="qris-image" src={storeConfig.qrisImageUrl} alt="QRIS WADIMOR" />}
+          <p className="muted">{receipt.paymentMethod === 'qris' ? (storeConfig.qrisImageUrl ? t('qrisInstructions') : t('qrisUnavailable')) : t('inStorePayment')}</p>
+          <p className="receipt-thanks">{t('noDelivery')}</p>
+          <div className="modal-actions"><button className="button" onClick={() => setReceipt(null)}>{t('seePaymentStatus')}</button></div>
+        </> : <>
+          <ReceiptBrand /><p className="eyebrow">WADIMOR | {t('orderDetail')}</p><h2>{t('orderNumber')}{receipt.id}</h2>
+          <p className="muted">{new Date(receipt.createdAt).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
+          <div className="order-meta">{receipt.cashier && <p><strong>{t('cashierName')}:</strong> {receipt.cashier}</p>}<p><strong>{t('payment')}:</strong> {t(receipt.paymentMethod)}</p><p><strong>{t('paymentStatus')}:</strong> {t('paymentPaid')}</p></div>
+          <ReceiptRows items={receipt.items} />
+          <div className="receipt-total"><span>{t('total')}</span><strong>{money(receipt.totalAmount)}</strong></div>
+          <p className="receipt-thanks">{t('receiptLegal')}</p>
+          <div className="modal-actions"><button className="button secondary" onClick={() => window.print()}>Print</button><button className="button" onClick={() => setReceipt(null)}>Selesai</button></div>
+        </>}
       </div></div>}
     </div>
   )
 }
 
 // ─── My Orders ────────────────────────────────────────────────────────────────
-function MyOrders() {
+function ReceiptRows({ items }) {
+  return <ul className="order-items">{items.map((item, index) => <li key={item.productId || index}><span>{item.product_name || item.name} x {item.quantity} @ {money(item.price_at_transaction ?? item.unitPrice)}</span><span>{money(item.subtotal)}</span></li>)}</ul>
+}
+
+function MyOrders({ csrfToken }) {
   const t = useT()
+  const { lang } = useContext(I18nContext)
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [expanded, setExpanded] = useState(null)
+  const [selected, setSelected] = useState(null)
+  const [storeConfig, setStoreConfig] = useState({})
   const load = useCallback(() => {
     api('/api/transactions/mine').then(data => { setTransactions(data); setLoading(false) }).catch(() => setLoading(false))
   }, [])
   useEffect(() => { load() }, [load])
-  if (loading) return <StatePanel title="…">Loading</StatePanel>
+  useEffect(() => { const timer = setInterval(load, 15000); return () => clearInterval(timer) }, [load])
+  useEffect(() => { api('/api/public-config').then(setStoreConfig).catch(() => {}) }, [])
+  useEffect(() => {
+    if (!selected) return
+    const latest = transactions.find(item => item.id === selected.transaction.id)
+    if (latest && latest !== selected.transaction) setSelected(current => current ? { ...current, transaction: latest } : current)
+  }, [transactions, selected])
+  async function cancelOrder(transaction) {
+    if (!window.confirm(t('confirmCancelOrder'))) return
+    try {
+      await api(`/api/transactions/${transaction.id}/cancel`, { method: 'POST', headers: { 'x-csrf-token': csrfToken } })
+      setSelected(current => current ? { ...current, transaction: { ...current.transaction, payment_status: 'cancelled' } } : current)
+      load()
+    } catch (error) { window.alert(error.message) }
+  }
+  if (loading) return <StatePanel title="Loading">Loading</StatePanel>
 
   return <section className="inventory-panel">
-    <div className="panel-heading"><div><h2>{t('orderHistory')} <span>{transactions.length}</span></h2><p className="muted">{t('orderHistoryDesc')}</p></div><button className="button secondary" onClick={load}>↻</button></div>
-    {transactions.length === 0 ? <StatePanel title={t('noOrders')}>{t('noOrdersDesc')}</StatePanel> : <div className="orders-list">{transactions.map(transaction => <div key={transaction.id} className="order-card">
-      <button className="order-card-header" onClick={() => setExpanded(expanded === transaction.id ? null : transaction.id)}>
-        <span><strong>{t('orderNumber')}{transaction.id}</strong><small>{new Date(transaction.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</small></span>
-        <span className="order-card-right"><span>{t(transaction.payment_method)}</span><strong>{money(transaction.total_amount)}</strong><span>{expanded === transaction.id ? '▲' : '▼'}</span></span>
-      </button>
-      {expanded === transaction.id && <div className="order-card-body"><ul className="order-items">{transaction.items.map((item, index) => <li key={index}><span>{item.product_name} × {item.quantity} @ {money(item.price_at_transaction)}</span><span>{money(item.subtotal)}</span></li>)}</ul><div className="receipt-total"><span>{t('total')}</span><strong>{money(transaction.total_amount)}</strong></div><button className="button secondary receipt-print" onClick={() => window.print()}>Print</button></div>}
-    </div>)}</div>}
+    <div className="panel-heading"><div><h2>{t('orderHistory')} <span>{transactions.length}</span></h2><p className="muted">{t('orderHistoryDesc')}</p></div><button className="button secondary" onClick={load}>{t('refresh')}</button></div>
+    {transactions.length === 0 ? <StatePanel title={t('noOrders')}>{t('noOrdersDesc')}</StatePanel> : <div className="orders-list">{transactions.map(transaction => <article key={transaction.id} className="order-card">
+      <div className="order-card-header"><span><strong>{t('orderNumber')}{transaction.id}</strong><small>{new Date(transaction.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })}</small></span>
+        <span className="order-card-right"><span>{t(transaction.payment_method)}</span><strong>{money(transaction.total_amount)}</strong><span className={`badge ${transaction.payment_status === 'paid' ? '' : 'low'}`}>{t(transaction.payment_status === 'paid' ? 'paymentPaid' : transaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</span></span>
+      </div>
+      <div className="order-actions"><button className="button secondary" onClick={() => setSelected({ transaction, tab: 'receipt' })}>{t('seeReceipt')}</button><button className="button secondary" onClick={() => setSelected({ transaction, tab: 'status' })}>{t('seePaymentStatus')}</button></div>
+    </article>)}</div>}
+    {selected && <div className="modal-backdrop" onClick={() => setSelected(null)}><div className="modal receipt" onClick={event => event.stopPropagation()}>
+      <ReceiptBrand /><p className="eyebrow">WADIMOR | #{selected.transaction.id}</p>
+      {selected.tab === 'status' ? <><h2>{t('paymentStatus')}</h2><p className={`payment-status-large ${selected.transaction.payment_status}`}>{t(selected.transaction.payment_status === 'paid' ? 'paymentPaid' : selected.transaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p>
+        <div className="order-meta"><p><strong>{t('payment')}:</strong> {t(selected.transaction.payment_method)}</p><p><strong>{t('total')}:</strong> {money(selected.transaction.total_amount)}</p>{selected.transaction.payment_confirmed_at && <p><strong>{t('orderDate')}:</strong> {new Date(selected.transaction.payment_confirmed_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>}</div>
+        {selected.transaction.payment_status === 'pending' && selected.transaction.payment_method === 'qris' && storeConfig.qrisImageUrl && <img className="qris-image" src={storeConfig.qrisImageUrl} alt="QRIS WADIMOR" />}
+        {selected.transaction.payment_status === 'pending' && <p className="muted">{selected.transaction.payment_method === 'qris' ? (storeConfig.qrisImageUrl ? t('qrisInstructions') : t('qrisUnavailable')) : t('inStorePayment')}</p>}
+        <p className="receipt-thanks">{t('noDelivery')}</p>
+        {selected.transaction.payment_status === 'pending' && <button className="button danger-button" onClick={() => cancelOrder(selected.transaction)}>{t('cancelOrder')}</button>}
+      </> : <><h2>{t('orderNumber')}{selected.transaction.id}</h2><p className="muted">{new Date(selected.transaction.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
+        <div className="order-meta">{selected.transaction.customer_name && <p><strong>{t('fullName')}:</strong> {selected.transaction.customer_name}</p>}{selected.transaction.cashier_name && <p><strong>{t('cashierName')}:</strong> {selected.transaction.cashier_name}</p>}<p><strong>{t('payment')}:</strong> {t(selected.transaction.payment_method)}</p><p><strong>{t('paymentStatus')}:</strong> {t(selected.transaction.payment_status === 'paid' ? 'paymentPaid' : selected.transaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p></div>
+        <ReceiptRows items={selected.transaction.items} /><div className="receipt-total"><span>{t('total')}</span><strong>{money(selected.transaction.total_amount)}</strong></div>
+        <p className="receipt-thanks">{selected.transaction.payment_status === 'paid' ? t('receiptLegal') : t(selected.transaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p>
+      </>}
+      <div className="modal-actions">{selected.tab === 'receipt' && selected.transaction.payment_status === 'paid' && <button className="button secondary" onClick={() => window.print()}>Print</button>}<button className="button" onClick={() => setSelected(null)}>{t('cancel')}</button></div>
+    </div></div>}
   </section>
 }
 // ─── Staff & Account Settings ────────────────────────────────────────────────
@@ -1094,10 +1201,10 @@ function StaffManagement({ csrfToken, isSuperAdmin, currentUserId }) {
   }
   async function copyCredential() {
     if (!credential) return
-    await navigator.clipboard.writeText(`${credential.username}\n${credential.password}`)
+    await navigator.clipboard.writeText(credential.password)
     setCopied(true); setTimeout(() => setCopied(false), 1800)
   }
-  const roleLabel = role => role === 'super_admin' ? t('superAdminRole') : role === 'admin' ? t('adminRole') : role === 'kasir' ? t('cashierRole') : t('customer')
+  const roleLabel = role => role === 'super_admin' ? t('superAdminRole') : role === 'admin' ? t('adminRole') : role === 'kasir' ? t('cashierRole') : t('customerRole')
   if (loading) return <StatePanel title={t('loadingProducts')}>{t('loadingProducts')}</StatePanel>
   return <>
     {credential && <div className="credential-card" role="status">
@@ -1106,15 +1213,15 @@ function StaffManagement({ csrfToken, isSuperAdmin, currentUserId }) {
     </div>}
     {error && <p className="form-error" role="alert">{error}</p>}
     <section className="inventory-panel">
-      <div className="panel-heading"><div><h2>{t('staffTitle')} <span>{staff.length}</span></h2><p className="muted">{t('staffDesc')}</p></div>{isSuperAdmin && <button className="button" onClick={() => setShowForm(true)}>{t('addStaff')}</button>}</div>
+      <div className="panel-heading"><div><h2>{t('staffTitle')} <span>{staff.length}</span></h2><p className="muted">{t('staffDesc')}</p></div><button className="button" onClick={() => setShowForm(true)}>{t('addStaff')}</button></div>
       <div className="table-scroll"><table><thead><tr><th>{t('fullName')}</th><th>{t('username')}</th><th>{t('role')}</th><th>{t('status')}</th><th>{t('actions')}</th></tr></thead>
-      <tbody>{staff.map(member => <tr key={member.id}><td className="price">{member.displayName}</td><td>{member.username}</td><td>{roleLabel(member.role)}</td><td><span className={`badge ${member.mustChangePassword ? 'low' : ''}`}>{member.mustChangePassword ? t('waitingPasswordChange') : t('activeAccount')}</span></td><td><div className="action-row">{isSuperAdmin && ['admin', 'kasir'].includes(member.role) && <button className="action-btn" onClick={() => resetPassword(member)}>{t('resetOtp')}</button>}{member.role !== 'super_admin' && member.id !== currentUserId && <button className="action-btn danger" onClick={() => deleteUser(member)}>{t('deleteUser')}</button>}</div></td></tr>)}</tbody></table></div>
+      <tbody>{staff.map(member => <tr key={member.id}><td className="price">{member.displayName}</td><td>{member.username}</td><td>{roleLabel(member.role)}</td><td><span className={`badge ${member.mustChangePassword ? 'low' : ''}`}>{member.mustChangePassword ? t('waitingPasswordChange') : t('activeAccount')}</span></td><td><div className="action-row">{isSuperAdmin && ['admin', 'kasir'].includes(member.role) && <button className="action-btn" onClick={() => resetPassword(member)}>{t('resetOtp')}</button>}{member.id !== currentUserId && (isSuperAdmin || member.role === 'kasir') && <button className="action-btn danger" onClick={() => deleteUser(member)}>{t('deleteUser')}</button>}</div></td></tr>)}</tbody></table></div>
     </section>
-    {showForm && isSuperAdmin && <div className="modal-backdrop" onClick={() => setShowForm(false)}><form className="modal account-form" onSubmit={createStaff} onClick={event => event.stopPropagation()}>
+    {showForm && <div className="modal-backdrop" onClick={() => setShowForm(false)}><form className="modal account-form" onSubmit={createStaff} onClick={event => event.stopPropagation()}>
       <h2>{t('addStaff')}</h2>
       <label>{t('fullName')}<input required minLength={2} maxLength={100} value={form.displayName} onChange={event => setForm(current => ({ ...current, displayName: event.target.value }))} /></label>
       <label>{t('username')}<input required minLength={3} maxLength={50} pattern="[a-zA-Z0-9_]+" value={form.username} onChange={event => setForm(current => ({ ...current, username: event.target.value }))} /><small>{t('usernameHint')}</small></label>
-      <label>{t('role')}<select value={form.role} onChange={event => setForm(current => ({ ...current, role: event.target.value }))}><option value="cashier">{t('cashierRole')}</option><option value="admin">{t('adminRole')}</option></select></label>
+      {isSuperAdmin && <label>{t('role')}<select value={form.role} onChange={event => setForm(current => ({ ...current, role: event.target.value }))}><option value="cashier">{t('cashierRole')}</option><option value="admin">{t('adminRole')}</option><option value="customer">{t('customerRole')}</option></select></label>}
       <div className="modal-actions"><button type="button" className="button secondary" onClick={() => setShowForm(false)}>{t('cancel')}</button><button className="button" disabled={saving}>{saving ? t('processing') : t('createStaff')}</button></div>
     </form></div>}
   </>
@@ -1294,16 +1401,16 @@ export default function App() {
       case 'admin': return <Dashboard analytics={analytics} loading={loadingAnalytics} error={analyticsError} retry={refresh} navigate={navigate} />
       case 'inventory': return <Inventory products={products} csrfToken={session.csrfToken} onRefresh={refresh} />
       case 'lowStock': return <Inventory key="lowStock" products={products} csrfToken={session.csrfToken} onRefresh={refresh} initialLowOnly />
-      case 'adminOrders': return <AdminOrders />
+      case 'adminOrders': return <AdminOrders csrfToken={session.csrfToken} />
       case 'cashier': return <Catalog cashierMode products={products} cart={cart} setCart={setCart} csrfToken={session.csrfToken} onCheckoutSuccess={onCheckoutSuccess} />
-      case 'cashierOrders': return <AdminOrders cashierMode />
+      case 'cashierOrders': return <AdminOrders cashierMode csrfToken={session.csrfToken} />
       case 'adminReports': return <AdminReports />
       case 'staff': return isAdmin ? <StaffManagement csrfToken={session.csrfToken} isSuperAdmin={isSuperAdmin} currentUserId={session.user.id} /> : <StatePanel title={t('dataError')}>403</StatePanel>
       case 'adminSettings':
       case 'cashierSettings':
       case 'customerSettings': return <AccountSettings session={session} onSessionUpdate={updateSessionUser} />
       case 'customer': return <Catalog products={products} cart={cart} setCart={setCart} csrfToken={session.csrfToken} onCheckoutSuccess={onCheckoutSuccess} />
-      case 'myOrders': return <MyOrders />
+      case 'myOrders': return <MyOrders csrfToken={session.csrfToken} />
       default: return <Catalog products={products} cart={cart} setCart={setCart} csrfToken={session.csrfToken} onCheckoutSuccess={onCheckoutSuccess} />
     }
   }

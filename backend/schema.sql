@@ -35,6 +35,9 @@ CREATE TABLE transactions (
     cashier_name VARCHAR(100),
     total_amount NUMERIC(12, 2) NOT NULL CHECK (total_amount >= 0),
     payment_method VARCHAR(50) NOT NULL DEFAULT 'cash',
+    payment_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'cancelled')),
+    payment_confirmed_at TIMESTAMPTZ,
+    payment_confirmed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE transaction_details (

@@ -47,6 +47,8 @@ npm.cmd --prefix backend run setup:admin -- admin_w ChooseYourAdminPassword
 
 Masuk sebagai Super Admin, lalu buat akun Admin atau Kasir melalui menu **Kelola Staf**. Password sementara hanya ditampilkan satu kali dan wajib diganti saat login pertama.
 
+Super Admin dapat mengelola akun; Admin hanya dapat membuat atau menghapus akun Kasir. Checkout Customer membuat pesanan pickup dengan status pembayaran menunggu konfirmasi, sedangkan Kasir/Admin mengonfirmasi pembayaran tunai, kartu, atau QRIS setelah diterima. Untuk menampilkan QRIS toko, atur `QRIS_IMAGE_URL` di `backend/.env` ke URL gambar QRIS merchant atau `/qris.png` dengan file di `frontend/public/qris.png`. Konfirmasi QRIS masih manual karena belum ada payment gateway.
+
 Perintah schema hanya boleh dijalankan satu kali pada database yang benar-benar baru. Untuk database lama, gunakan migration sesuai [panduan setup](docs/SETUP-GUIDE.md#10-menggunakan-database-yang-sudah-ada).
 
 Jalankan backend di terminal pertama:
@@ -159,6 +161,8 @@ npm.cmd --prefix backend run setup:admin -- admin_w ChooseYourAdminPassword
 ```
 
 Sign in as the Super Admin, then create Admin or Cashier accounts from **Manage Staff**. The temporary password is shown once and must be changed at first login.
+
+Super Admins manage user accounts; Admins can only create or delete Cashier accounts. Customer checkout creates an in-store pickup order with payment awaiting confirmation. A Cashier/Admin confirms cash, card, or QRIS after receiving it. To display the store's QRIS, set `QRIS_IMAGE_URL` in `backend/.env` to the merchant QR image URL or `/qris.png` with the file at `frontend/public/qris.png`. QRIS confirmation remains manual because no payment gateway is connected.
 
 Run the schema command only once for a completely new database. For an existing database, use the migrations described in the [setup guide](docs/SETUP-GUIDE.md#10-using-an-existing-database).
 

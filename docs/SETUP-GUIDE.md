@@ -234,7 +234,7 @@ Ganti bagian setelah `=` dengan password database lokal. Untuk menghindari masal
 DB_PASSWORD=WadimorLocal2026
 ```
 
-Contoh tersebut hanya untuk komputer lokal. Buat password berbeda untuk deployment. Jangan mengubah `DB_PORT=5434` ketika menggunakan Docker dengan konfigurasi repository ini.
+Contoh tersebut hanya untuk komputer lokal. Buat password berbeda untuk deployment. Jangan mengubah `DB_PORT=5434` ketika menggunakan Docker dengan konfigurasi repository ini. Untuk QRIS, atur `QRIS_IMAGE_URL` di `backend/.env` ke URL gambar QRIS merchant atau `/qris.png` (letakkan gambar di `frontend/public/qris.png`). Konfirmasi pembayaran tetap dilakukan manual oleh Kasir/Admin; proyek ini belum tersambung ke payment gateway.
 
 Simpan dengan **Ctrl+S**, lalu tutup Notepad. File `.env` bersifat pribadi dan diabaikan oleh Git. Jangan memasukkan file atau password tersebut ke repository, chat publik, screenshot, atau laporan.
 
@@ -333,7 +333,7 @@ npm.cmd --prefix frontend run dev
 8. Tunggu sampai Vite menampilkan alamat local, biasanya `http://localhost:5173`.
 9. Buka alamat tersebut di browser.
 
-Pilih Admin untuk login menggunakan akun setup. Pilih Customer lalu buka registrasi untuk membuat akun Customer; password Customer minimal empat karakter.
+Pilih Admin untuk login menggunakan akun setup. Pilih Customer lalu buka registrasi untuk membuat akun Customer; password Customer minimal delapan karakter dan harus dikonfirmasi dua kali.
 
 ### Memeriksa backend
 
@@ -381,6 +381,7 @@ Migration yang tersedia:
 6. `006_staff_management.sql` menambahkan Super Admin, nama staf, password sementara, dan pengelolaan akun staf.
 7. `007_product_images.sql` menambahkan lokasi foto produk.
 8. `008_transaction_cashier_snapshot.sql` mempertahankan nama kasir di riwayat transaksi setelah akun dihapus.
+9. `009_payment_status.sql` menambahkan status pembayaran dan waktu konfirmasi kasir.
 
 Untuk database Docker, jalankan hanya file yang belum pernah diterapkan:
 
@@ -393,12 +394,15 @@ Get-Content -Raw backend/migrations/005_cashier_barcode.sql | docker compose --e
 Get-Content -Raw backend/migrations/006_staff_management.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 Get-Content -Raw backend/migrations/007_product_images.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 Get-Content -Raw backend/migrations/008_transaction_cashier_snapshot.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
+Get-Content -Raw backend/migrations/009_payment_status.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 ```
 
 Setelah migration `003`, buat atau reset Super Admin melalui `setup:admin`. Setelah migration `006`, buat Admin biasa dan Kasir melalui menu **Kelola Pengguna**. Setelah migration `007`, Admin dapat mengunggah foto JPG, PNG, atau WebP hingga 3 MB. File disimpan di `backend/uploads/products`; sertakan folder ini dalam backup. Migration `008` menyimpan nama kasir pada transaksi agar faktur tetap mencantumkan petugas setelah akun dihapus.
 
+Migration `009` membuat pesanan Customer berstatus menunggu konfirmasi sampai Kasir/Admin mengonfirmasi uang diterima. Untuk QRIS, atur `QRIS_IMAGE_URL` di `backend/.env` ke URL HTTPS gambar QRIS merchant yang benar atau path gambar frontend seperti `/qris.png` (letakkan file tersebut di `frontend/public/qris.png`). Konfirmasi QRIS tetap dilakukan staf secara manual; aplikasi ini belum terhubung ke payment gateway.
+
 Jika tidak yakin migration mana yang sudah diterapkan, jangan menebak. Periksa backup atau catatan tim. Repository belum memiliki migration tracker otomatis.
-Untuk PostgreSQL lokal tanpa Docker, jalankan file migration yang belum diterapkan secara berurutan. Contoh migration terbaru: `psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/007_product_images.sql`, lalu `psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/008_transaction_cashier_snapshot.sql`. Database baru yang dibuat dari schema terbaru tidak memerlukan migration ini.
+Untuk PostgreSQL lokal tanpa Docker, jalankan file migration yang belum diterapkan secara berurutan. Untuk database yang sudah sampai migration `008`, terapkan status pembayaran dengan `psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/009_payment_status.sql`. Database baru yang dibuat dari schema terbaru tidak memerlukan migration ini.
 
 ## 11. Setup tanpa Docker
 
@@ -860,7 +864,7 @@ Replace the value after `=` with a local database password. Letters and numbers 
 DB_PASSWORD=WadimorLocal2026
 ```
 
-This example is only for a local computer. Use a different password for deployment. Keep `DB_PORT=5434` when using this repository's Docker configuration.
+This example is only for a local computer. Use a different password for deployment. Keep `DB_PORT=5434` when using this repository's Docker configuration. For QRIS, set `QRIS_IMAGE_URL` in `backend/.env` to the merchant QR image URL or `/qris.png` (put the image in `frontend/public/qris.png`). A Cashier/Admin must confirm payment manually; this project is not connected to a payment gateway.
 
 Save with **Ctrl+S** and close Notepad. `.env` is private and ignored by Git. Never put it or its password in the repository, public chats, screenshots, or reports.
 
@@ -959,7 +963,7 @@ npm.cmd --prefix frontend run dev
 8. Wait for Vite to display `http://localhost:5173`.
 9. Open that address in a browser.
 
-Choose Admin to sign in with the setup account. Choose Customer and registration to create a Customer account; Customer passwords require at least four characters.
+Choose Admin to sign in with the setup account. Choose Customer and registration to create a Customer account; Customer registration requires a full name and matching passwords of at least eight characters.
 
 ### Check the backend
 
@@ -1007,6 +1011,7 @@ Available migrations:
 6. `006_staff_management.sql` adds the Super Admin, staff names, temporary passwords, and staff account management.
 7. `007_product_images.sql` adds product photo paths.
 8. `008_transaction_cashier_snapshot.sql` preserves cashier names on transaction history after account deletion.
+9. `009_payment_status.sql` adds payment status and cashier confirmation time.
 
 For Docker, run only files not previously applied:
 
@@ -1019,16 +1024,18 @@ Get-Content -Raw backend/migrations/005_cashier_barcode.sql | docker compose --e
 Get-Content -Raw backend/migrations/006_staff_management.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 Get-Content -Raw backend/migrations/007_product_images.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 Get-Content -Raw backend/migrations/008_transaction_cashier_snapshot.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
+Get-Content -Raw backend/migrations/009_payment_status.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 ```
 
 After migration `003`, create or reset the Super Admin with `setup:admin`. After migration `006`, create regular Admin and Cashier accounts through **Manage Users**. After migration `007`, Admins can upload JPG, PNG, or WebP photos up to 3 MB. Files are stored in `backend/uploads/products`; include that folder in backups. Migration `008` stores cashier names on transactions so receipts continue to identify the cashier after account deletion. Legacy plaintext-password users must register again or use a secure reset flow.
 
+Migration `009` makes Customer orders wait for staff to confirm that money was received. For QRIS, set `QRIS_IMAGE_URL` in `backend/.env` to the merchant's real HTTPS QR image or a frontend path such as `/qris.png` (put that image at `frontend/public/qris.png`). QRIS confirmation is manual; this project is not connected to a payment gateway.
+
 If migration history is unclear, do not guess. Check backups or team records. The repository has no automatic migration tracker yet.
-For local PostgreSQL without Docker, apply unapplied migration files in order. For product photos and cashier name history, run:
+For local PostgreSQL without Docker, apply unapplied migration files in order. For a database that already has migrations `001` to `008`, apply the payment status update with:
 
 ```powershell
-psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/007_product_images.sql
-psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/008_transaction_cashier_snapshot.sql
+psql -h 127.0.0.1 -p 5432 -U admin -d wadimor_db -v ON_ERROR_STOP=1 -f backend/migrations/009_payment_status.sql
 ```
 
 A new database initialized from the current schema does not need these migrations.

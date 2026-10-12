@@ -460,3 +460,13 @@ td{padding:16px 20px;border-bottom:1px solid var(--border);color:var(--text2)}
 .settings-body{display:grid;gap:16px;padding:0 22px 22px}
 .settings-body .checkout-success{margin:0}
 @media(max-width:760px){.settings-grid{grid-template-columns:1fr}.credential-card{align-items:flex-start;flex-direction:column}.forced-password-brand{top:18px;left:18px}}
+.pickup-note{grid-column:1/-1;margin:0;padding:12px 16px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text2);font-size:12px}
+.qris-image{display:block;width:min(100%,320px);max-height:360px;object-fit:contain;margin:14px auto;padding:12px;background:#fff;border:1px solid var(--border);border-radius:10px}
+.order-actions{display:flex;gap:8px;padding:0 16px 16px;flex-wrap:wrap}
+.payment-status-large{font-size:22px;font-weight:800;text-align:center;padding:22px;border-radius:10px;background:var(--badge-low-bg);color:var(--badge-low-text)}
+.payment-status-large.paid{background:var(--badge-ok-bg);color:var(--badge-ok-text)}
+.receipt .eyebrow{text-align:center;letter-spacing:1.5px}
+.receipt-thanks{line-height:1.7}
+.receipt-brand{display:flex;justify-content:center;margin:0 auto 14px}
+.receipt-brand img{display:block;width:min(100%,250px);height:auto}
+.danger-button{background:#b42332!important;color:#fff!important;border-color:#b42332!important}
