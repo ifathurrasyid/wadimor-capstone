@@ -24,7 +24,7 @@ function fakeDatabase() {
       if (sql === 'SELECT 1') return { rows: [{ '?column?': 1 }] };
       if (sql.startsWith('INSERT INTO users')) {
         if (users.has(params[0])) { const error = new Error('duplicate'); error.code = '23505'; throw error; }
-        const user = { id: nextId++, username: params[0], display_name: params[0], password: params[1], role: 'pelanggan', must_change_password: false };
+        const user = { id: nextId++, username: params[0], display_name: params[1], password: params[2], role: 'pelanggan', must_change_password: false };
         users.set(user.username, user);
         return { rows: [user] };
       }
@@ -80,10 +80,11 @@ test('readiness reports a database outage', async t => {
 });
 test('customer registration hashes passwords, creates a session, and cannot see admin metrics', async t => {
   const { url, pool } = await serve(t);
-  const response = await post(url, '/api/auth/register', { username: 'buyer_one', password: 'customer-password-123' });
+  const response = await post(url, '/api/auth/register', { username: 'buyer_one', displayName: 'Buyer One', password: 'customer-password-123', passwordConfirm: 'customer-password-123' });
   assert.equal(response.status, 201);
   const body = await response.json();
   assert.equal(body.user.role, 'pelanggan');
+  assert.equal(body.user.displayName, 'Buyer One');
   assert.match(pool.users.get('buyer_one').password, /^scrypt\$/);
   assert.notEqual(pool.users.get('buyer_one').password, 'customer-password-123');
   const cookie = response.headers.get('set-cookie').split(';')[0];
@@ -93,7 +94,7 @@ test('customer registration hashes passwords, creates a session, and cannot see 
   assert.equal((await fetch(url + '/api/products', { headers: { Cookie: cookie } })).status, 200);
   assert.equal((await fetch(url + '/api/admin/analytics', { headers: { Cookie: cookie } })).status, 403);
   assert.equal((await post(url, '/api/auth/login/admin', { username: 'buyer_one', password: 'customer-password-123' })).status, 401);
-  assert.equal((await post(url, '/api/auth/register', { username: 'buyer_one', password: 'another-password-123' })).status, 409);
+  assert.equal((await post(url, '/api/auth/register', { username: 'buyer_one', displayName: 'Buyer One', password: 'another-password-123', passwordConfirm: 'another-password-123' })).status, 409);
 });
 test('admin login returns database analytics and customer login rejects admin role', async t => {
   const { url, pool } = await serve(t);
@@ -121,19 +122,15 @@ test('checkout processes correctly when stock is sufficient', async t => {
   const originalQuery = pool.query;
   pool.query = async (sql, params = []) => {
     if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') return { rows: [] };
-    if (sql.includes('INSERT INTO users')) {
-      const user = { id: 2, username: params[0], password: params[1], role: 'pelanggan' };
-      pool.users.set(user.username, user);
-      return { rows: [user] };
-    }
     if (sql.includes('FROM products WHERE id = ANY')) return { rows: [{ id: 1, name: 'Beras', price: 75000, cost_price: 66000, stock: 10 }] };
     if (sql.includes('UPDATE products SET stock')) return { rows: [] };
-    if (sql.includes('INSERT INTO transactions')) return { rows: [{ id: 101, created_at: new Date() }] };
+    if (sql.includes('INSERT INTO transactions')) return { rows: [{ id: 101, created_at: new Date(), payment_status: params[5] }] };
     if (sql.includes('INSERT INTO transaction_details')) return { rows: [] };
     return originalQuery(sql, params);
   };
 
-  const response = await post(url, '/api/auth/register', { username: 'buyer_two', password: 'customer-password-123' });
+  const response = await post(url, '/api/auth/register', { username: 'buyer_two', displayName: 'Buyer Two', password: 'customer-password-123', passwordConfirm: 'customer-password-123' });
+  assert.equal(response.status, 201);
   const cookie = response.headers.get('set-cookie').split(';')[0];
   const { csrfToken } = await (await fetch(url + '/api/auth/me', { headers: { Cookie: cookie } })).json();
 
@@ -147,6 +144,7 @@ test('checkout processes correctly when stock is sufficient', async t => {
   assert.equal(result.receipt.id, 101);
   assert.equal(result.receipt.totalAmount, 150000);
   assert.equal(result.receipt.paymentMethod, 'cash');
+  assert.equal(result.receipt.paymentStatus, 'pending');
   assert.equal(result.receipt.items[0].name, 'Beras');
 });
 

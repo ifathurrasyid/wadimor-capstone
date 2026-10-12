@@ -20,6 +20,7 @@ const LANGS = {
     adminWarung: 'Admin warung',
     adminWarungDesc: 'Dasbor analitik dan manajemen toko',
     cashier: 'Kasir',
+    cashierMenuTitle: 'Kasir Digital',
     cashierDesc: 'Transaksi toko, pembayaran, dan faktur',
     cashierSpace: 'RUANG KASIR',
     cashierLogin: 'Masuk sebagai kasir',
@@ -204,7 +205,6 @@ const LANGS = {
     passwordSetupTitle: 'Ganti kata sandi sementara',
     passwordSetupDesc: 'Untuk keamanan, buat kata sandi pribadi sebelum menggunakan WADIMOR.',
     newPassword: 'Kata sandi baru',
-    confirmPassword: 'Konfirmasi kata sandi',
     passwordsMismatch: 'Konfirmasi kata sandi tidak cocok.',
     passwordMin8: 'Minimal 8 karakter',
     changePassword: 'Ganti Kata Sandi',
@@ -235,6 +235,7 @@ const LANGS = {
     adminWarung: 'Store Admin',
     adminWarungDesc: 'Analytics dashboard and store management',
     cashier: 'Cashier',
+    cashierMenuTitle: 'Digital Cashier',
     cashierDesc: 'In-store sales, payment, and receipts',
     cashierSpace: 'CASHIER SPACE',
     cashierLogin: 'Sign in as cashier',
@@ -419,7 +420,6 @@ const LANGS = {
     passwordSetupTitle: 'Replace your temporary password',
     passwordSetupDesc: 'For security, create a private password before using WADIMOR.',
     newPassword: 'New password',
-    confirmPassword: 'Confirm password',
     passwordsMismatch: 'Password confirmation does not match.',
     passwordMin8: 'At least 8 characters',
     changePassword: 'Change Password',
@@ -574,36 +574,47 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
-function Dashboard({ analytics, loading, error, retry, navigate }) {
+function Dashboard({ analytics, loading, error, retry, navigate, products = [] }) {
   const t = useT()
+  const { lang } = useContext(I18nContext)
+  const [netProfit, setNetProfit] = useState(null)
+  useEffect(() => {
+    if (!analytics) return
+    let active = true
+    api('/api/admin/reports?period=all').then(data => {
+      if (active) setNetProfit(data.financials?.laba_bersih ?? null)
+    }).catch(() => { if (active) setNetProfit(null) })
+    return () => { active = false }
+  }, [analytics])
   if (loading) return <StatePanel title={t('loadingProducts')}>{t('loadingProducts')}</StatePanel>
   if (error) return <StatePanel title={t('dataError')} retry={retry}>{error}</StatePanel>
   if (!analytics) return null
   const { summary, daily, topProducts } = analytics
   const maxRevenue = Math.max(1, ...daily.map(d => Number(d.revenue)))
+  const chartPoints = daily.map((day, index) => ({
+    x: 58 + index * (600 / Math.max(1, daily.length - 1)),
+    y: 215 - (Number(day.revenue) / maxRevenue) * 175,
+    day,
+  }))
+  const chartLine = chartPoints.map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ')
+  const chartArea = chartPoints.length ? `${chartLine} L ${chartPoints.at(-1).x} 215 L ${chartPoints[0].x} 215 Z` : ''
   return (
     <>
       <section className="stats dashboard-stats">
-        <article><span>{t('productCount')}</span><strong>{summary.product_count}<small>jenis</small></strong></article>
-        <article><span>{t('revenue')}</span><strong className="currency-stat">{money(summary.revenue)}</strong></article>
-        <article><span>{t('transactionCount')}</span><strong>{Number(summary.transaction_count).toLocaleString('id-ID')}<small>tx</small></strong></article>
-        <article className="attention"><span>{t('lowStock')}</span><strong>{summary.low_stock_count}<small>barang</small></strong></article>
-        <article><span>{t('stockUnits')}</span><strong>{Number(summary.stock_units).toLocaleString('id-ID')}<small>unit</small></strong></article>
+        <article className="stat-products"><span>{t('productCount')}</span><strong>{summary.product_count}</strong><small>{t('items')}</small></article>
+        <article className="stat-stock"><span>{t('stockUnits')}</span><strong>{Number(summary.stock_units).toLocaleString('id-ID')}</strong><small>unit</small></article>
+        <article className="stat-gross"><span>{t('revenue')}</span><strong className="currency-stat">{money(summary.revenue)}</strong><small>{t('transactionCount')}: {Number(summary.transaction_count).toLocaleString('id-ID')}</small></article>
+        <article className="stat-profit"><span>{t('netProfit')}</span><strong className="currency-stat">{netProfit == null ? '—' : money(netProfit)}</strong><small>{netProfit == null ? ' ' : t('reportsTitle')}</small></article>
       </section>
       <div className="dashboard-grid">
         <section className="inventory-panel chart-panel">
-          <div className="panel-heading"><div><h2>{t('sevenDaySales')}</h2></div></div>
+          <div className="panel-heading"><div><h2>{t('sevenDaySales')}</h2><p className="muted">{t('revenue')}</p></div><span className="chart-period">7 {lang === 'id' ? 'hari terakhir' : 'last days'}</span></div>
           {daily.some(d => Number(d.revenue) > 0) ? (
-            <div className="sales-chart">
-              <div className="chart-columns">
-                {daily.map(d => (
-                  <div className="chart-column" key={d.day}>
-                    <div className="bar-space"><span className="bar" style={{ height: `${Math.max(2, Number(d.revenue) / maxRevenue * 100)}%` }} /></div>
-                    <small>{new Date(`${String(d.day).slice(0, 10)}T12:00:00`).toLocaleDateString('id-ID', { weekday: 'short' })}</small>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <div className="sales-chart"><svg viewBox="0 0 700 255" role="img" aria-label={t('sevenDaySales')} preserveAspectRatio="none">
+              {[0, 1, 2, 3, 4].map(index => <g key={index}><line className="chart-gridline" x1="58" x2="658" y1={40 + index * 43.75} y2={40 + index * 43.75} /><text className="chart-axis" x="48" y={44 + index * 43.75} textAnchor="end">{new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 }).format(maxRevenue * (1 - index / 4))}</text></g>)}
+              <path className="chart-area" d={chartArea} /><path className="chart-line" d={chartLine} />
+              {chartPoints.map(point => <g key={point.day.day}><circle className="chart-dot" cx={point.x} cy={point.y} r="5"><title>{money(point.day.revenue)}</title></circle><text className="chart-axis chart-date" x={point.x} y="245" textAnchor="middle">{new Date(`${String(point.day.day).slice(0, 10)}T12:00:00`).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: '2-digit', month: 'short' })}</text></g>)}
+            </svg></div>
           ) : (
             <div className="chart-empty"><strong>{t('noSales')}</strong><p>{t('noSalesDesc')}</p></div>
           )}
@@ -611,7 +622,10 @@ function Dashboard({ analytics, loading, error, retry, navigate }) {
         <section className="inventory-panel highlights-panel">
           <div className="panel-heading"><h2>{t('topProducts')}</h2></div>
           {topProducts.length ? (
-            <ol className="top-list">{topProducts.map(item => <li key={item.name}><strong>{item.name}</strong><span>{item.units_sold} × · {money(item.revenue)}</span></li>)}</ol>
+            <ol className="top-list">{topProducts.map((item, index) => {
+              const product = products.find(entry => entry.name === item.name)
+              return <li key={item.name}><span className="top-rank">{index + 1}</span><span className="top-product-art">{product?.image_url ? <img src={product.image_url} alt="" /> : item.name.slice(0, 1)}</span><span className="top-product-copy"><strong>{item.name}</strong><small>{item.units_sold} {lang === 'id' ? 'terjual' : 'sold'}</small></span><strong className="top-product-revenue">{money(item.revenue)}</strong></li>
+            })}</ol>
           ) : <div className="state-panel"><p>{t('noTopProducts')}</p></div>}
           <div className="panel-footer"><button className="text-link" onClick={() => navigate('inventory')}>{t('viewInventory')}</button></div>
         </section>
@@ -626,6 +640,7 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
   const [lowOnly, setLowOnly] = useState(initialLowOnly)
+  const [page, setPage] = useState(1)
   const [categories, setCategories] = useState([])
   const [modal, setModal] = useState(null) // null | { mode: 'add'|'edit', product? }
   const [form, setForm] = useState({ name: '', category_id: '', barcode: '', image_url: '', image_data: '', image_preview: '', price: '', cost_price: '', stock: '', min_stock: '5' })
@@ -642,8 +657,10 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
     (!category || categoryOf(p) === category) &&
     (!lowOnly || p.stock <= p.min_stock)
   )
-  const lowCount = products.filter(p => p.stock <= p.min_stock).length
   const catNames = [...new Set(products.map(categoryOf))].sort()
+  const pageCount = Math.max(1, Math.ceil(visible.length / 7))
+  const currentPage = Math.min(page, pageCount)
+  const pageItems = visible.slice((currentPage - 1) * 7, currentPage * 7)
 
   function openAdd() { setForm({ name: '', category_id: '', barcode: '', image_url: '', image_data: '', image_preview: '', price: '', cost_price: '', stock: '', min_stock: '5' }); setFormError(''); setModal({ mode: 'add' }) }
   function openEdit(product) { setForm({ name: product.name, category_id: product.category_id || '', barcode: product.barcode || '', image_url: product.image_url || '', image_data: '', image_preview: product.image_url || '', price: product.price, cost_price: product.cost_price || '', stock: product.stock, min_stock: product.min_stock }); setFormError(''); setModal({ mode: 'edit', product }) }
@@ -673,54 +690,45 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
     } catch (err) { alert(err.message); setDeleteConfirm(null) }
   }
 
-  const margin = p => p.cost_price > 0 ? Math.round((Number(p.price) - Number(p.cost_price)) / Number(p.price) * 100) : null
-
   return (
     <>
-      {lowCount > 0 && (
-        <div className="stock-notice">
-          <div><strong>{lowCount} {t('lowStockWarning')}</strong><p>{t('lowStockDesc')}</p></div>
-          <button onClick={() => { setLowOnly(true); setCategory(''); setSearch('') }}>{t('viewItems')}</button>
-        </div>
-      )}
-      <section className="inventory-panel">
-        <div className="panel-heading">
+      <section className="inventory-panel inventory-list-panel">
+        <div className="panel-heading inventory-heading">
           <h2>{t('inventoryTitle')} <span>{visible.length}</span></h2>
-          <button className="button" onClick={openAdd}>{t('addProduct')}</button>
+          <button className="button" onClick={openAdd}>+ {t('addProduct')}</button>
         </div>
-        <div className="filters">
-          <label className="search-field"><span>{t('username')}</span><input type="search" placeholder={t('searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} /></label>
-          <label><span>{t('category')}</span><select value={category} onChange={e => setCategory(e.target.value)}><option value="">{t('allCategories')}</option>{catNames.map(n => <option key={n}>{n}</option>)}</select></label>
-          <label className="check-label"><input type="checkbox" checked={lowOnly} onChange={e => setLowOnly(e.target.checked)} /> {t('lowStockOnly')}</label>
+        <div className="filters inventory-filters">
+          <label className="search-field"><span className="sr-only">{t('searchPlaceholder')}</span><input type="search" placeholder={t('searchPlaceholder')} value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} /></label>
+          <label className="inventory-category"><span className="sr-only">{t('category')}</span><select value={category} onChange={e => { setCategory(e.target.value); setPage(1) }}><option value="">{t('allCategories')}</option>{catNames.map(n => <option key={n}>{n}</option>)}</select></label>
+          <label className="check-label"><input type="checkbox" checked={lowOnly} onChange={e => { setLowOnly(e.target.checked); setPage(1) }} /> {t('lowStockOnly')}</label>
         </div>
         {visible.length ? (
-          <div className="table-scroll">
+          <div className="table-scroll inventory-table-scroll">
             <table>
               <thead><tr>
                 <th>{t('no')}</th><th>{t('productName')}</th><th>{t('category')}</th>
+                <th className="numeric">{t('stock')}</th><th className="numeric">{t('minStock')}</th>
                 <th className="numeric">{t('sellingPrice')}</th><th className="numeric">{t('costPrice')}</th>
-                <th className="numeric">{t('margin')}</th><th className="numeric">{t('stockMin')}</th>
                 <th>{t('status')}</th><th>{t('actions')}</th>
               </tr></thead>
-              <tbody>{visible.map((item, i) => {
-                const m = margin(item)
+              <tbody>{pageItems.map((item, i) => {
                 const st = item.stock === 0 ? 'empty' : item.stock <= item.min_stock ? 'low' : 'available'
                 return (
                   <tr key={item.id}>
-                    <td>{i + 1}</td>
+                    <td>{(currentPage - 1) * 7 + i + 1}</td>
                     <td><div className="product-name">{item.image_url ? <img className="product-thumb" src={item.image_url} alt="" loading="lazy" onError={event => { event.currentTarget.hidden = true }} /> : <span className="product-monogram" aria-hidden>{item.name.slice(0, 1)}</span>}<div><strong>{item.name}</strong><small>ID-{item.id}{item.barcode ? ` | ${item.barcode}` : ''}</small></div></div></td>
                     <td>{categoryOf(item)}</td>
+                    <td className={`numeric stock-value ${st}`}>{item.stock}</td>
+                    <td className="numeric">{item.min_stock}</td>
                     <td className="numeric price">{money(item.price)}</td>
                     <td className="numeric">{money(item.cost_price)}</td>
-                    <td className="numeric">{m !== null ? `${m}%` : '—'}</td>
-                    <td className="numeric"><strong>{item.stock}</strong> <span className="muted">/ {item.min_stock}</span></td>
                     <td><span className={`badge ${st === 'available' ? '' : 'low'}`}>{t(st)}</span></td>
                     <td>
                       <div className="action-row">
-                        <button className="action-btn" onClick={() => adjustStock(item.id, 5)}>+5</button>
-                        <button className="action-btn" onClick={() => adjustStock(item.id, -1)}>-1</button>
-                        <button className="action-btn" onClick={() => openEdit(item)}>✏️</button>
-                        <button className="action-btn danger" onClick={() => setDeleteConfirm(item)}>🗑</button>
+                        <button className="action-btn" title="Tambah 5 stok" aria-label={`Tambah 5 stok ${item.name}`} onClick={() => adjustStock(item.id, 5)}>+5</button>
+                        <button className="action-btn" title="Kurangi 1 stok" aria-label={`Kurangi 1 stok ${item.name}`} onClick={() => adjustStock(item.id, -1)}>−1</button>
+                        <button className="action-btn" title={t('editProduct')} aria-label={`${t('editProduct')} ${item.name}`} onClick={() => openEdit(item)}>✎</button>
+                        <button className="action-btn danger" title={t('delete')} aria-label={`${t('delete')} ${item.name}`} onClick={() => setDeleteConfirm(item)}>×</button>
                       </div>
                     </td>
                   </tr>
@@ -733,7 +741,7 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
             {products.length ? <><span>{t('resetFilter')} </span><button className="text-link" onClick={() => { setSearch(''); setCategory(''); setLowOnly(false) }}>{t('resetFilter')}</button></> : t('noItems')}
           </StatePanel>
         )}
-        <footer className="panel-footer">{t('showing')} {visible.length} {t('of')} {products.length} {t('items')}</footer>
+        <footer className="panel-footer inventory-pagination"><span>{t('showing')} {visible.length ? (currentPage - 1) * 7 + 1 : 0}–{Math.min(currentPage * 7, visible.length)} {t('of')} {visible.length} {t('items')}</span><div className="pagination-controls"><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="Previous page">‹</button>{Array.from({ length: pageCount }, (_, index) => <button key={index} className={currentPage === index + 1 ? 'active' : ''} onClick={() => setPage(index + 1)} aria-current={currentPage === index + 1 ? 'page' : undefined}>{index + 1}</button>)}<button disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="Next page">›</button></div></footer>
       </section>
 
       {/* Product Modal */}
@@ -889,7 +897,6 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
   const { lang } = useContext(I18nContext)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
-  const [productCode, setProductCode] = useState('')
   const [cartOpen, setCartOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [receipt, setReceipt] = useState(null)
@@ -912,13 +919,13 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
 
   function addByCode(event) {
     event.preventDefault()
-    const code = productCode.trim().toLocaleLowerCase('id')
+    const code = search.trim().toLocaleLowerCase('id')
     if (!code) return
-    const product = products.find(item => String(item.barcode || '').toLocaleLowerCase('id') === code || String(item.id) === code || `id-${item.id}` === code)
+    const product = products.find(item => String(item.barcode || '').toLocaleLowerCase('id') === code || String(item.id) === code || `id-${item.id}` === code || item.name.toLocaleLowerCase('id') === code)
     if (!product) { setCheckoutError(t('codeNotFound')); return }
     if (product.stock < 1) { setCheckoutError(t('empty')); return }
     changeQty(product, 1)
-    setProductCode('')
+    setSearch('')
     setCheckoutError('')
   }
 
@@ -937,27 +944,24 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
       {!cashierMode && <p className="pickup-note">{t('noDelivery')}</p>}
       {/* Catalog Section */}
       <section className="catalog-section">
-        <div className="store-banner">
+        {!cashierMode && <div className="store-banner">
           <strong>{t('bannerTitle')}</strong>
           <p>{t('bannerSub')}</p>
-        </div>
-        {cashierMode && <form className="cashier-code-entry" onSubmit={addByCode}>
-          <label htmlFor="cashier-product-code">{t('scanOrType')}</label>
-          <div><input id="cashier-product-code" autoFocus autoComplete="off" value={productCode} onChange={event => setProductCode(event.target.value)} placeholder={t('productCode')} /><button className="button" type="submit">{t('addByCode')}</button></div>
-        </form>}
-        <div className="inventory-panel">
-          <div className="panel-heading">
+        </div>}
+        <div className={`inventory-panel ${cashierMode ? 'cashier-catalog-panel' : ''}`}>
+          {!cashierMode && <div className="panel-heading">
             <h2>{t('storeTagline')} <span>{visible.length}</span></h2>
-          </div>
-          <div className="filters">
-            <label className="search-field"><span>{t('username')}</span><input type="search" placeholder={t('searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} /></label>
-            <label><span>{t('category')}</span>
+          </div>}
+          <div className={`filters ${cashierMode ? 'cashier-filters' : ''}`}>
+            <label className="search-field"><span className={cashierMode ? 'sr-only' : ''}>{t('searchPlaceholder')}</span><input type="search" autoFocus={cashierMode} placeholder={cashierMode ? `${t('searchPlaceholder')} / ID / Barcode` : t('searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} onKeyDown={cashierMode ? event => { if (event.key === 'Enter') addByCode(event) } : undefined} /></label>
+            {!cashierMode && <label><span>{t('category')}</span>
               <select value={category} onChange={e => setCategory(e.target.value)}>
                 <option value="">{t('allCategories')}</option>
                 {categories.map(n => <option key={n}>{n}</option>)}
               </select>
-            </label>
+            </label>}
           </div>
+          {cashierMode && <div className="cashier-category-tabs" aria-label={t('category')}><button className={category === '' ? 'active' : ''} onClick={() => setCategory('')}>{lang === 'id' ? 'Semua' : 'All'}</button>{categories.map(name => <button key={name} className={category === name ? 'active' : ''} onClick={() => setCategory(name)}>{name}</button>)}</div>}
           {visible.length ? (
             <div className="product-grid">
               {visible.map(item => {
@@ -965,7 +969,7 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
                 const outOfStock = item.stock === 0
                 const lowStockItem = item.stock > 0 && item.stock <= item.min_stock
                 return (
-                  <article className={`product-card ${outOfStock ? 'out-of-stock' : ''}`} key={item.id}>
+                  <article className={`product-card ${cashierMode ? 'cashier-product-card' : ''} ${outOfStock ? 'out-of-stock' : ''}`} key={item.id}>
                     <div className="card-art">{item.image_url ? <img src={item.image_url} alt={item.name} loading="lazy" onError={event => { event.currentTarget.hidden = true }} /> : <><span className="card-placeholder">{item.name.slice(0, 1)}</span><span>WADIMOR / {categoryOf(item)}</span></>}</div>
                     {lowStockItem && <span className="low-stock-tag">⚠️ Stok Terbatas</span>}
                     <small>{categoryOf(item)}</small>
@@ -974,7 +978,7 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
                     <strong>{money(item.price)}</strong>
                     <div className="card-bottom">
                       <span>{outOfStock ? t('empty') : `${item.stock} tersedia`}</span>
-                      {inCart === 0 ? (
+                      {cashierMode ? <div className="quantity"><button aria-label={`${item.name}: kurangi`} disabled={inCart === 0} onClick={() => changeQty(item, -1)}>−</button><output>{inCart}</output><button aria-label={`${item.name}: tambah`} disabled={outOfStock || inCart >= item.stock} onClick={() => changeQty(item, 1)}>+</button></div> : inCart === 0 ? (
                         <button className="button" disabled={outOfStock} onClick={() => changeQty(item, 1)}>+ {t('cart')}</button>
                       ) : (
                         <div className="quantity">
@@ -995,10 +999,10 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
       </section>
 
       {cashierMode && <aside className="cashier-cart inventory-panel">
-        <div className="panel-heading"><h2>{t('cartTitle')} <span>{cartCount}</span></h2><button className="text-link" onClick={() => setCart({})}>{t('delete')}</button></div>
+        <div className="panel-heading"><h2><span className="cart-heading-icon" aria-hidden="true">▣</span>{t('cartTitle')} <span>{cartCount}</span></h2>{cartCount > 0 && <button className="text-link" onClick={() => setCart({})}>{t('delete')}</button>}</div>
         {cartItems.length === 0 ? <p className="cart-empty">{t('cartEmpty')}</p> : <div className="cart-items-list">{cartItems.map(item => <div className="cart-item" key={item.id}>
-          <div className="cart-item-info"><strong>{item.name}</strong><small>{item.quantity} × {money(item.price)}</small><span>{money(Number(item.price) * item.quantity)}</span></div>
-          <div className="quantity"><button onClick={() => changeQty(item, -1)}>−</button><output>{item.quantity}</output><button disabled={item.quantity >= item.stock} onClick={() => changeQty(item, 1)}>+</button></div>
+          <div className="cart-item-art">{item.image_url ? <img src={item.image_url} alt="" /> : item.name.slice(0, 1)}</div><div className="cart-item-info"><strong>{item.name}</strong><small>{item.quantity} × {money(item.price)}</small><span>{money(Number(item.price) * item.quantity)}</span></div>
+          <button className="cart-remove" title={t('delete')} aria-label={`${t('delete')} ${item.name}`} onClick={() => setCart(current => ({ ...current, [item.id]: 0 }))}>×</button>
         </div>)}</div>}
         <div className="cart-payment"><label>{t('paymentMethod')}<select value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)}><option value="cash">{t('cash')}</option><option value="card">{t('card')}</option><option value="qris">{t('qris')}</option></select></label></div>
         <div className="cart-total"><span>{t('estimatedTotal')}</span><strong>{money(total)}</strong></div>
@@ -1089,16 +1093,12 @@ function MyOrders({ csrfToken }) {
   useEffect(() => { load() }, [load])
   useEffect(() => { const timer = setInterval(load, 15000); return () => clearInterval(timer) }, [load])
   useEffect(() => { api('/api/public-config').then(setStoreConfig).catch(() => {}) }, [])
-  useEffect(() => {
-    if (!selected) return
-    const latest = transactions.find(item => item.id === selected.transaction.id)
-    if (latest && latest !== selected.transaction) setSelected(current => current ? { ...current, transaction: latest } : current)
-  }, [transactions, selected])
+  const selectedTransaction = selected && (transactions.find(item => item.id === selected.transaction.id) || selected.transaction)
   async function cancelOrder(transaction) {
     if (!window.confirm(t('confirmCancelOrder'))) return
     try {
       await api(`/api/transactions/${transaction.id}/cancel`, { method: 'POST', headers: { 'x-csrf-token': csrfToken } })
-      setSelected(current => current ? { ...current, transaction: { ...current.transaction, payment_status: 'cancelled' } } : current)
+      setTransactions(current => current.map(item => item.id === transaction.id ? { ...item, payment_status: 'cancelled' } : item))
       load()
     } catch (error) { window.alert(error.message) }
   }
@@ -1113,19 +1113,19 @@ function MyOrders({ csrfToken }) {
       <div className="order-actions"><button className="button secondary" onClick={() => setSelected({ transaction, tab: 'receipt' })}>{t('seeReceipt')}</button><button className="button secondary" onClick={() => setSelected({ transaction, tab: 'status' })}>{t('seePaymentStatus')}</button></div>
     </article>)}</div>}
     {selected && <div className="modal-backdrop" onClick={() => setSelected(null)}><div className="modal receipt" onClick={event => event.stopPropagation()}>
-      <ReceiptBrand /><p className="eyebrow">WADIMOR | #{selected.transaction.id}</p>
-      {selected.tab === 'status' ? <><h2>{t('paymentStatus')}</h2><p className={`payment-status-large ${selected.transaction.payment_status}`}>{t(selected.transaction.payment_status === 'paid' ? 'paymentPaid' : selected.transaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p>
-        <div className="order-meta"><p><strong>{t('payment')}:</strong> {t(selected.transaction.payment_method)}</p><p><strong>{t('total')}:</strong> {money(selected.transaction.total_amount)}</p>{selected.transaction.payment_confirmed_at && <p><strong>{t('orderDate')}:</strong> {new Date(selected.transaction.payment_confirmed_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>}</div>
-        {selected.transaction.payment_status === 'pending' && selected.transaction.payment_method === 'qris' && storeConfig.qrisImageUrl && <img className="qris-image" src={storeConfig.qrisImageUrl} alt="QRIS WADIMOR" />}
-        {selected.transaction.payment_status === 'pending' && <p className="muted">{selected.transaction.payment_method === 'qris' ? (storeConfig.qrisImageUrl ? t('qrisInstructions') : t('qrisUnavailable')) : t('inStorePayment')}</p>}
+      <ReceiptBrand /><p className="eyebrow">WADIMOR | #{selectedTransaction.id}</p>
+      {selected.tab === 'status' ? <><h2>{t('paymentStatus')}</h2><p className={`payment-status-large ${selectedTransaction.payment_status}`}>{t(selectedTransaction.payment_status === 'paid' ? 'paymentPaid' : selectedTransaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p>
+        <div className="order-meta"><p><strong>{t('payment')}:</strong> {t(selectedTransaction.payment_method)}</p><p><strong>{t('total')}:</strong> {money(selectedTransaction.total_amount)}</p>{selectedTransaction.payment_confirmed_at && <p><strong>{t('orderDate')}:</strong> {new Date(selectedTransaction.payment_confirmed_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>}</div>
+        {selectedTransaction.payment_status === 'pending' && selectedTransaction.payment_method === 'qris' && storeConfig.qrisImageUrl && <img className="qris-image" src={storeConfig.qrisImageUrl} alt="QRIS WADIMOR" />}
+        {selectedTransaction.payment_status === 'pending' && <p className="muted">{selectedTransaction.payment_method === 'qris' ? (storeConfig.qrisImageUrl ? t('qrisInstructions') : t('qrisUnavailable')) : t('inStorePayment')}</p>}
         <p className="receipt-thanks">{t('noDelivery')}</p>
-        {selected.transaction.payment_status === 'pending' && <button className="button danger-button" onClick={() => cancelOrder(selected.transaction)}>{t('cancelOrder')}</button>}
-      </> : <><h2>{t('orderNumber')}{selected.transaction.id}</h2><p className="muted">{new Date(selected.transaction.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
-        <div className="order-meta">{selected.transaction.customer_name && <p><strong>{t('fullName')}:</strong> {selected.transaction.customer_name}</p>}{selected.transaction.cashier_name && <p><strong>{t('cashierName')}:</strong> {selected.transaction.cashier_name}</p>}<p><strong>{t('payment')}:</strong> {t(selected.transaction.payment_method)}</p><p><strong>{t('paymentStatus')}:</strong> {t(selected.transaction.payment_status === 'paid' ? 'paymentPaid' : selected.transaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p></div>
-        <ReceiptRows items={selected.transaction.items} /><div className="receipt-total"><span>{t('total')}</span><strong>{money(selected.transaction.total_amount)}</strong></div>
-        <p className="receipt-thanks">{selected.transaction.payment_status === 'paid' ? t('receiptLegal') : t(selected.transaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p>
+        {selectedTransaction.payment_status === 'pending' && <button className="button danger-button" onClick={() => cancelOrder(selectedTransaction)}>{t('cancelOrder')}</button>}
+      </> : <><h2>{t('orderNumber')}{selectedTransaction.id}</h2><p className="muted">{new Date(selectedTransaction.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
+        <div className="order-meta">{selectedTransaction.customer_name && <p><strong>{t('fullName')}:</strong> {selectedTransaction.customer_name}</p>}{selectedTransaction.cashier_name && <p><strong>{t('cashierName')}:</strong> {selectedTransaction.cashier_name}</p>}<p><strong>{t('payment')}:</strong> {t(selectedTransaction.payment_method)}</p><p><strong>{t('paymentStatus')}:</strong> {t(selectedTransaction.payment_status === 'paid' ? 'paymentPaid' : selectedTransaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p></div>
+        <ReceiptRows items={selectedTransaction.items} /><div className="receipt-total"><span>{t('total')}</span><strong>{money(selectedTransaction.total_amount)}</strong></div>
+        <p className="receipt-thanks">{selectedTransaction.payment_status === 'paid' ? t('receiptLegal') : t(selectedTransaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p>
       </>}
-      <div className="modal-actions">{selected.tab === 'receipt' && selected.transaction.payment_status === 'paid' && <button className="button secondary" onClick={() => window.print()}>Print</button>}<button className="button" onClick={() => setSelected(null)}>{t('cancel')}</button></div>
+      <div className="modal-actions">{selected.tab === 'receipt' && selectedTransaction.payment_status === 'paid' && <button className="button secondary" onClick={() => window.print()}>Print</button>}<button className="button" onClick={() => setSelected(null)}>{t('cancel')}</button></div>
     </div></div>}
   </section>
 }
@@ -1383,7 +1383,7 @@ export default function App() {
     { key: 'adminSettings', label: t('settings'), icon: '⚙' },
   ]
   const cashierNav = [
-    { key: 'cashier', label: t('cashier'), icon: '▣' },
+    { key: 'cashier', label: t('cashierMenuTitle'), icon: '▣' },
     { key: 'cashierOrders', label: t('orders'), icon: '📦' },
     { key: 'cashierSettings', label: t('settings'), icon: '⚙' },
   ]
@@ -1398,7 +1398,7 @@ export default function App() {
     if (needsProducts && loadingProducts && page !== 'admin') return <StatePanel title={t('loadingProducts')}>{t('loadingProducts')}</StatePanel>
     if (needsProducts && productError) return <StatePanel title={t('dataError')} retry={refresh}>{productError}</StatePanel>
     switch (page) {
-      case 'admin': return <Dashboard analytics={analytics} loading={loadingAnalytics} error={analyticsError} retry={refresh} navigate={navigate} />
+      case 'admin': return <Dashboard analytics={analytics} products={products} loading={loadingAnalytics} error={analyticsError} retry={refresh} navigate={navigate} />
       case 'inventory': return <Inventory products={products} csrfToken={session.csrfToken} onRefresh={refresh} />
       case 'lowStock': return <Inventory key="lowStock" products={products} csrfToken={session.csrfToken} onRefresh={refresh} initialLowOnly />
       case 'adminOrders': return <AdminOrders csrfToken={session.csrfToken} />
@@ -1418,7 +1418,7 @@ export default function App() {
   return (
     <I18nContext.Provider value={i18n}>
       <ThemeContext.Provider value={themeCtx}>
-        <div className={`app-shell ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''}`}>
+        <div className={`app-shell page-${page} ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''} ${['admin', 'inventory', 'lowStock', 'cashier'].includes(page) ? 'reference-layout' : ''}`}>
           <a className="skip-link" href="#main">{t('skip')}</a>
 
           {/* Sidebar */}
@@ -1470,7 +1470,7 @@ export default function App() {
               <div className="page-heading">
                 <div>
                   <p className="eyebrow">{isAdmin ? 'PANTAU WARUNG ANDA' : isCashier ? 'TRANSAKSI TOKO' : 'BELANJA LEBIH MUDAH'}</p>
-                  <h1>{t(page === 'admin' ? 'dashboard' : page === 'inventory' || page === 'lowStock' ? 'inventoryTitle' : page === 'adminOrders' || page === 'cashierOrders' ? 'allOrders' : page === 'adminReports' ? 'reportsTitle' : page === 'staff' ? 'staffTitle' : page.endsWith('Settings') ? 'settingsTitle' : page === 'myOrders' ? 'orderHistory' : page === 'cashier' ? 'cashier' : 'storeTagline')}</h1>
+                  <h1>{t(page === 'admin' ? 'dashboard' : page === 'inventory' || page === 'lowStock' ? 'inventoryTitle' : page === 'adminOrders' || page === 'cashierOrders' ? 'allOrders' : page === 'adminReports' ? 'reportsTitle' : page === 'staff' ? 'staffTitle' : page.endsWith('Settings') ? 'settingsTitle' : page === 'myOrders' ? 'orderHistory' : page === 'cashier' ? 'cashierMenuTitle' : 'storeTagline')}</h1>
                 </div>
               </div>
               {renderContent()}
