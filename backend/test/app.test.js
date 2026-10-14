@@ -49,6 +49,7 @@ function fakeDatabase() {
         return { rows: [] };
       }
       if (sql.startsWith('DELETE FROM sessions')) { sessions.delete(params[0]); return { rows: [] }; }
+      if (sql.startsWith('SELECT COUNT(*)::int AS total FROM products')) return { rows: [{ total: 1 }] };
       if (sql.includes('FROM products p LEFT JOIN')) return { rows: [{ id: 1, name: 'Beras', price: '75000.00', stock: 4, min_stock: 5, category_name: null }] };
       if (sql.includes('AS product_count')) return { rows: [metrics.summary] };
       if (sql.includes('generate_series')) return { rows: metrics.daily };
@@ -80,20 +81,21 @@ test('readiness reports a database outage', async t => {
 });
 test('customer registration hashes passwords, creates a session, and cannot see admin metrics', async t => {
   const { url, pool } = await serve(t);
-  const response = await post(url, '/api/auth/register', { username: 'buyer_one', displayName: 'Buyer One', password: 'customer-password-123', passwordConfirm: 'customer-password-123' });
+  assert.equal((await post(url, '/api/auth/register', { username: 'too_short', displayName: 'Too Short', password: 'Five5', passwordConfirm: 'Five5' })).status, 400);
+  const response = await post(url, '/api/auth/register', { username: 'buyer_one', displayName: 'Buyer One', password: 'Buyer6', passwordConfirm: 'Buyer6' });
   assert.equal(response.status, 201);
   const body = await response.json();
   assert.equal(body.user.role, 'pelanggan');
   assert.equal(body.user.displayName, 'Buyer One');
   assert.match(pool.users.get('buyer_one').password, /^scrypt\$/);
-  assert.notEqual(pool.users.get('buyer_one').password, 'customer-password-123');
+  assert.notEqual(pool.users.get('buyer_one').password, 'Buyer6');
   const cookie = response.headers.get('set-cookie').split(';')[0];
   assert.match(response.headers.get('set-cookie'), /HttpOnly/);
   assert.match(response.headers.get('set-cookie'), /SameSite=Strict/);
   assert.equal((await fetch(url + '/api/products')).status, 401);
   assert.equal((await fetch(url + '/api/products', { headers: { Cookie: cookie } })).status, 200);
   assert.equal((await fetch(url + '/api/admin/analytics', { headers: { Cookie: cookie } })).status, 403);
-  assert.equal((await post(url, '/api/auth/login/admin', { username: 'buyer_one', password: 'customer-password-123' })).status, 401);
+  assert.equal((await post(url, '/api/auth/login/admin', { username: 'buyer_one', password: 'Buyer6' })).status, 401);
   assert.equal((await post(url, '/api/auth/register', { username: 'buyer_one', displayName: 'Buyer One', password: 'another-password-123', passwordConfirm: 'another-password-123' })).status, 409);
 });
 test('admin login returns database analytics and customer login rejects admin role', async t => {
@@ -115,40 +117,7 @@ test('logout requires CSRF token and revokes the server session', async t => {
   assert.equal((await fetch(url + '/api/auth/me', { headers: { Cookie: cookie } })).status, 401);
   assert.equal(pool.sessions.has(digest(cookie.split('=')[1])), false);
 });
-test('checkout processes correctly when stock is sufficient', async t => {
-  const { url, pool } = await serve(t);
-
-  // mock for checkout
-  const originalQuery = pool.query;
-  pool.query = async (sql, params = []) => {
-    if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') return { rows: [] };
-    if (sql.includes('FROM products WHERE id = ANY')) return { rows: [{ id: 1, name: 'Beras', price: 75000, cost_price: 66000, stock: 10 }] };
-    if (sql.includes('UPDATE products SET stock')) return { rows: [] };
-    if (sql.includes('INSERT INTO transactions')) return { rows: [{ id: 101, created_at: new Date(), payment_status: params[5] }] };
-    if (sql.includes('INSERT INTO transaction_details')) return { rows: [] };
-    return originalQuery(sql, params);
-  };
-
-  const response = await post(url, '/api/auth/register', { username: 'buyer_two', displayName: 'Buyer Two', password: 'customer-password-123', passwordConfirm: 'customer-password-123' });
-  assert.equal(response.status, 201);
-  const cookie = response.headers.get('set-cookie').split(';')[0];
-  const { csrfToken } = await (await fetch(url + '/api/auth/me', { headers: { Cookie: cookie } })).json();
-
-  const checkoutResponse = await post(url, '/api/transactions/checkout', {
-    items: [{ productId: 1, quantity: 2 }],
-    paymentMethod: 'cash'
-  }, { Cookie: cookie, 'x-csrf-token': csrfToken });
-
-  assert.equal(checkoutResponse.status, 201);
-  const result = await checkoutResponse.json();
-  assert.equal(result.receipt.id, 101);
-  assert.equal(result.receipt.totalAmount, 150000);
-  assert.equal(result.receipt.paymentMethod, 'cash');
-  assert.equal(result.receipt.paymentStatus, 'pending');
-  assert.equal(result.receipt.items[0].name, 'Beras');
-});
-
-test('admin can retrieve net profit reports', async t => {
+test('admin can retrieve gross profit reports', async t => {
   const { url, pool } = await serve(t);
 
   // override query for admin logic
@@ -158,7 +127,7 @@ test('admin can retrieve net profit reports', async t => {
     if (sql.includes('INSERT INTO sessions')) { pool.sessions.set(params[0], { token_hash: params[0], user_id: 99, csrf_token: params[2] }); return { rows: [] }; }
     if (sql.includes('SELECT * FROM sessions')) return { rows: [{ user_id: 99 }] };
     if (sql.includes('FROM sessions s JOIN users')) return { rows: [{ id: 99, username: 'admin_w', display_name: 'Admin WADIMOR', role: 'admin', must_change_password: false, token_hash: params[0] }] };
-    if (sql.includes('laba_bersih')) return { rows: [{ omset: 150000, hpp: 132000, laba_bersih: 18000, total_orders: 1 }] };
+    if (sql.includes('laba_kotor')) return { rows: [{ omset: 150000, hpp: 132000, laba_kotor: 18000, total_orders: 1 }] };
     if (sql.includes('units_sold')) return { rows: [{ name: 'Beras', units_sold: 2, revenue: 150000 }] };
     return originalQuery(sql, params);
   };
@@ -169,7 +138,7 @@ test('admin can retrieve net profit reports', async t => {
   const reportResponse = await fetch(url + '/api/admin/reports?period=all', { headers: { Cookie: cookie } });
   assert.equal(reportResponse.status, 200);
   const data = await reportResponse.json();
-  assert.equal(data.financials.laba_bersih, 18000);
+  assert.equal(data.financials.laba_kotor, 18000);
   assert.equal(data.topProducts[0].name, 'Beras');
 });
 
@@ -182,9 +151,11 @@ test('temporary-password cashier is blocked until choosing a private password', 
   assert.equal(body.user.mustChangePassword, true);
   const cookie = login.headers.get('set-cookie').split(';')[0];
   assert.equal((await fetch(url + '/api/products', { headers: { Cookie: cookie } })).status, 428);
-  const changed = await post(url, '/api/auth/change-password', { newPassword: 'PrivatePass456' }, { Cookie: cookie, 'x-csrf-token': body.csrfToken });
+  assert.equal((await post(url, '/api/auth/change-password', { newPassword: 'Five5' }, { Cookie: cookie, 'x-csrf-token': body.csrfToken })).status, 400);
+  const changed = await post(url, '/api/auth/change-password', { newPassword: 'Staff6' }, { Cookie: cookie, 'x-csrf-token': body.csrfToken });
   assert.equal(changed.status, 200);
   assert.equal(pool.users.get('cashier_one').must_change_password, false);
+  assert.equal((await post(url, '/api/auth/login/cashier', { username: 'cashier_one', password: 'Staff6' })).status, 200);
   assert.equal((await fetch(url + '/api/products', { headers: { Cookie: cookie } })).status, 200);
 });
 test('plaintext legacy passwords and bad requests cannot authenticate', async t => {

@@ -1,9 +1,11 @@
 const express = require('express');
-const { randomBytes, randomUUID } = require('node:crypto');
+const { randomBytes, randomUUID, createHash } = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const cors = require('cors');
 const { createAuth, hashPassword, verifyPassword, digest, ROLE_MAP, cookieName, cookieOptions, publicUser } = require('./auth');
+const { paginatedQuery } = require('./pagination');
+const { stockContext, cashPayment } = require('./stock');
 const PRODUCT_IMAGE_DIR = path.join(__dirname, '../uploads/products');
 
 function generateTemporaryPassword() {
@@ -68,8 +70,8 @@ function createApp(pool, origins = []) {
   app.post('/api/auth/register', async (req, res, next) => {
     const { username, password, passwordConfirm } = req.body || {};
     const displayName = typeof req.body?.displayName === 'string' ? req.body.displayName.trim() : '';
-    if (typeof username !== 'string' || !/^[a-zA-Z0-9_]{3,50}$/.test(username) || displayName.length < 2 || displayName.length > 100 || typeof password !== 'string' || password.length < 8 || password.length > 128 || password !== passwordConfirm) {
-      return res.status(400).json({ error: 'Nama pengguna 3â€“50 karakter (huruf, angka, _) dan kata sandi minimal 8 karakter dengan konfirmasi yang sama.' });
+    if (typeof username !== 'string' || !/^[a-zA-Z0-9_]{3,50}$/.test(username) || displayName.length < 2 || displayName.length > 100 || typeof password !== 'string' || password.length < 6 || password.length > 128 || password !== passwordConfirm) {
+      return res.status(400).json({ error: 'Nama pengguna 3â€“50 karakter (huruf, angka, _) dan kata sandi minimal 6 karakter dengan konfirmasi yang sama.' });
     }
     try {
       const passwordHash = await hashPassword(password);
@@ -117,8 +119,8 @@ function createApp(pool, origins = []) {
   });
   app.post('/api/auth/change-password', auth.requireUser, auth.csrfGuard, async (req, res, next) => {
     const { currentPassword = '', newPassword } = req.body || {};
-    if (typeof newPassword !== 'string' || newPassword.length < 8 || newPassword.length > 128) {
-      return res.status(400).json({ error: 'Kata sandi baru harus 8-128 karakter.' });
+    if (typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 128) {
+      return res.status(400).json({ error: 'Kata sandi baru harus 6-128 karakter.' });
     }
     try {
       const result = await pool.query('SELECT password, must_change_password FROM users WHERE id = $1', [req.account.id]);
@@ -203,9 +205,22 @@ function createApp(pool, origins = []) {
     try {
       const includeCost = ['admin', 'super_admin'].includes(req.account.role);
       const costField = includeCost ? ', p.cost_price' : '';
-      const result = await pool.query(`SELECT p.id, p.category_id, p.name, p.barcode, p.image_url, p.price, p.stock, p.min_stock, c.name AS category_name ${costField}
-        FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id ASC`);
-      res.json(result.rows);
+      const params = [];
+      const filters = [];
+      const bind = value => { params.push(value); return `$${params.length}`; };
+      if (req.query.q) {
+        const value = bind(`%${String(req.query.q).slice(0, 150)}%`);
+        filters.push(`(p.name ILIKE ${value} OR p.barcode ILIKE ${value} OR p.id::text ILIKE ${value})`);
+      }
+      if (req.query.code) {
+        const value = bind(String(req.query.code).slice(0, 150));
+        filters.push(`(lower(p.barcode) = lower(${value}) OR p.id::text = regexp_replace(lower(${value}), '^id-', '') OR lower(p.name) = lower(${value}))`);
+      }
+      if (req.query.category) filters.push(`c.name = ${bind(String(req.query.category))}`);
+      if (req.query.lowStock === 'true') filters.push('p.stock <= p.min_stock');
+      const from = `FROM products p LEFT JOIN categories c ON p.category_id = c.id ${filters.length ? 'WHERE ' + filters.join(' AND ') : ''}`;
+      res.json(await paginatedQuery(pool, req.query, from, params,
+        `p.id, p.category_id, p.name, p.barcode, p.image_url, p.price, p.stock, p.min_stock, c.name AS category_name ${costField}`, 'p.id ASC'));
     } catch (error) { next(error); }
   });
 
@@ -218,21 +233,33 @@ function createApp(pool, origins = []) {
 
   // IN-STORE CHECKOUT (atomic stock update and receipt creation)
   app.post('/api/transactions/checkout', auth.requireReady, auth.csrfGuard, async (req, res, next) => {
-    const { items, paymentMethod = 'cash' } = req.body || {};
+    const { items, paymentMethod = 'cash', cashTendered = null } = req.body || {};
     const validPaymentMethods = ['cash', 'card', 'qris'];
     if (!Array.isArray(items) || items.length === 0 || !validPaymentMethods.includes(paymentMethod)) {
       return res.status(400).json({ error: 'Keranjang atau metode pembayaran tidak valid.' });
     }
-    if (items.some(item => !Number.isInteger(item.productId) || !Number.isInteger(item.quantity) || item.quantity < 1)) {
+    if (items.length > 100 || items.some(item => !item || !Number.isInteger(item.productId) || item.productId < 1 || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000000)) {
       return res.status(400).json({ error: 'Item transaksi tidak valid.' });
     }
     const quantities = new Map();
     for (const item of items) quantities.set(item.productId, (quantities.get(item.productId) || 0) + item.quantity);
-    const normalizedItems = [...quantities].map(([productId, quantity]) => ({ productId, quantity }));
+    const normalizedItems = [...quantities].map(([productId, quantity]) => ({ productId, quantity })).sort((a, b) => a.productId - b.productId);
+    const requestKey = req.get('Idempotency-Key');
+    if (!requestKey || !/^[a-zA-Z0-9_-]{16,100}$/.test(requestKey)) return res.status(400).json({ error: 'Kunci checkout tidak valid.' });
+    const requestHash = createHash('sha256').update(JSON.stringify({ items: normalizedItems, paymentMethod, cashTendered })).digest('hex');
 
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query(`INSERT INTO checkout_requests (user_id, request_key, request_hash) VALUES ($1, $2, $3)
+        ON CONFLICT DO NOTHING`, [req.account.id, requestKey, requestHash]);
+      const previous = await client.query(`SELECT request_hash, response FROM checkout_requests
+        WHERE user_id = $1 AND request_key = $2 FOR UPDATE`, [req.account.id, requestKey]);
+      if (previous.rows[0].request_hash !== requestHash) throw Object.assign(new Error('Kunci checkout sudah dipakai untuk keranjang berbeda.'), { status: 409 });
+      if (previous.rows[0].response) {
+        await client.query('COMMIT');
+        return res.status(200).json(previous.rows[0].response);
+      }
       const productIds = normalizedItems.map(item => item.productId).sort((a, b) => a - b);
       const { rows: products } = await client.query(`SELECT id, name, price, cost_price, stock
         FROM products WHERE id = ANY($1) ORDER BY id FOR UPDATE`, [productIds]);
@@ -243,8 +270,8 @@ function createApp(pool, origins = []) {
         const product = products.find(entry => entry.id === item.productId);
         if (product.stock < item.quantity) throw new Error(`Stok tidak cukup untuk ${product.name}. Tersisa: ${product.stock}`);
         const unitPrice = Number(product.price);
-        const subtotal = unitPrice * item.quantity;
-        totalAmount += subtotal;
+        const subtotal = Math.round(unitPrice * 100) * item.quantity / 100;
+        totalAmount = (Math.round(totalAmount * 100) + Math.round(subtotal * 100)) / 100;
         return { productId: product.id, name: product.name, quantity: item.quantity, unitPrice, cost: Number(product.cost_price), subtotal };
       });
 
@@ -252,25 +279,30 @@ function createApp(pool, origins = []) {
         ? (req.account.display_name || req.account.username) : null;
       const cashierId = ['super_admin', 'admin', 'kasir'].includes(req.account.role) ? req.account.id : null;
       const paymentStatus = req.account.role === 'pelanggan' ? 'pending' : 'paid';
-      const txResult = await client.query(`INSERT INTO transactions (user_id, cashier_id, cashier_name, total_amount, payment_method, payment_status, payment_confirmed_at, payment_confirmed_by)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at, payment_status`, [
+      const cash = paymentStatus === 'paid' && paymentMethod === 'cash' ? cashPayment(cashTendered, totalAmount) : { cashTendered: null, cashChange: null };
+      const txResult = await client.query(`INSERT INTO transactions (user_id, cashier_id, cashier_name, total_amount, payment_method, payment_status, payment_confirmed_at, payment_confirmed_by, cash_tendered, cash_change)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, created_at, payment_status`, [
         req.account.role === 'pelanggan' ? req.account.id : null,
         cashierId, cashierName, totalAmount, paymentMethod, paymentStatus,
         paymentStatus === 'paid' ? new Date() : null,
-        paymentStatus === 'paid' ? cashierId : null,
+        paymentStatus === 'paid' ? cashierId : null, cash.cashTendered, cash.cashChange,
       ]);
       const transactionId = txResult.rows[0].id;
+      await stockContext(client, req.account, 'sale', 'Checkout', transactionId);
       for (const detail of details) {
         await client.query('UPDATE products SET stock = stock - $1 WHERE id = $2', [detail.quantity, detail.productId]);
         await client.query(`INSERT INTO transaction_details
-          (transaction_id, product_id, quantity, price_at_transaction, cost_at_transaction, subtotal)
-          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [transactionId, detail.productId, detail.quantity, detail.unitPrice, detail.cost, detail.subtotal]);
+          (transaction_id, product_id, quantity, price_at_transaction, cost_at_transaction, subtotal, product_name)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [transactionId, detail.productId, detail.quantity, detail.unitPrice, detail.cost, detail.subtotal, detail.name]);
       }
+      const response = {
+        receipt: { id: transactionId, createdAt: txResult.rows[0].created_at, customer: req.account.role === 'pelanggan' ? req.account.display_name : null,
+          cashier: cashierName, paymentMethod, paymentStatus, items: details.map(({ cost, ...item }) => item), totalAmount, ...cash }
+      };
+      await client.query('UPDATE checkout_requests SET response = $3 WHERE user_id = $1 AND request_key = $2', [req.account.id, requestKey, response]);
       await client.query('COMMIT');
-      res.status(201).json({
-        receipt: { id: transactionId, createdAt: txResult.rows[0].created_at, customer: req.account.role === 'pelanggan' ? req.account.display_name : null, cashier: cashierName, paymentMethod, paymentStatus: txResult.rows[0].payment_status, items: details, totalAmount }
-      });
+      res.status(201).json(response);
     } catch (error) {
       await client.query('ROLLBACK');
       if (error.message.includes('Stok tidak cukup') || error.message.includes('tidak ditemukan')) return res.status(400).json({ error: error.message });
@@ -281,24 +313,33 @@ function createApp(pool, origins = []) {
   async function transactionHistory(req, res, next, scope = 'customer') {
     try {
       const params = scope === 'all' ? [] : [req.account.id];
-      const where = scope === 'all' ? '' : scope === 'cashier' ? 'WHERE t.cashier_id = $1 OR t.payment_status = \'pending\'' : 'WHERE t.user_id = $1';
-      const result = await pool.query(`SELECT t.id, t.total_amount, t.payment_method, t.payment_status, t.payment_confirmed_at, t.created_at,
-        customer.display_name AS customer_name, COALESCE(t.cashier_name, cashier.display_name, cashier.username) AS cashier_name FROM transactions t
-        LEFT JOIN users customer ON customer.id = t.user_id
-        LEFT JOIN users cashier ON cashier.id = t.cashier_id ${where} ORDER BY t.created_at DESC`, params);
-      const transactionIds = result.rows.map(row => row.id);
+      const filters = scope === 'all' ? [] : [scope === 'cashier' ? "(t.cashier_id = $1 OR t.payment_status = 'pending')" : 't.user_id = $1'];
+      if (req.query.q) {
+        params.push(`%${String(req.query.q).slice(0, 150)}%`);
+        filters.push(`(t.id::text ILIKE $${params.length} OR COALESCE(t.cashier_name, cashier.display_name, '') ILIKE $${params.length} OR customer.display_name ILIKE $${params.length})`);
+      }
+      if (req.query.status) {
+        if (!['paid', 'pending', 'cancelled'].includes(req.query.status)) return res.status(400).json({ error: 'Status tidak valid.' });
+        params.push(req.query.status); filters.push(`t.payment_status = $${params.length}`);
+      }
+      const from = `FROM transactions t LEFT JOIN users customer ON customer.id = t.user_id
+        LEFT JOIN users cashier ON cashier.id = t.cashier_id ${filters.length ? 'WHERE ' + filters.join(' AND ') : ''}`;
+      const result = await paginatedQuery(pool, req.query, from, params,
+        `t.id, t.total_amount, t.payment_method, t.payment_status, t.payment_confirmed_at, t.created_at, t.cash_tendered, t.cash_change,
+        customer.display_name AS customer_name, COALESCE(t.cashier_name, cashier.display_name, cashier.username) AS cashier_name`, 't.created_at DESC, t.id DESC');
+      const transactionIds = result.items.map(row => row.id);
       const detailsByTransaction = {};
       if (transactionIds.length) {
         const detailsResult = await pool.query(`SELECT td.transaction_id, td.quantity, td.price_at_transaction,
-          td.subtotal, p.name AS product_name FROM transaction_details td
-          JOIN products p ON p.id = td.product_id WHERE td.transaction_id = ANY($1)
+          td.subtotal, td.product_name FROM transaction_details td
+          WHERE td.transaction_id = ANY($1)
           ORDER BY td.id`, [transactionIds]);
         for (const detail of detailsResult.rows) {
           if (!detailsByTransaction[detail.transaction_id]) detailsByTransaction[detail.transaction_id] = [];
           detailsByTransaction[detail.transaction_id].push(detail);
         }
       }
-      res.json(result.rows.map(transaction => ({ ...transaction, items: detailsByTransaction[transaction.id] || [] })));
+      res.json({ ...result, items: result.items.map(transaction => ({ ...transaction, items: detailsByTransaction[transaction.id] || [] })) });
     } catch (error) { next(error); }
   }
 
@@ -308,13 +349,20 @@ function createApp(pool, origins = []) {
   app.post('/api/transactions/:id/confirm-payment', auth.requireReady, (req, res, next) => ['admin', 'super_admin', 'kasir'].includes(req.account.role) ? next() : res.status(403).json({ error: 'Khusus staf toko.' }), auth.csrfGuard, async (req, res, next) => {
     const transactionId = Number(req.params.id);
     if (!Number.isInteger(transactionId) || transactionId < 1) return res.status(400).json({ error: 'ID transaksi tidak valid.' });
+    const client = await pool.connect();
     try {
-      const result = await pool.query(`UPDATE transactions SET payment_status = 'paid', payment_confirmed_at = NOW(), payment_confirmed_by = $2::integer,
-        cashier_id = $2::integer, cashier_name = COALESCE(cashier_name, (SELECT display_name FROM users WHERE id = $2::integer))
-        WHERE id = $1 AND payment_status = 'pending' RETURNING id, payment_status, payment_confirmed_at`, [transactionId, req.account.id]);
-      if (!result.rowCount) return res.status(409).json({ error: 'Transaksi tidak ditemukan atau statusnya sudah berubah.' });
+      await client.query('BEGIN');
+      const current = await client.query('SELECT * FROM transactions WHERE id = $1 FOR UPDATE', [transactionId]);
+      const tx = current.rows[0];
+      if (!tx || tx.payment_status !== 'pending') throw Object.assign(new Error('Transaksi tidak ditemukan atau statusnya sudah berubah.'), { status: 409 });
+      const cash = tx.payment_method === 'cash' ? cashPayment(req.body?.cashTendered, Number(tx.total_amount)) : { cashTendered: null, cashChange: null };
+      const result = await client.query(`UPDATE transactions SET payment_status = 'paid', payment_confirmed_at = NOW(), payment_confirmed_by = $2,
+        cashier_id = $2, cashier_name = $3, cash_tendered = $4, cash_change = $5 WHERE id = $1 RETURNING id, payment_status`,
+      [transactionId, req.account.id, req.account.display_name || req.account.username, cash.cashTendered, cash.cashChange]);
+      await client.query('COMMIT');
       res.json(result.rows[0]);
-    } catch (error) { next(error); }
+    } catch (error) { await client.query('ROLLBACK'); next(error); }
+    finally { client.release(); }
   });
   app.post('/api/transactions/:id/cancel', auth.requireReady, auth.csrfGuard, async (req, res, next) => {
     if (req.account.role !== 'pelanggan') return res.status(403).json({ error: 'Hanya pesanan Customer yang dapat dibatalkan di sini.' });
@@ -328,6 +376,8 @@ function createApp(pool, origins = []) {
         await client.query('ROLLBACK');
         return res.status(409).json({ error: 'Pesanan tidak ditemukan atau sudah diproses.' });
       }
+      await stockContext(client, req.account, 'cancellation', 'Customer cancelled pending order', transactionId);
+      await client.query(`SELECT p.id FROM products p JOIN transaction_details td ON td.product_id = p.id WHERE td.transaction_id = $1 ORDER BY p.id FOR UPDATE OF p`, [transactionId]);
       await client.query(`UPDATE products p SET stock = p.stock + td.quantity FROM transaction_details td
         WHERE td.transaction_id = $1 AND p.id = td.product_id`, [transactionId]);
       await client.query(`UPDATE transactions SET payment_status = 'cancelled' WHERE id = $1`, [transactionId]);
@@ -342,19 +392,25 @@ function createApp(pool, origins = []) {
   app.post('/api/admin/products', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
     const { name, category_id, price, cost_price = 0, stock = 0, min_stock = 5, image_url = null, image_data = null } = req.body;
     const barcode = typeof req.body.barcode === 'string' && req.body.barcode.trim() ? req.body.barcode.trim() : null;
-    if (!name || isNaN(price) || (barcode && barcode.length > 64)) return res.status(400).json({ error: 'Data produk tidak lengkap atau kode produk tidak valid.' });
+    if (typeof name !== 'string' || !name.trim() || name.length > 150 || typeof price !== 'number' || !Number.isFinite(price) || price < 0 || typeof cost_price !== 'number' || !Number.isFinite(cost_price) || cost_price < 0 || !Number.isInteger(min_stock) || min_stock < 0 || (barcode && barcode.length > 64)) return res.status(400).json({ error: 'Data produk tidak lengkap atau kode produk tidak valid.' });
+    if (!Number.isInteger(stock) || stock < 0 || stock > 2147483647) return res.status(400).json({ error: 'Stok harus bilangan bulat non-negatif.' });
     let uploadedImage;
+    const client = await pool.connect();
     try {
+      await client.query('BEGIN');
+      await stockContext(client, req.account, 'opening', 'New product opening stock');
       uploadedImage = await persistProductImage(image_data, image_url);
-      const result = await pool.query(`INSERT INTO products (name, category_id, barcode, image_url, price, cost_price, stock, min_stock)
+      const result = await client.query(`INSERT INTO products (name, category_id, barcode, image_url, price, cost_price, stock, min_stock)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`, [name, category_id || null, barcode, uploadedImage.url, price, cost_price, stock, min_stock]);
+      await client.query('COMMIT');
       res.status(201).json(result.rows[0]);
     } catch (error) {
+      await client.query('ROLLBACK');
       if (uploadedImage?.filePath) await fs.rm(uploadedImage.filePath, { force: true });
       if (error.code === 'INVALID_IMAGE') return res.status(400).json({ error: error.message });
       if (error.code === '23505') return res.status(409).json({ error: 'Kode produk/barcode sudah digunakan.' });
       next(error);
-    }
+    } finally { client.release(); }
   });
   app.delete('/api/admin/staff/:id', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
     const targetId = Number(req.params.id);
@@ -369,9 +425,9 @@ function createApp(pool, origins = []) {
   });
 
   app.put('/api/admin/products/:id', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
-    const { name, category_id, price, cost_price, stock, min_stock, image_url = null, image_data = null } = req.body;
+    const { name, category_id, price, cost_price, min_stock, image_url = null, image_data = null } = req.body;
     const barcode = typeof req.body.barcode === 'string' && req.body.barcode.trim() ? req.body.barcode.trim() : null;
-    if (!name || isNaN(price) || (barcode && barcode.length > 64)) return res.status(400).json({ error: 'Data produk tidak lengkap atau kode produk tidak valid.' });
+    if (typeof name !== 'string' || !name.trim() || name.length > 150 || typeof price !== 'number' || !Number.isFinite(price) || price < 0 || typeof cost_price !== 'number' || !Number.isFinite(cost_price) || cost_price < 0 || !Number.isInteger(min_stock) || min_stock < 0 || (barcode && barcode.length > 64)) return res.status(400).json({ error: 'Data produk tidak lengkap atau kode produk tidak valid.' });
     let uploadedImage;
     let previousImageUrl;
     let saved = false;
@@ -381,8 +437,8 @@ function createApp(pool, origins = []) {
       previousImageUrl = previous.rows[0].image_url;
       uploadedImage = await persistProductImage(image_data, image_url);
       const result = await pool.query(`UPDATE products
-        SET name = $1, category_id = $2, barcode = $3, image_url = $4, price = $5, cost_price = $6, stock = $7, min_stock = $8
-        WHERE id = $9 RETURNING *`, [name, category_id || null, barcode, uploadedImage.url, price, cost_price, stock, min_stock, req.params.id]);
+        SET name = $1, category_id = $2, barcode = $3, image_url = $4, price = $5, cost_price = $6, min_stock = $7
+        WHERE id = $8 RETURNING *`, [name, category_id || null, barcode, uploadedImage.url, price, cost_price, min_stock, req.params.id]);
       if (result.rowCount === 0) {
         if (uploadedImage.filePath) await fs.rm(uploadedImage.filePath, { force: true });
         return res.status(404).json({ error: 'Produk tidak ditemukan.' });
@@ -398,16 +454,33 @@ function createApp(pool, origins = []) {
     }
   });
   app.patch('/api/admin/products/:id/stock', auth.requireReady, auth.requireAdmin, auth.csrfGuard, async (req, res, next) => {
-    const { amount } = req.body; // e.g. +5 or -1
-    if (isNaN(amount)) return res.status(400).json({ error: 'Amount harus berupa angka.' });
-
+    const { amount, kind = 'correction', reason } = req.body || {};
+    if (!Number.isInteger(amount) || amount === 0 || Math.abs(amount) > 1000000 || !['delivery', 'correction'].includes(kind)
+      || (kind === 'delivery' && amount < 0) || typeof reason !== 'string' || reason.trim().length < 3 || reason.trim().length > 300) {
+      return res.status(400).json({ error: 'Isi jumlah bulat, jenis penyesuaian, dan alasan (3-300 karakter).' });
+    }
+    const client = await pool.connect();
     try {
-      const result = await pool.query(`
-        UPDATE products SET stock = GREATEST(0, stock + $1) WHERE id = $2 RETURNING id, stock
-      `, [amount, req.params.id]);
-
-      if (result.rowCount === 0) return res.status(404).json({ error: 'Produk tidak ditemukan.' });
+      await client.query('BEGIN');
+      await stockContext(client, req.account, kind, reason.trim());
+      const current = await client.query('SELECT stock FROM products WHERE id = $1 FOR UPDATE', [req.params.id]);
+      if (!current.rowCount) throw Object.assign(new Error('Produk tidak ditemukan.'), { status: 404 });
+      if (current.rows[0].stock + amount < 0) throw Object.assign(new Error('Stok tidak boleh negatif.'), { status: 400 });
+      const result = await client.query('UPDATE products SET stock = stock + $1 WHERE id = $2 RETURNING id, stock', [amount, req.params.id]);
+      await client.query('COMMIT');
       res.json(result.rows[0]);
+    } catch (error) { await client.query('ROLLBACK'); next(error); }
+    finally { client.release(); }
+  });
+
+  app.get('/api/admin/stock-movements', auth.requireReady, auth.requireAdmin, async (req, res, next) => {
+    try {
+      const params = [];
+      const filters = [];
+      if (req.query.productId) { params.push(req.query.productId); filters.push(`product_id = $${params.length}`); }
+      if (req.query.kind) { params.push(req.query.kind); filters.push(`kind = $${params.length}`); }
+      const from = `FROM stock_movements ${filters.length ? 'WHERE ' + filters.join(' AND ') : ''}`;
+      res.json(await paginatedQuery(pool, req.query, from, params, '*', 'id DESC'));
     } catch (error) { next(error); }
   });
 
@@ -433,14 +506,14 @@ function createApp(pool, origins = []) {
     else if (period === 'month') dateFilter = `WHERE payment_status = 'paid' AND created_at >= date_trunc('month', CURRENT_DATE)`;
 
     try {
-      // 1. Overall Financials (Gross, Cost, Net)
+      // Revenue, cost of goods, and gross profit (operating expenses excluded).
       const txDetailsFilter = dateFilter ? dateFilter.replace('created_at', 't.created_at') : `WHERE t.payment_status = 'paid'`;
 
       const financialsResult = await pool.query(`
         SELECT
           COALESCE(SUM(td.subtotal), 0) AS omset,
           COALESCE(SUM(td.quantity * td.cost_at_transaction), 0) AS hpp,
-          COALESCE(SUM(td.subtotal - (td.quantity * td.cost_at_transaction)), 0) AS laba_bersih,
+          COALESCE(SUM(td.subtotal - (td.quantity * td.cost_at_transaction)), 0) AS laba_kotor,
           COUNT(DISTINCT t.id) AS total_orders
         FROM transaction_details td
         JOIN transactions t ON t.id = td.transaction_id
@@ -482,7 +555,7 @@ function createApp(pool, origins = []) {
           FROM generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, INTERVAL '1 day') AS d(day)
           LEFT JOIN transactions t ON t.created_at >= d.day AND t.created_at < d.day + INTERVAL '1 day' AND t.payment_status = 'paid'
           GROUP BY d.day ORDER BY d.day`),
-        pool.query(`SELECT p.name, SUM(td.quantity)::int AS units_sold,
+        pool.query(`SELECT p.id, p.name, p.image_url, SUM(td.quantity)::int AS units_sold,
           SUM(td.subtotal) AS revenue FROM transaction_details td
           JOIN products p ON p.id = td.product_id
           JOIN transactions t ON t.id = td.transaction_id AND t.payment_status = 'paid'
@@ -496,6 +569,7 @@ function createApp(pool, origins = []) {
   app.use((error, _req, res, _next) => {
     if (error.type === 'entity.parse.failed') return res.status(400).json({ error: 'JSON tidak valid' });
     if (error.type === 'entity.too.large') return res.status(413).json({ error: 'Permintaan terlalu besar' });
+    if (error.status) return res.status(error.status).json({ error: error.message });
     console.error('API error:', error.message);
     res.status(500).json({ error: 'Data belum dapat dimuat. Silakan coba lagi.' });
   });

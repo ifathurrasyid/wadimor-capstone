@@ -1,10 +1,34 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import './App.css'
 import wadimorLogo from './assets/wadimor-logo.svg'
 
 // ─── i18n ──────────────────────────────────────────────────────────────────
 const LANGS = {
   id: {
+    stockHistory: 'Riwayat Stok',
+    allMovements: 'Semua Perubahan',
+    adjustStock: 'Sesuaikan Stok',
+    reason: 'Alasan',
+    movementKind: 'Jenis Perubahan',
+    opening: 'Saldo Awal',
+    delivery: 'Barang Masuk',
+    correction: 'Koreksi',
+    sale: 'Penjualan',
+    cancellation: 'Pembatalan',
+    quantityChange: 'Perubahan Jumlah',
+    actor: 'Oleh',
+    balance: 'Stok Sebelum / Sesudah',
+    cashTendered: 'Uang Diterima',
+    cashChange: 'Kembalian',
+    retryCheckout: 'Periksa / Ulangi Checkout',
+    checkoutUncertain: 'Hasil checkout belum diterima. Ulangi permintaan yang sama untuk mendapatkan struk tanpa membuat penjualan ganda.',
+    searchOrders: 'Cari nomor transaksi atau nama',
+    allStatuses: 'Semua Status',
+    previousPage: 'Sebelumnya',
+    nextPage: 'Berikutnya',
+    grossProfitNote: 'Laba kotor = penjualan dikurangi harga pokok barang. Belum dikurangi biaya operasional.',
+    stockEditHint: 'Gunakan Sesuaikan Stok untuk mengubah jumlah dengan alasan tercatat.',
+
     brand: 'Warung Digital Modern',
     welcome: 'SELAMAT DATANG DI WADIMOR',
     tagline: 'Satu warung, peran yang tepat.',
@@ -80,7 +104,7 @@ const LANGS = {
     productCount: 'Jenis Barang',
     stockUnits: 'Total Stok',
     revenue: 'Pendapatan Kotor',
-    netProfit: 'Estimasi Laba Bersih',
+    grossProfit: 'Laba Kotor',
     activeOrders: 'Transaksi Hari Ini',
     lowStock: 'Stok Perlu Perhatian',
     transactionCount: 'Transaksi',
@@ -177,7 +201,7 @@ const LANGS = {
     periodAll: 'Semua Waktu',
     omset: 'Omset (Pendapatan Kotor)',
     hpp: 'HPP (Total Modal)',
-    laba: 'Laba Bersih',
+    laba: 'Laba Kotor',
     totalOrders: 'Total Transaksi',
     loadingReport: 'Memuat laporan…',
     collapseMenu: 'Ciutkan menu',
@@ -206,7 +230,7 @@ const LANGS = {
     passwordSetupDesc: 'Untuk keamanan, buat kata sandi pribadi sebelum menggunakan WADIMOR.',
     newPassword: 'Kata sandi baru',
     passwordsMismatch: 'Konfirmasi kata sandi tidak cocok.',
-    passwordMin8: 'Minimal 8 karakter',
+    passwordMin6: 'Minimal 6 karakter',
     changePassword: 'Ganti Kata Sandi',
     settings: 'Pengaturan',
     settingsTitle: 'Pengaturan Akun',
@@ -220,6 +244,30 @@ const LANGS = {
     usernameHint: '3-50 karakter: huruf, angka, atau underscore',
   },
   en: {
+    stockHistory: 'Stock History',
+    allMovements: 'All Movements',
+    adjustStock: 'Adjust Stock',
+    reason: 'Reason',
+    movementKind: 'Movement Type',
+    opening: 'Opening Balance',
+    delivery: 'Delivery',
+    correction: 'Correction',
+    sale: 'Sale',
+    cancellation: 'Cancellation',
+    quantityChange: 'Quantity Change',
+    actor: 'By',
+    balance: 'Stock Before / After',
+    cashTendered: 'Cash Received',
+    cashChange: 'Change',
+    retryCheckout: 'Check / Retry Checkout',
+    checkoutUncertain: 'The checkout result has not arrived. Retry the same request to recover the receipt without creating a duplicate sale.',
+    searchOrders: 'Search transaction number or name',
+    allStatuses: 'All Statuses',
+    previousPage: 'Previous',
+    nextPage: 'Next',
+    grossProfitNote: 'Gross profit is sales minus cost of goods, before operating expenses.',
+    stockEditHint: 'Use Adjust Stock to change the quantity with a recorded reason.',
+
     brand: 'Digital Modern Grocery',
     welcome: 'WELCOME TO WADIMOR',
     tagline: 'One store, the right role for everyone.',
@@ -295,7 +343,7 @@ const LANGS = {
     productCount: 'Product Types',
     stockUnits: 'Total Stock',
     revenue: 'Gross Revenue',
-    netProfit: 'Estimated Net Profit',
+    grossProfit: 'Gross Profit',
     activeOrders: "Today's Transactions",
     lowStock: 'Low Stock Alert',
     transactionCount: 'Transactions',
@@ -392,7 +440,7 @@ const LANGS = {
     periodAll: 'All Time',
     omset: 'Gross Revenue',
     hpp: 'Cost of Goods (COGS)',
-    laba: 'Net Profit',
+    laba: 'Gross Profit',
     totalOrders: 'Total Transactions',
     loadingReport: 'Loading report…',
     collapseMenu: 'Collapse menu',
@@ -421,7 +469,7 @@ const LANGS = {
     passwordSetupDesc: 'For security, create a private password before using WADIMOR.',
     newPassword: 'New password',
     passwordsMismatch: 'Password confirmation does not match.',
-    passwordMin8: 'At least 8 characters',
+    passwordMin6: 'At least 6 characters',
     changePassword: 'Change Password',
     settings: 'Settings',
     settingsTitle: 'Account Settings',
@@ -452,6 +500,41 @@ async function api(url, options = {}) {
     throw error
   }
   return data
+}
+
+function usePagedApi(url, refreshToken = 0) {
+  const [state, setState] = useState({ items: [], total: 0, page: 1, pageSize: 20, loading: true, error: '' })
+  const [revision, setRevision] = useState(0)
+  const reload = useCallback(() => setRevision(value => value + 1), [])
+  useEffect(() => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      setState(current => ({ ...current, loading: true, error: '' }))
+      api(url, { signal: controller.signal }).then(data => {
+        if (!controller.signal.aborted) setState({ ...data, loading: false, error: '' })
+      }).catch(error => {
+        if (!controller.signal.aborted) setState(current => ({ ...current, loading: false, error: error.message }))
+      })
+    }, 180)
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [url, revision, refreshToken])
+  return { ...state, reload }
+}
+function Pagination({ data, onPage }) {
+  const t = useT()
+  const pages = Math.max(1, Math.ceil(data.total / data.pageSize))
+  return <footer className="panel-footer inventory-pagination">
+    <span>{t('showing')} {data.total ? (data.page - 1) * data.pageSize + 1 : 0}&ndash;{Math.min(data.page * data.pageSize, data.total)} {t('of')} {data.total}</span>
+    <div className="pagination-controls"><button disabled={data.loading || data.page <= 1} onClick={() => onPage(data.page - 1)} aria-label={t('previousPage')}>&lsaquo;</button><span>{data.page} / {pages}</span><button disabled={data.loading || data.page >= pages} onClick={() => onPage(data.page + 1)} aria-label={t('nextPage')}>&rsaquo;</button></div>
+  </footer>
+}
+function CashSummary({ tendered, change }) {
+  const t = useT()
+  return tendered == null ? null : <div className="cash-summary"><p>{t('cashTendered')}: <strong>{money(tendered)}</strong></p><p>{t('cashChange')}: <strong>{money(change)}</strong></p></div>
+}
+function OrderFilters({ search, setSearch, status, setStatus }) {
+  const t = useT()
+  return <div className="filters"><label className="search-field"><span>{t('searchOrders')}</span><input type="search" value={search} onChange={e => setSearch(e.target.value)} /></label><label><span>{t('paymentStatus')}</span><select value={status} onChange={e => setStatus(e.target.value)}><option value="">{t('allStatuses')}</option>{['pending', 'paid', 'cancelled'].map(value => <option key={value} value={value}>{t(value === 'pending' ? 'paymentPending' : value === 'paid' ? 'paymentPaid' : 'paymentCancelled')}</option>)}</select></label></div>
 }
 
 const money = v => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(v || 0))
@@ -559,8 +642,8 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
               <form onSubmit={submit} className="auth-form">
                 {isRegister && <label>{t('name')}<input autoComplete="name" required minLength={2} maxLength={100} value={displayName} onChange={e => setDisplayName(e.target.value)} /></label>}
                 <label>{t('username')}<input autoComplete="username" required minLength={3} maxLength={50} pattern="[a-zA-Z0-9_]+" value={username} onChange={e => setUsername(e.target.value)} placeholder={t('username')} /></label>
-                <label>{t('password')}<input type="password" autoComplete={isRegister ? 'new-password' : 'current-password'} required minLength={isRegister ? 8 : 1} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} placeholder={isRegister ? t('passwordMin8') : t('password')} /></label>
-                {isRegister && <label>{t('confirmPassword')}<input type="password" autoComplete="new-password" required minLength={8} maxLength={128} value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} /></label>}
+                <label>{t('password')}<input type="password" autoComplete={isRegister ? 'new-password' : 'current-password'} required minLength={isRegister ? 6 : 1} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} placeholder={isRegister ? t('passwordMin6') : t('password')} /></label>
+                {isRegister && <label>{t('confirmPassword')}<input type="password" autoComplete="new-password" required minLength={6} maxLength={128} value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} /></label>}
                 {error && <p className="form-error" role="alert">{error}</p>}
                 <button className="button auth-submit" disabled={submitting}>{submitting ? t('processing') : isRegister ? t('create') : t('enter')}</button>
               </form>
@@ -574,16 +657,16 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
-function Dashboard({ analytics, loading, error, retry, navigate, products = [] }) {
+function Dashboard({ analytics, loading, error, retry, navigate }) {
   const t = useT()
   const { lang } = useContext(I18nContext)
-  const [netProfit, setNetProfit] = useState(null)
+  const [grossProfit, setGrossProfit] = useState(null)
   useEffect(() => {
     if (!analytics) return
     let active = true
     api('/api/admin/reports?period=all').then(data => {
-      if (active) setNetProfit(data.financials?.laba_bersih ?? null)
-    }).catch(() => { if (active) setNetProfit(null) })
+      if (active) setGrossProfit(data.financials?.laba_kotor ?? null)
+    }).catch(() => { if (active) setGrossProfit(null) })
     return () => { active = false }
   }, [analytics])
   if (loading) return <StatePanel title={t('loadingProducts')}>{t('loadingProducts')}</StatePanel>
@@ -604,7 +687,7 @@ function Dashboard({ analytics, loading, error, retry, navigate, products = [] }
         <article className="stat-products"><span>{t('productCount')}</span><strong>{summary.product_count}</strong><small>{t('items')}</small></article>
         <article className="stat-stock"><span>{t('stockUnits')}</span><strong>{Number(summary.stock_units).toLocaleString('id-ID')}</strong><small>unit</small></article>
         <article className="stat-gross"><span>{t('revenue')}</span><strong className="currency-stat">{money(summary.revenue)}</strong><small>{t('transactionCount')}: {Number(summary.transaction_count).toLocaleString('id-ID')}</small></article>
-        <article className="stat-profit"><span>{t('netProfit')}</span><strong className="currency-stat">{netProfit == null ? '—' : money(netProfit)}</strong><small>{netProfit == null ? ' ' : t('reportsTitle')}</small></article>
+        <article className="stat-profit"><span>{t('grossProfit')}</span><strong className="currency-stat">{grossProfit == null ? '—' : money(grossProfit)}</strong><small>{grossProfit == null ? ' ' : t('reportsTitle')}</small></article>
       </section>
       <div className="dashboard-grid">
         <section className="inventory-panel chart-panel">
@@ -623,7 +706,7 @@ function Dashboard({ analytics, loading, error, retry, navigate, products = [] }
           <div className="panel-heading"><h2>{t('topProducts')}</h2></div>
           {topProducts.length ? (
             <ol className="top-list">{topProducts.map((item, index) => {
-              const product = products.find(entry => entry.name === item.name)
+              const product = item
               return <li key={item.name}><span className="top-rank">{index + 1}</span><span className="top-product-art">{product?.image_url ? <img src={product.image_url} alt="" /> : item.name.slice(0, 1)}</span><span className="top-product-copy"><strong>{item.name}</strong><small>{item.units_sold} {lang === 'id' ? 'terjual' : 'sold'}</small></span><strong className="top-product-revenue">{money(item.revenue)}</strong></li>
             })}</ol>
           ) : <div className="state-panel"><p>{t('noTopProducts')}</p></div>}
@@ -635,7 +718,7 @@ function Dashboard({ analytics, loading, error, retry, navigate, products = [] }
 }
 
 // ─── Admin Inventory ─────────────────────────────────────────────────────────
-function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
+function Inventory({ csrfToken, onRefresh, refreshToken, initialLowOnly = false }) {
   const t = useT()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
@@ -647,20 +730,19 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [adjustment, setAdjustment] = useState(null)
+  const [historyProduct, setHistoryProduct] = useState(null)
+  const data = usePagedApi(`/api/products?${new URLSearchParams({ page, pageSize: 7, q: search, category, lowStock: lowOnly })}`, refreshToken)
+  const products = data.items
+  const refreshInventory = () => { data.reload(); onRefresh() }
 
   useEffect(() => {
     api('/api/categories').then(setCategories).catch(() => {})
   }, [])
 
-  const visible = products.filter(p =>
-    p.name.toLocaleLowerCase('id').includes(search.toLocaleLowerCase('id')) &&
-    (!category || categoryOf(p) === category) &&
-    (!lowOnly || p.stock <= p.min_stock)
-  )
-  const catNames = [...new Set(products.map(categoryOf))].sort()
-  const pageCount = Math.max(1, Math.ceil(visible.length / 7))
-  const currentPage = Math.min(page, pageCount)
-  const pageItems = visible.slice((currentPage - 1) * 7, currentPage * 7)
+  const catNames = categories.map(item => item.name)
+  const currentPage = data.page
+  const pageItems = products
 
   function openAdd() { setForm({ name: '', category_id: '', barcode: '', image_url: '', image_data: '', image_preview: '', price: '', cost_price: '', stock: '', min_stock: '5' }); setFormError(''); setModal({ mode: 'add' }) }
   function openEdit(product) { setForm({ name: product.name, category_id: product.category_id || '', barcode: product.barcode || '', image_url: product.image_url || '', image_data: '', image_preview: product.image_url || '', price: product.price, cost_price: product.cost_price || '', stock: product.stock, min_stock: product.min_stock }); setFormError(''); setModal({ mode: 'edit', product }) }
@@ -671,22 +753,24 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
       const payload = { ...form, image_data: form.image_data || null, price: Number(form.price), cost_price: Number(form.cost_price || 0), stock: Number(form.stock), min_stock: Number(form.min_stock) }
       if (modal.mode === 'add') await api('/api/admin/products', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify(payload) })
       else await api(`/api/admin/products/${modal.product.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify(payload) })
-      setModal(null); onRefresh()
+      setModal(null); refreshInventory()
     } catch (err) { setFormError(err.message) }
     finally { setSaving(false) }
   }
 
-  async function adjustStock(productId, amount) {
+  async function adjustStock(event) {
+    event.preventDefault(); setSaving(true); setFormError('')
     try {
-      await api(`/api/admin/products/${productId}/stock`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify({ amount }) })
-      onRefresh()
-    } catch (err) { alert(err.message) }
+      await api(`/api/admin/products/${adjustment.product.id}/stock`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify({ amount: Number(adjustment.amount), kind: adjustment.kind, reason: adjustment.reason }) })
+      setAdjustment(null); refreshInventory()
+    } catch (err) { setFormError(err.message) }
+    finally { setSaving(false) }
   }
 
   async function deleteProduct(productId) {
     try {
       await api(`/api/admin/products/${productId}`, { method: 'DELETE', headers: { 'x-csrf-token': csrfToken } })
-      setDeleteConfirm(null); onRefresh()
+      setDeleteConfirm(null); refreshInventory()
     } catch (err) { alert(err.message); setDeleteConfirm(null) }
   }
 
@@ -694,15 +778,15 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
     <>
       <section className="inventory-panel inventory-list-panel">
         <div className="panel-heading inventory-heading">
-          <h2>{t('inventoryTitle')} <span>{visible.length}</span></h2>
-          <button className="button" onClick={openAdd}>+ {t('addProduct')}</button>
+          <h2>{t('inventoryTitle')} <span>{data.total}</span></h2>
+          <div className="action-row"><button className="button secondary" onClick={() => setHistoryProduct({ id: '', name: '' })}>{t('stockHistory')}</button><button className="button" onClick={openAdd}>{t('addProduct')}</button></div>
         </div>
         <div className="filters inventory-filters">
           <label className="search-field"><span className="sr-only">{t('searchPlaceholder')}</span><input type="search" placeholder={t('searchPlaceholder')} value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} /></label>
           <label className="inventory-category"><span className="sr-only">{t('category')}</span><select value={category} onChange={e => { setCategory(e.target.value); setPage(1) }}><option value="">{t('allCategories')}</option>{catNames.map(n => <option key={n}>{n}</option>)}</select></label>
           <label className="check-label"><input type="checkbox" checked={lowOnly} onChange={e => { setLowOnly(e.target.checked); setPage(1) }} /> {t('lowStockOnly')}</label>
         </div>
-        {visible.length ? (
+        {data.error ? <StatePanel title={t('dataError')} retry={data.reload}>{data.error}</StatePanel> : data.loading ? <StatePanel title={t('loadingProducts')} /> : data.total ? (
           <div className="table-scroll inventory-table-scroll">
             <table>
               <thead><tr>
@@ -725,8 +809,8 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
                     <td><span className={`badge ${st === 'available' ? '' : 'low'}`}>{t(st)}</span></td>
                     <td>
                       <div className="action-row">
-                        <button className="action-btn" title="Tambah 5 stok" aria-label={`Tambah 5 stok ${item.name}`} onClick={() => adjustStock(item.id, 5)}>+5</button>
-                        <button className="action-btn" title="Kurangi 1 stok" aria-label={`Kurangi 1 stok ${item.name}`} onClick={() => adjustStock(item.id, -1)}>−1</button>
+                        <button className="action-btn" onClick={() => { setFormError(''); setAdjustment({ product: item, amount: '', kind: 'delivery', reason: '' }) }}>{t('adjustStock')}</button>
+                        <button className="action-btn" onClick={() => setHistoryProduct(item)}>{t('stockHistory')}</button>
                         <button className="action-btn" title={t('editProduct')} aria-label={`${t('editProduct')} ${item.name}`} onClick={() => openEdit(item)}>✎</button>
                         <button className="action-btn danger" title={t('delete')} aria-label={`${t('delete')} ${item.name}`} onClick={() => setDeleteConfirm(item)}>×</button>
                       </div>
@@ -737,12 +821,21 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
             </table>
           </div>
         ) : (
-          <StatePanel title={products.length ? t('notFound') : t('noItems')}>
-            {products.length ? <><span>{t('resetFilter')} </span><button className="text-link" onClick={() => { setSearch(''); setCategory(''); setLowOnly(false) }}>{t('resetFilter')}</button></> : t('noItems')}
+          <StatePanel title={search || category || lowOnly ? t('notFound') : t('noItems')}>
+            {search || category || lowOnly ? <><span>{t('resetFilter')} </span><button className="text-link" onClick={() => { setSearch(''); setCategory(''); setLowOnly(false) }}>{t('resetFilter')}</button></> : t('noItems')}
           </StatePanel>
         )}
-        <footer className="panel-footer inventory-pagination"><span>{t('showing')} {visible.length ? (currentPage - 1) * 7 + 1 : 0}–{Math.min(currentPage * 7, visible.length)} {t('of')} {visible.length} {t('items')}</span><div className="pagination-controls"><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="Previous page">‹</button>{Array.from({ length: pageCount }, (_, index) => <button key={index} className={currentPage === index + 1 ? 'active' : ''} onClick={() => setPage(index + 1)} aria-current={currentPage === index + 1 ? 'page' : undefined}>{index + 1}</button>)}<button disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="Next page">›</button></div></footer>
+        <Pagination data={data} onPage={setPage} />
       </section>
+
+      {historyProduct && <StockHistory product={historyProduct} onClose={() => setHistoryProduct(null)} />}
+      {adjustment && <div className="modal-backdrop"><div className="modal"><h2>{t('adjustStock')} &mdash; {adjustment.product.name}</h2><form className="product-form" onSubmit={adjustStock}>
+        <label>{t('movementKind')}<select value={adjustment.kind} onChange={e => setAdjustment(current => ({ ...current, kind: e.target.value }))}><option value="delivery">{t('delivery')}</option><option value="correction">{t('correction')}</option></select></label>
+        <label>{t('quantityChange')}<input type="number" required step="1" min={adjustment.kind === 'delivery' ? 1 : -1000000} max="1000000" value={adjustment.amount} onChange={e => setAdjustment(current => ({ ...current, amount: e.target.value }))} /></label>
+        <label>{t('reason')}<input required minLength="3" maxLength="300" value={adjustment.reason} onChange={e => setAdjustment(current => ({ ...current, reason: e.target.value }))} /></label>
+        {formError && <p className="form-error" role="alert">{formError}</p>}
+        <div className="modal-actions"><button type="button" className="button secondary" disabled={saving} onClick={() => setAdjustment(null)}>{t('cancel')}</button><button className="button" disabled={saving}>{t('saveProduct')}</button></div>
+      </form></div></div>}
 
       {/* Product Modal */}
       {modal && (
@@ -771,9 +864,10 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
                 <label>{t('costPrice')} (Rp)<input type="number" min={0} value={form.cost_price} onChange={e => setForm(f => ({ ...f, cost_price: e.target.value }))} /></label>
               </div>
               <div className="form-row">
-                <label>{t('stock')}<input type="number" required min={0} value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))} /></label>
+                <label>{t('stock')}<input disabled={modal.mode === 'edit'} type="number" required min={0} value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))} /></label>
                 <label>{t('minStock')}<input type="number" required min={0} value={form.min_stock} onChange={e => setForm(f => ({ ...f, min_stock: e.target.value }))} /></label>
               </div>
+              {modal.mode === 'edit' && <p className="muted">{t('stockEditHint')}</p>}
               {formError && <p className="form-error">{formError}</p>}
               <div className="modal-actions">
                 <button type="button" className="button secondary" onClick={() => setModal(null)}>{t('cancel')}</button>
@@ -802,31 +896,52 @@ function Inventory({ products, csrfToken, onRefresh, initialLowOnly = false }) {
 }
 
 // ─── Admin Orders ─────────────────────────────────────────────────────────────
+function StockHistory({ product, onClose }) {
+  const t = useT()
+  const { lang } = useContext(I18nContext)
+  const [page, setPage] = useState(1)
+  const [kind, setKind] = useState('')
+  const data = usePagedApi(`/api/admin/stock-movements?${new URLSearchParams({ productId: product.id, page, pageSize: 10, kind })}`)
+  return <div className="modal-backdrop"><div className="modal stock-history-modal" role="dialog" aria-modal="true" aria-label={t('stockHistory')}>
+    <div className="panel-heading"><h2>{t('stockHistory')}{product.name ? ` - ${product.name}` : ''}</h2><button className="button secondary" onClick={onClose}>{t('cancel')}</button></div>
+    <label>{t('movementKind')}<select value={kind} onChange={event => { setKind(event.target.value); setPage(1) }}><option value="">{t('allMovements')}</option>{['opening', 'delivery', 'correction', 'sale', 'cancellation'].map(value => <option key={value} value={value}>{t(value)}</option>)}</select></label>
+    {data.error ? <StatePanel title={t('dataError')} retry={data.reload}>{data.error}</StatePanel> : data.loading ? <StatePanel title={t('loadingProducts')} /> : <div className="table-scroll"><table><thead><tr><th>{t('orderDate')}</th><th>{t('productName')}</th><th>{t('movementKind')}</th><th>{t('quantityChange')}</th><th>{t('balance')}</th><th>{t('actor')}</th><th>{t('reason')}</th></tr></thead><tbody>{data.items.map(item => <tr key={item.id}><td>{new Date(item.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')}</td><td>{item.product_name}</td><td>{t(item.kind)}{item.transaction_id && ` #${item.transaction_id}`}</td><td>{item.quantity > 0 ? '+' : ''}{item.quantity}</td><td>{item.stock_before} &rarr; {item.stock_after}</td><td>{item.actor_name}</td><td>{item.reason}</td></tr>)}</tbody></table></div>}
+    <Pagination data={data} onPage={setPage} />
+  </div></div>
+}
+
 function AdminOrders({ cashierMode = false, csrfToken }) {
   const t = useT()
   const { lang } = useContext(I18nContext)
-  const [transactions, setTransactions] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('')
+  const data = usePagedApi(`${cashierMode ? '/api/cashier/transactions' : '/api/admin/transactions'}?${new URLSearchParams({ page, pageSize: 20, q: search, status })}`)
+  const { items: transactions, loading, reload: load } = data
   const [detail, setDetail] = useState(null)
   const [notice, setNotice] = useState('')
-  const load = useCallback(() => {
-    api(cashierMode ? '/api/cashier/transactions' : '/api/admin/transactions').then(data => { setTransactions(data); setLoading(false) }).catch(() => setLoading(false))
-  }, [cashierMode])
-  useEffect(() => { load() }, [load])
-  async function confirmPayment(transaction) {
+  const [payment, setPayment] = useState(null)
+  const [confirming, setConfirming] = useState(false)
+
+  async function confirmPayment(transaction, cashTendered) {
+    if (transaction.payment_method === 'cash' && cashTendered == null) { setPayment({ transaction, cash: '' }); return }
+    setConfirming(true)
     try {
-      await api(`/api/transactions/${transaction.id}/confirm-payment`, { method: 'POST', headers: { 'x-csrf-token': csrfToken } })
-      setNotice(t('confirmPaymentSuccess')); load()
+      await api(`/api/transactions/${transaction.id}/confirm-payment`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify({ cashTendered }) })
+      setPayment(null); setDetail(null); setNotice(t('confirmPaymentSuccess')); load()
     } catch (error) { setNotice(error.message) }
+    finally { setConfirming(false) }
   }
 
   return (
     <section className="inventory-panel">
       {notice && <p className="checkout-success" role="status">{notice}</p>}
       <div className="panel-heading">
-        <div><h2>{t('allOrders')} <span>{transactions.length}</span></h2><p className="muted">{t('adminOrdersDesc')}</p></div>
+        <div><h2>{t('allOrders')} <span>{data.total}</span></h2><p className="muted">{t('adminOrdersDesc')}</p></div>
         <button className="button secondary" onClick={load}>↻</button>
       </div>
+      <OrderFilters search={search} setSearch={value => { setSearch(value); setPage(1) }} status={status} setStatus={value => { setStatus(value); setPage(1) }} />
+      {data.error && <StatePanel title={t('dataError')} retry={load}>{data.error}</StatePanel>}
       {loading ? <StatePanel title="…">Loading</StatePanel> : transactions.length === 0 ? <StatePanel title={t('noOrders')}>{t('noOrdersDesc')}</StatePanel> : (
         <div className="table-scroll"><table><thead><tr>
           <th>ID / Faktur</th><th>{t('cashierName')}</th><th>{t('orderDate')}</th><th>{t('items_ordered')}</th><th>{t('payment')}</th><th>{t('paymentStatus')}</th><th className="numeric">{t('total')}</th><th>{t('actions')}</th>
@@ -835,13 +950,20 @@ function AdminOrders({ cashierMode = false, csrfToken }) {
           <td>{new Date(transaction.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}</td>
           <td>{transaction.items.reduce((sum, item) => sum + item.quantity, 0)}</td><td>{t(transaction.payment_method)}</td><td><span className={`badge ${transaction.payment_status === 'paid' ? '' : 'low'}`}>{t(transaction.payment_status === 'paid' ? 'paymentPaid' : transaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</span></td>
           <td className="numeric price">{money(transaction.total_amount)}</td>
-          <td><div className="action-row"><button className="action-btn" onClick={() => setDetail(transaction)}>{t('orderDetail')}</button>{transaction.payment_status === 'pending' && <button className="button" onClick={() => confirmPayment(transaction)}>{t('confirmPayment')}</button>}</div></td>
+          <td><div className="action-row"><button className="action-btn" onClick={() => setDetail(transaction)}>{t('orderDetail')}</button>{transaction.payment_status === 'pending' && <button className="button" disabled={confirming} onClick={() => confirmPayment(transaction)}>{t('confirmPayment')}</button>}</div></td>
         </tr>)}</tbody></table></div>
       )}
+      <Pagination data={data} onPage={setPage} />
+      {payment && <div className="modal-backdrop"><div className="modal"><h2>{t('confirmPayment')} #{payment.transaction.id}</h2><form className="product-form" onSubmit={event => { event.preventDefault(); confirmPayment(payment.transaction, Number(payment.cash)) }}>
+        <p>{t('total')}: {money(payment.transaction.total_amount)}</p><label>{t('cashTendered')}<input type="number" step="0.01" min={payment.transaction.total_amount} required value={payment.cash} onChange={event => setPayment(current => ({ ...current, cash: event.target.value }))} /></label>
+        <p>{t('cashChange')}: {money(Math.max(0, Number(payment.cash) - Number(payment.transaction.total_amount)))}</p>
+        {notice && <p role="status">{notice}</p>}<div className="modal-actions"><button type="button" className="button secondary" disabled={confirming} onClick={() => setPayment(null)}>{t('cancel')}</button><button className="button" disabled={confirming}>{t('confirmPayment')}</button></div>
+      </form></div></div>}
       {detail && <div className="modal-backdrop" onClick={() => setDetail(null)}><div className="modal receipt" onClick={event => event.stopPropagation()}>
         <ReceiptBrand /><h2>{t('orderDetail')} #{detail.id}</h2>
         <p className="muted">{new Date(detail.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
         <div className="order-meta"><p><strong>{t('cashierName')}:</strong> {detail.cashier_name || detail.customer_name || t('walkInCustomer')}</p><p><strong>{t('payment')}:</strong> {t(detail.payment_method)}</p><p><strong>{t('paymentStatus')}:</strong> {t(detail.payment_status === 'paid' ? 'paymentPaid' : detail.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p></div>
+        <CashSummary tendered={detail.cash_tendered} change={detail.cash_change} />
         <ul className="order-items">{detail.items.map((item, index) => <li key={index}><span>{item.product_name} × {item.quantity} @ {money(item.price_at_transaction)}</span><span>{money(item.subtotal)}</span></li>)}</ul>
         <div className="receipt-total"><span>{t('total')}</span><strong>{money(detail.total_amount)}</strong></div><p className="receipt-thanks">{detail.payment_status === 'paid' ? t('receiptLegal') : t(detail.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p>
         <div className="modal-actions"><button className="button secondary" onClick={() => window.print()}>Print</button><button className="button" onClick={() => setDetail(null)}>{t('cancel')}</button></div>
@@ -864,7 +986,7 @@ function AdminReports() {
   return (
     <section className="inventory-panel">
       <div className="panel-heading">
-        <div><h2>{t('reportsTitle')}</h2><p className="muted">{t('reportsDesc')}</p></div>
+        <div><h2>{t('reportsTitle')}</h2><p className="muted">{t('reportsDesc')}</p><p className="muted">{t('grossProfitNote')}</p></div>
         <div className="filter-tabs inline">
           {['today', 'week', 'month', 'all'].map(p => (
             <button key={p} className={`tab-btn ${period === p ? 'active' : ''}`} onClick={() => setPeriod(p)}>
@@ -878,7 +1000,7 @@ function AdminReports() {
           <div className="stats report-stats">
             <article><span>{t('omset')}</span><strong className="currency-stat">{money(report.financials?.omset)}</strong></article>
             <article><span>{t('hpp')}</span><strong className="currency-stat">{money(report.financials?.hpp)}</strong></article>
-            <article className={Number(report.financials?.laba_bersih) >= 0 ? '' : 'attention'}><span>{t('laba')}</span><strong className="currency-stat">{money(report.financials?.laba_bersih)}</strong></article>
+            <article className={Number(report.financials?.laba_kotor) >= 0 ? '' : 'attention'}><span>{t('laba')}</span><strong className="currency-stat">{money(report.financials?.laba_kotor)}</strong></article>
             <article><span>{t('totalOrders')}</span><strong>{report.financials?.total_orders || 0}<small>transaksi</small></strong></article>
           </div>
           <div className="panel-heading"><h2>{t('topProducts')}</h2></div>
@@ -892,7 +1014,7 @@ function AdminReports() {
 }
 
 // ─── Customer Catalog ─────────────────────────────────────────────────────────
-function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashierMode = false }) {
+function Catalog({ cart, setCart, csrfToken, onCheckoutSuccess, accountId, refreshToken, cashierMode = false }) {
   const t = useT()
   const { lang } = useContext(I18nContext)
   const [search, setSearch] = useState('')
@@ -903,44 +1025,76 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
   const [storeConfig, setStoreConfig] = useState({})
   const [checkingOut, setCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
+  const [page, setPage] = useState(1)
+  const [categories, setCategories] = useState([])
+  const [cashTendered, setCashTendered] = useState('')
+  const checkoutLock = useRef(false)
+  const storageKey = `wadimor-checkout-${accountId}`
+  const [pendingCheckout, setPendingCheckout] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem(storageKey)) } catch { return null }
+  })
+  const data = usePagedApi(`/api/products?${new URLSearchParams({ page, pageSize: 12, q: search, category })}`, refreshToken)
+  useEffect(() => { api('/api/categories').then(items => setCategories(items.map(item => item.name))).catch(() => {}) }, [])
 
   useEffect(() => { api('/api/public-config').then(setStoreConfig).catch(() => {}) }, [])
 
-  const categories = [...new Set(products.map(categoryOf))].sort()
-  const visible = products.filter(p =>
-    (p.name.toLocaleLowerCase('id').includes(search.toLocaleLowerCase('id')) || String(p.id).includes(search.trim()) || String(p.barcode || '').toLocaleLowerCase('id').includes(search.toLocaleLowerCase('id'))) &&
-    (!category || categoryOf(p) === category)
-  )
-  const cartItems = products.filter(p => cart[p.id] > 0).map(p => ({ ...p, quantity: Math.min(cart[p.id], p.stock) })).filter(p => p.quantity > 0)
+  const visible = data.items
+  const cartItems = Object.values(cart).filter(item => item.quantity > 0)
   const total = cartItems.reduce((sum, p) => sum + Number(p.price) * p.quantity, 0)
   const cartCount = cartItems.reduce((sum, p) => sum + p.quantity, 0)
 
-  function changeQty(item, delta) { setCart(c => ({ ...c, [item.id]: Math.max(0, Math.min(item.stock, (c[item.id] || 0) + delta)) })) }
-
-  function addByCode(event) {
+  function changeQty(item, delta) {
+    if (pendingCheckout || checkoutLock.current) return
+    setCart(current => {
+      const quantity = Math.max(0, Math.min(item.stock, (current[item.id]?.quantity || 0) + delta))
+      const next = { ...current }
+      if (quantity) next[item.id] = { ...item, quantity }
+      else delete next[item.id]
+      return next
+    })
+  }
+  async function addByCode(event) {
     event.preventDefault()
-    const code = search.trim().toLocaleLowerCase('id')
-    if (!code) return
-    const product = products.find(item => String(item.barcode || '').toLocaleLowerCase('id') === code || String(item.id) === code || `id-${item.id}` === code || item.name.toLocaleLowerCase('id') === code)
-    if (!product) { setCheckoutError(t('codeNotFound')); return }
-    if (product.stock < 1) { setCheckoutError(t('empty')); return }
-    changeQty(product, 1)
-    setSearch('')
-    setCheckoutError('')
+    const code = search.trim()
+    if (!code || pendingCheckout || checkoutLock.current) return
+    try {
+      const found = await api(`/api/products?${new URLSearchParams({ code, pageSize: 2 })}`)
+      if (found.items.length !== 1) { setCheckoutError(t('codeNotFound')); return }
+      const product = found.items[0]
+      if (product.stock < 1) { setCheckoutError(t('empty')); return }
+      changeQty(product, 1); setSearch(''); setPage(1); setCheckoutError('')
+    } catch (error) { setCheckoutError(error.message) }
   }
 
   async function checkout() {
+    if (checkoutLock.current) return
+    checkoutLock.current = true
     setCheckingOut(true); setCheckoutError('')
+    let attempt = pendingCheckout
     try {
-      const items = cartItems.map(product => ({ productId: product.id, quantity: product.quantity }))
-      const result = await api('/api/transactions/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify({ items, paymentMethod }) })
-      setCart({}); setCartOpen(false); setReceipt(result.receipt)
-      if (result.receipt.paymentStatus === 'paid') onCheckoutSuccess()
-    } catch (err) { setCheckoutError(err.message) }
-    finally { setCheckingOut(false) }
+      if (!attempt) {
+        const items = cartItems.map(product => ({ productId: product.id, quantity: product.quantity }))
+        if (!items.length) return
+        attempt = { key: crypto.randomUUID(), body: { items, paymentMethod, cashTendered: cashierMode && paymentMethod === 'cash' ? Number(cashTendered) : null } }
+        // Persist before sending: a lost response or page reload reuses the same key.
+        sessionStorage.setItem(storageKey, JSON.stringify(attempt))
+        setPendingCheckout(attempt)
+      }
+      const result = await api('/api/transactions/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken, 'Idempotency-Key': attempt.key }, body: JSON.stringify(attempt.body) })
+      sessionStorage.removeItem(storageKey); setPendingCheckout(null)
+      setCart({}); setCartOpen(false); setReceipt(result.receipt); setCashTendered('')
+      data.reload(); onCheckoutSuccess()
+    } catch (err) {
+      // A server rejection is definitive; transport errors retain the original attempt.
+      if (err.status >= 400 && err.status < 500 && ![408, 429].includes(err.status)) {
+        sessionStorage.removeItem(storageKey); setPendingCheckout(null)
+      }
+      setCheckoutError(err.message)
+    } finally { checkoutLock.current = false; setCheckingOut(false) }
   }
+
   return (
-    <div className={`catalog-layout ${cashierMode ? 'cashier-layout' : ''}`}>
+    <><fieldset className="checkout-workspace" disabled={checkingOut || Boolean(pendingCheckout)}><div className={`catalog-layout ${cashierMode ? 'cashier-layout' : ''}`}>
       {!cashierMode && <p className="pickup-note">{t('noDelivery')}</p>}
       {/* Catalog Section */}
       <section className="catalog-section">
@@ -953,19 +1107,19 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
             <h2>{t('storeTagline')} <span>{visible.length}</span></h2>
           </div>}
           <div className={`filters ${cashierMode ? 'cashier-filters' : ''}`}>
-            <label className="search-field"><span className={cashierMode ? 'sr-only' : ''}>{t('searchPlaceholder')}</span><input type="search" autoFocus={cashierMode} placeholder={cashierMode ? `${t('searchPlaceholder')} / ID / Barcode` : t('searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} onKeyDown={cashierMode ? event => { if (event.key === 'Enter') addByCode(event) } : undefined} /></label>
+            <label className="search-field"><span className={cashierMode ? 'sr-only' : ''}>{t('searchPlaceholder')}</span><input type="search" autoFocus={cashierMode} placeholder={cashierMode ? `${t('searchPlaceholder')} / ID / Barcode` : t('searchPlaceholder')} value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} onKeyDown={cashierMode ? event => { if (event.key === 'Enter') addByCode(event) } : undefined} /></label>
             {!cashierMode && <label><span>{t('category')}</span>
-              <select value={category} onChange={e => setCategory(e.target.value)}>
+              <select value={category} onChange={e => { setCategory(e.target.value); setPage(1) }}>
                 <option value="">{t('allCategories')}</option>
                 {categories.map(n => <option key={n}>{n}</option>)}
               </select>
             </label>}
           </div>
-          {cashierMode && <div className="cashier-category-tabs" aria-label={t('category')}><button className={category === '' ? 'active' : ''} onClick={() => setCategory('')}>{lang === 'id' ? 'Semua' : 'All'}</button>{categories.map(name => <button key={name} className={category === name ? 'active' : ''} onClick={() => setCategory(name)}>{name}</button>)}</div>}
-          {visible.length ? (
+          {cashierMode && <div className="cashier-category-tabs" aria-label={t('category')}><button className={category === '' ? 'active' : ''} onClick={() => { setCategory(''); setPage(1) }}>{lang === 'id' ? 'Semua' : 'All'}</button>{categories.map(name => <button key={name} className={category === name ? 'active' : ''} onClick={() => { setCategory(name); setPage(1) }}>{name}</button>)}</div>}
+          {data.error ? <StatePanel title={t('dataError')} retry={data.reload}>{data.error}</StatePanel> : data.loading ? <StatePanel title={t('loadingProducts')} /> : visible.length ? (
             <div className="product-grid">
               {visible.map(item => {
-                const inCart = cart[item.id] || 0
+                const inCart = cart[item.id]?.quantity || 0
                 const outOfStock = item.stock === 0
                 const lowStockItem = item.stock > 0 && item.stock <= item.min_stock
                 return (
@@ -995,6 +1149,7 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
           ) : (
             <StatePanel title={t('notFound')}>{t('resetFilter')}</StatePanel>
           )}
+          <Pagination data={data} onPage={setPage} />
         </div>
       </section>
 
@@ -1002,12 +1157,13 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
         <div className="panel-heading"><h2><span className="cart-heading-icon" aria-hidden="true">▣</span>{t('cartTitle')} <span>{cartCount}</span></h2>{cartCount > 0 && <button className="text-link" onClick={() => setCart({})}>{t('delete')}</button>}</div>
         {cartItems.length === 0 ? <p className="cart-empty">{t('cartEmpty')}</p> : <div className="cart-items-list">{cartItems.map(item => <div className="cart-item" key={item.id}>
           <div className="cart-item-art">{item.image_url ? <img src={item.image_url} alt="" /> : item.name.slice(0, 1)}</div><div className="cart-item-info"><strong>{item.name}</strong><small>{item.quantity} × {money(item.price)}</small><span>{money(Number(item.price) * item.quantity)}</span></div>
-          <button className="cart-remove" title={t('delete')} aria-label={`${t('delete')} ${item.name}`} onClick={() => setCart(current => ({ ...current, [item.id]: 0 }))}>×</button>
+          <button className="cart-remove" title={t('delete')} aria-label={`${t('delete')} ${item.name}`} onClick={() => changeQty(item, -item.quantity)}>×</button>
         </div>)}</div>}
         <div className="cart-payment"><label>{t('paymentMethod')}<select value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)}><option value="cash">{t('cash')}</option><option value="card">{t('card')}</option><option value="qris">{t('qris')}</option></select></label></div>
+        {paymentMethod === 'cash' && <div className="cart-payment"><label>{t('cashTendered')}<input type="number" min={total} step="0.01" value={cashTendered} onChange={event => setCashTendered(event.target.value)} /></label><p>{t('cashChange')}: <strong>{money(Math.max(0, Number(cashTendered) - total))}</strong></p></div>}
         <div className="cart-total"><span>{t('estimatedTotal')}</span><strong>{money(total)}</strong></div>
         {checkoutError && <p className="form-error">{checkoutError}</p>}
-        <button className="button checkout-btn" disabled={checkingOut || cartCount === 0} onClick={checkout}>{checkingOut ? t('checkingOut') : t('checkout')}</button>
+        <button className="button checkout-btn" disabled={checkingOut || cartCount === 0 || (paymentMethod === 'cash' && (cashTendered === '' || Number(cashTendered) < total))} onClick={checkout}>{checkingOut ? t('checkingOut') : t('checkout')}</button>
       </aside>}
       {/* Cart Fab */}
       {!cashierMode && cartCount > 0 && (
@@ -1065,13 +1221,15 @@ function Catalog({ products, cart, setCart, csrfToken, onCheckoutSuccess, cashie
           <ReceiptBrand /><p className="eyebrow">WADIMOR | {t('orderDetail')}</p><h2>{t('orderNumber')}{receipt.id}</h2>
           <p className="muted">{new Date(receipt.createdAt).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
           <div className="order-meta">{receipt.cashier && <p><strong>{t('cashierName')}:</strong> {receipt.cashier}</p>}<p><strong>{t('payment')}:</strong> {t(receipt.paymentMethod)}</p><p><strong>{t('paymentStatus')}:</strong> {t('paymentPaid')}</p></div>
-          <ReceiptRows items={receipt.items} />
+          <CashSummary tendered={receipt.cashTendered} change={receipt.cashChange} /><ReceiptRows items={receipt.items} />
           <div className="receipt-total"><span>{t('total')}</span><strong>{money(receipt.totalAmount)}</strong></div>
           <p className="receipt-thanks">{t('receiptLegal')}</p>
           <div className="modal-actions"><button className="button secondary" onClick={() => window.print()}>Print</button><button className="button" onClick={() => setReceipt(null)}>Selesai</button></div>
         </>}
       </div></div>}
-    </div>
+    </div></fieldset>
+    {pendingCheckout && <section className="inventory-panel checkout-recovery" role="status"><p>{t('checkoutUncertain')}</p>{checkoutError && <p className="form-error">{checkoutError}</p>}<button className="button" disabled={checkingOut} onClick={checkout}>{checkingOut ? t('checkingOut') : t('retryCheckout')}</button></section>}</>
+
   )
 }
 
@@ -1083,14 +1241,14 @@ function ReceiptRows({ items }) {
 function MyOrders({ csrfToken }) {
   const t = useT()
   const { lang } = useContext(I18nContext)
-  const [transactions, setTransactions] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('')
+  const data = usePagedApi(`/api/transactions/mine?${new URLSearchParams({ page, pageSize: 20, q: search, status })}`)
+  const { items: transactions, loading, reload: load } = data
   const [selected, setSelected] = useState(null)
   const [storeConfig, setStoreConfig] = useState({})
-  const load = useCallback(() => {
-    api('/api/transactions/mine').then(data => { setTransactions(data); setLoading(false) }).catch(() => setLoading(false))
-  }, [])
-  useEffect(() => { load() }, [load])
+
   useEffect(() => { const timer = setInterval(load, 15000); return () => clearInterval(timer) }, [load])
   useEffect(() => { api('/api/public-config').then(setStoreConfig).catch(() => {}) }, [])
   const selectedTransaction = selected && (transactions.find(item => item.id === selected.transaction.id) || selected.transaction)
@@ -1098,20 +1256,22 @@ function MyOrders({ csrfToken }) {
     if (!window.confirm(t('confirmCancelOrder'))) return
     try {
       await api(`/api/transactions/${transaction.id}/cancel`, { method: 'POST', headers: { 'x-csrf-token': csrfToken } })
-      setTransactions(current => current.map(item => item.id === transaction.id ? { ...item, payment_status: 'cancelled' } : item))
+      setSelected(null)
       load()
     } catch (error) { window.alert(error.message) }
   }
-  if (loading) return <StatePanel title="Loading">Loading</StatePanel>
 
   return <section className="inventory-panel">
-    <div className="panel-heading"><div><h2>{t('orderHistory')} <span>{transactions.length}</span></h2><p className="muted">{t('orderHistoryDesc')}</p></div><button className="button secondary" onClick={load}>{t('refresh')}</button></div>
-    {transactions.length === 0 ? <StatePanel title={t('noOrders')}>{t('noOrdersDesc')}</StatePanel> : <div className="orders-list">{transactions.map(transaction => <article key={transaction.id} className="order-card">
+    <div className="panel-heading"><div><h2>{t('orderHistory')} <span>{data.total}</span></h2><p className="muted">{t('orderHistoryDesc')}</p></div><button className="button secondary" onClick={load}>{t('refresh')}</button></div>
+    <OrderFilters search={search} setSearch={value => { setSearch(value); setPage(1) }} status={status} setStatus={value => { setStatus(value); setPage(1) }} />
+    {data.error && <StatePanel title={t('dataError')} retry={load}>{data.error}</StatePanel>}
+    {loading ? <StatePanel title={t('loadingProducts')} /> : transactions.length === 0 ? <StatePanel title={t('noOrders')}>{t('noOrdersDesc')}</StatePanel> : <div className="orders-list">{transactions.map(transaction => <article key={transaction.id} className="order-card">
       <div className="order-card-header"><span><strong>{t('orderNumber')}{transaction.id}</strong><small>{new Date(transaction.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })}</small></span>
         <span className="order-card-right"><span>{t(transaction.payment_method)}</span><strong>{money(transaction.total_amount)}</strong><span className={`badge ${transaction.payment_status === 'paid' ? '' : 'low'}`}>{t(transaction.payment_status === 'paid' ? 'paymentPaid' : transaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</span></span>
       </div>
       <div className="order-actions"><button className="button secondary" onClick={() => setSelected({ transaction, tab: 'receipt' })}>{t('seeReceipt')}</button><button className="button secondary" onClick={() => setSelected({ transaction, tab: 'status' })}>{t('seePaymentStatus')}</button></div>
     </article>)}</div>}
+    <Pagination data={data} onPage={setPage} />
     {selected && <div className="modal-backdrop" onClick={() => setSelected(null)}><div className="modal receipt" onClick={event => event.stopPropagation()}>
       <ReceiptBrand /><p className="eyebrow">WADIMOR | #{selectedTransaction.id}</p>
       {selected.tab === 'status' ? <><h2>{t('paymentStatus')}</h2><p className={`payment-status-large ${selectedTransaction.payment_status}`}>{t(selectedTransaction.payment_status === 'paid' ? 'paymentPaid' : selectedTransaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p>
@@ -1122,7 +1282,7 @@ function MyOrders({ csrfToken }) {
         {selectedTransaction.payment_status === 'pending' && <button className="button danger-button" onClick={() => cancelOrder(selectedTransaction)}>{t('cancelOrder')}</button>}
       </> : <><h2>{t('orderNumber')}{selectedTransaction.id}</h2><p className="muted">{new Date(selectedTransaction.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
         <div className="order-meta">{selectedTransaction.customer_name && <p><strong>{t('fullName')}:</strong> {selectedTransaction.customer_name}</p>}{selectedTransaction.cashier_name && <p><strong>{t('cashierName')}:</strong> {selectedTransaction.cashier_name}</p>}<p><strong>{t('payment')}:</strong> {t(selectedTransaction.payment_method)}</p><p><strong>{t('paymentStatus')}:</strong> {t(selectedTransaction.payment_status === 'paid' ? 'paymentPaid' : selectedTransaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p></div>
-        <ReceiptRows items={selectedTransaction.items} /><div className="receipt-total"><span>{t('total')}</span><strong>{money(selectedTransaction.total_amount)}</strong></div>
+        <CashSummary tendered={selectedTransaction.cash_tendered} change={selectedTransaction.cash_change} /><ReceiptRows items={selectedTransaction.items} /><div className="receipt-total"><span>{t('total')}</span><strong>{money(selectedTransaction.total_amount)}</strong></div>
         <p className="receipt-thanks">{selectedTransaction.payment_status === 'paid' ? t('receiptLegal') : t(selectedTransaction.payment_status === 'cancelled' ? 'paymentCancelled' : 'paymentPending')}</p>
       </>}
       <div className="modal-actions">{selected.tab === 'receipt' && selectedTransaction.payment_status === 'paid' && <button className="button secondary" onClick={() => window.print()}>Print</button>}<button className="button" onClick={() => setSelected(null)}>{t('cancel')}</button></div>
@@ -1152,8 +1312,8 @@ function PasswordChangeModal({ session, onComplete }) {
       <p className="eyebrow">WADIMOR · {t('settings')}</p>
       <h2>{t('passwordSetupTitle')}</h2>
       <p className="muted">{t('passwordSetupDesc')}</p>
-      <label>{t('newPassword')}<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={newPassword} onChange={event => setNewPassword(event.target.value)} placeholder={t('passwordMin8')} /></label>
-      <label>{t('confirmPassword')}<input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} /></label>
+      <label>{t('newPassword')}<input type="password" autoComplete="new-password" minLength={6} maxLength={128} required value={newPassword} onChange={event => setNewPassword(event.target.value)} placeholder={t('passwordMin6')} /></label>
+      <label>{t('confirmPassword')}<input type="password" autoComplete="new-password" minLength={6} maxLength={128} required value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} /></label>
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="button" disabled={saving}>{saving ? t('processing') : t('changePassword')}</button>
     </form></div>
@@ -1251,7 +1411,7 @@ function AccountSettings({ session, onSessionUpdate }) {
   }
   return <div className="settings-grid">
     <form className="inventory-panel account-form" onSubmit={saveProfile}><div className="panel-heading"><div><h2>{t('profileSettings')}</h2><p className="muted">{t('profileDesc')}</p></div></div><div className="settings-body"><label>{t('username')}<input value={session.user.username} disabled /></label><label>{t('fullName')}<input required minLength={2} maxLength={100} value={displayName} onChange={event => setDisplayName(event.target.value)} /></label>{profileMessage && <p className="checkout-success">{profileMessage}</p>}<button className="button">{t('saveName')}</button></div></form>
-    <form className="inventory-panel account-form" onSubmit={savePassword}><div className="panel-heading"><h2>{t('passwordSettings')}</h2></div><div className="settings-body"><label>{t('currentPassword')}<input type="password" autoComplete="current-password" required value={passwords.currentPassword} onChange={event => setPasswords(current => ({ ...current, currentPassword: event.target.value }))} /></label><label>{t('newPassword')}<input type="password" autoComplete="new-password" required minLength={8} maxLength={128} value={passwords.newPassword} onChange={event => setPasswords(current => ({ ...current, newPassword: event.target.value }))} /></label><label>{t('confirmPassword')}<input type="password" autoComplete="new-password" required minLength={8} maxLength={128} value={passwords.confirmPassword} onChange={event => setPasswords(current => ({ ...current, confirmPassword: event.target.value }))} /></label>{passwordMessage && <p className="checkout-success">{passwordMessage}</p>}{error && <p className="form-error">{error}</p>}<button className="button">{t('changePassword')}</button></div></form>
+    <form className="inventory-panel account-form" onSubmit={savePassword}><div className="panel-heading"><h2>{t('passwordSettings')}</h2></div><div className="settings-body"><label>{t('currentPassword')}<input type="password" autoComplete="current-password" required value={passwords.currentPassword} onChange={event => setPasswords(current => ({ ...current, currentPassword: event.target.value }))} /></label><label>{t('newPassword')}<input type="password" autoComplete="new-password" required minLength={6} maxLength={128} value={passwords.newPassword} onChange={event => setPasswords(current => ({ ...current, newPassword: event.target.value }))} /></label><label>{t('confirmPassword')}<input type="password" autoComplete="new-password" required minLength={6} maxLength={128} value={passwords.confirmPassword} onChange={event => setPasswords(current => ({ ...current, confirmPassword: event.target.value }))} /></label>{passwordMessage && <p className="checkout-success">{passwordMessage}</p>}{error && <p className="form-error">{error}</p>}<button className="button">{t('changePassword')}</button></div></form>
   </div>
 }
 // ─── App Shell ────────────────────────────────────────────────────────────────
@@ -1259,11 +1419,8 @@ export default function App() {
   const [path, setPath] = useState(window.location.pathname)
   const [session, setSession] = useState(null)
   const [checking, setChecking] = useState(true)
-  const [products, setProducts] = useState([])
   const [analytics, setAnalytics] = useState(null)
-  const [loadingProducts, setLoadingProducts] = useState(true)
   const [loadingAnalytics, setLoadingAnalytics] = useState(true)
-  const [productError, setProductError] = useState('')
   const [analyticsError, setAnalyticsError] = useState('')
   const [refreshCount, setRefreshCount] = useState(0)
   const [cart, setCart] = useState({})
@@ -1286,7 +1443,7 @@ export default function App() {
   const isSuperAdmin = role === 'super_admin'
   const mustChangePassword = Boolean(session?.user.mustChangePassword)
   const isCashier = role === 'kasir'
-  const lowStockCount = products.filter(product => Number(product.stock) <= Number(product.min_stock)).length
+  const lowStockCount = analytics?.summary.low_stock_count || 0
   const page = Object.entries(paths).find(([, v]) => v === path)?.[0] || 'choice'
 
   function navigate(next) {
@@ -1295,16 +1452,16 @@ export default function App() {
     setPath(target || '/')
     window.scrollTo(0, 0)
   }
-  function refresh() { setLoadingProducts(true); if (isAdmin) setLoadingAnalytics(true); setRefreshCount(v => v + 1) }
+  function refresh() { if (isAdmin) setLoadingAnalytics(true); setRefreshCount(v => v + 1) }
   function authenticated(data) {
-    setLoadingProducts(true); setLoadingAnalytics(true); setSession(data); setCart({})
+    setLoadingAnalytics(true); setSession(data); setCart({})
     navigate(['admin', 'super_admin'].includes(data.user.role) ? 'admin' : data.user.role === 'kasir' ? 'cashier' : 'customer')
   }
   function updateSessionUser(user) { setSession(current => ({ ...current, user: { ...current.user, ...user } })) }
   async function logout() {
     try { await api('/api/auth/logout', { method: 'POST', headers: { 'x-csrf-token': session.csrfToken } }) }
     catch { /* ignore */ }
-    setSession(null); setProducts([]); setAnalytics(null); setCart({}); navigate('choice')
+    setSession(null); setAnalytics(null); setCart({}); navigate('choice')
   }
 
   function onCheckoutSuccess() {
@@ -1327,15 +1484,7 @@ export default function App() {
     }).catch(() => {}).finally(() => { if (active) setChecking(false) })
     return () => { active = false }
   }, [])
-  useEffect(() => {
-    if (!role || mustChangePassword) return
-    const controller = new AbortController(); let active = true
-    api('/api/products', { signal: controller.signal })
-      .then(data => { if (active) { setProducts(data); setProductError('') } })
-      .catch(err => { if (active) { setProductError(err.message); if (err.status === 401) setSession(null) } })
-      .finally(() => { if (active) setLoadingProducts(false) })
-    return () => { active = false; controller.abort() }
-  }, [role, mustChangePassword, refreshCount])
+
   useEffect(() => {
     if (!isAdmin || mustChangePassword) return
     const controller = new AbortController(); let active = true
@@ -1371,7 +1520,7 @@ export default function App() {
     </ThemeContext.Provider></I18nContext.Provider>
   }
 
-  const cartCount = Object.values(cart).reduce((s, v) => s + v, 0)
+  const cartCount = Object.values(cart).reduce((s, v) => s + v.quantity, 0)
 
   const adminNav = [
     { key: 'admin', label: t('dashboard'), icon: '▥' },
@@ -1394,24 +1543,21 @@ export default function App() {
   ]
   const navItems = isAdmin ? [...adminNav.filter(item => item.key !== 'staff'), { key: 'staff', label: t('staffManagement'), icon: '👥' }] : isCashier ? cashierNav : customerNav
   function renderContent() {
-    const needsProducts = !['staff', 'adminSettings', 'cashierSettings', 'customerSettings'].includes(page)
-    if (needsProducts && loadingProducts && page !== 'admin') return <StatePanel title={t('loadingProducts')}>{t('loadingProducts')}</StatePanel>
-    if (needsProducts && productError) return <StatePanel title={t('dataError')} retry={refresh}>{productError}</StatePanel>
     switch (page) {
-      case 'admin': return <Dashboard analytics={analytics} products={products} loading={loadingAnalytics} error={analyticsError} retry={refresh} navigate={navigate} />
-      case 'inventory': return <Inventory products={products} csrfToken={session.csrfToken} onRefresh={refresh} />
-      case 'lowStock': return <Inventory key="lowStock" products={products} csrfToken={session.csrfToken} onRefresh={refresh} initialLowOnly />
+      case 'admin': return <Dashboard analytics={analytics} loading={loadingAnalytics} error={analyticsError} retry={refresh} navigate={navigate} />
+      case 'inventory': return <Inventory refreshToken={refreshCount} csrfToken={session.csrfToken} onRefresh={refresh} />
+      case 'lowStock': return <Inventory key="lowStock" refreshToken={refreshCount} csrfToken={session.csrfToken} onRefresh={refresh} initialLowOnly />
       case 'adminOrders': return <AdminOrders csrfToken={session.csrfToken} />
-      case 'cashier': return <Catalog cashierMode products={products} cart={cart} setCart={setCart} csrfToken={session.csrfToken} onCheckoutSuccess={onCheckoutSuccess} />
+      case 'cashier': return <Catalog accountId={session.user.id} refreshToken={refreshCount} cashierMode cart={cart} setCart={setCart} csrfToken={session.csrfToken} onCheckoutSuccess={onCheckoutSuccess} />
       case 'cashierOrders': return <AdminOrders cashierMode csrfToken={session.csrfToken} />
       case 'adminReports': return <AdminReports />
       case 'staff': return isAdmin ? <StaffManagement csrfToken={session.csrfToken} isSuperAdmin={isSuperAdmin} currentUserId={session.user.id} /> : <StatePanel title={t('dataError')}>403</StatePanel>
       case 'adminSettings':
       case 'cashierSettings':
       case 'customerSettings': return <AccountSettings session={session} onSessionUpdate={updateSessionUser} />
-      case 'customer': return <Catalog products={products} cart={cart} setCart={setCart} csrfToken={session.csrfToken} onCheckoutSuccess={onCheckoutSuccess} />
+      case 'customer': return <Catalog accountId={session.user.id} refreshToken={refreshCount} cart={cart} setCart={setCart} csrfToken={session.csrfToken} onCheckoutSuccess={onCheckoutSuccess} />
       case 'myOrders': return <MyOrders csrfToken={session.csrfToken} />
-      default: return <Catalog products={products} cart={cart} setCart={setCart} csrfToken={session.csrfToken} onCheckoutSuccess={onCheckoutSuccess} />
+      default: return <Catalog accountId={session.user.id} refreshToken={refreshCount} cart={cart} setCart={setCart} csrfToken={session.csrfToken} onCheckoutSuccess={onCheckoutSuccess} />
     }
   }
 
@@ -1460,8 +1606,8 @@ export default function App() {
               <div className="topbar-right">
                 <button className="lang-btn" onClick={() => setLang(lang === 'id' ? 'en' : 'id')}>{lang === 'id' ? '🇺🇸 EN' : '🇮🇩 ID'}</button>
                 <button className="theme-btn" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>{theme === 'light' ? '🌙' : '☀️'}</button>
-                <button className="button secondary" onClick={refresh} disabled={loadingProducts}>↻</button>
-                <span className="environment">{productError || analyticsError ? t('connError') : t('active')}</span>
+                <button className="button secondary" onClick={refresh} disabled={isAdmin && loadingAnalytics}>↻</button>
+                <span className="environment">{analyticsError ? t('connError') : t('active')}</span>
               </div>
             </header>
 

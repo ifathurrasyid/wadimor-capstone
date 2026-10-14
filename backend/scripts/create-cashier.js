@@ -7,7 +7,7 @@ async function main() {
   const username = process.argv[2] || 'kasir_1';
   const password = process.argv[3] || process.env.CASHIER_PASSWORD;
   if (!/^[a-zA-Z0-9_]{3,50}$/.test(username)) throw new Error('Invalid cashier username');
-  if (!password || password.length < 4 || password.length > 128) throw new Error('Provide a cashier password (4-128 characters) as the third argument or CASHIER_PASSWORD');
+  if (!password || password.length < 6 || password.length > 128) throw new Error('Provide a cashier password (6-128 characters) as the third argument or CASHIER_PASSWORD');
   const pool = new Pool({
     user: process.env.DB_USER, host: process.env.DB_HOST, database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD, port: Number(process.env.DB_PORT || 5434), connectionTimeoutMillis: 5000,

@@ -29,6 +29,8 @@ Admin mengelola barang, stok, akun, dan laporan. Kasir memasukkan ID produk atau
 | Database lokal | Docker Compose, direkomendasikan |
 | Pemeriksaan kualitas | Node test runner, ESLint, Vite production build |
 
+Panduan upgrade database dan fitur terbaru: [Upgrade 010](docs/UPGRADE-010.md).
+
 ## Mulai dengan cepat
 
 Bagian ini ditujukan untuk anggota tim yang sudah memasang Git, Node.js, dan Docker Desktop. Jika belum pernah menggunakan terminal atau belum memasang software tersebut, ikuti [panduan setup lengkap](docs/SETUP-GUIDE.md).
@@ -143,6 +145,8 @@ Admins manage products, stock, accounts, and reports. Cashiers enter a product I
 | Database | PostgreSQL 15 |
 | Local database | Docker Compose, recommended |
 | Quality checks | Node test runner, ESLint, Vite production build |
+
+Database upgrade instructions and new features: [Upgrade 010](docs/UPGRADE-010.md).
 
 ## Quick start
 

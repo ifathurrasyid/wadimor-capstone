@@ -615,3 +615,14 @@ td{padding:16px 20px;border-bottom:1px solid var(--border);color:var(--text2)}
 .receipt-brand{display:flex;justify-content:center;margin:0 auto 14px}
 .receipt-brand img{display:block;width:min(100%,250px);height:auto}
 .danger-button{background:#b42332!important;color:#fff!important;border-color:#b42332!important}
+/* Inventory history and checkout recovery use the existing theme tokens. */
+.checkout-workspace { border: 0; padding: 0; margin: 0; min-width: 0; }
+.checkout-workspace:disabled { opacity: .75; }
+.checkout-recovery { margin-top: 1rem; padding: 1.25rem; }
+.stock-history-modal { width: min(1000px, 95vw); max-height: 90vh; overflow: auto; }
+.stock-history-modal > label { display: grid; gap: .5rem; margin: 1rem 0; }
+.cash-summary { padding: .5rem 0; }
+.cash-summary p { display: flex; justify-content: space-between; gap: 1rem; }
+.inventory-pagination .pagination-controls span { padding: 0 .5rem; white-space: nowrap; }
+.cart-payment input, .stock-history-modal select { width: 100%; border: 1px solid var(--border2); border-radius: 7px; padding: 10px 12px; background: var(--surface2); color: var(--text); }
+.stock-history-modal td:last-child { min-width: 180px; max-width: 260px; white-space: normal; overflow-wrap: anywhere; }

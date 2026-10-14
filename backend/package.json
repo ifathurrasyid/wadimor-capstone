@@ -8,6 +8,7 @@
         "dev": "nodemon src/index.js",
         "start": "node src/index.js",
         "test": "node --test",
+        "test:integration": "node scripts/run-integration.js",
         "setup:admin": "node scripts/create-admin.js"
     },
     "keywords": [],

@@ -284,7 +284,7 @@ Hasil yang berhasil diakhiri dengan `COMMIT`. Jika tabel dilaporkan sudah ada, j
 
 ### Langkah 6 â€” Membuat akun Admin
 
-Ganti `ChooseYourAdminPassword` dengan password pribadi sepanjang 4â€“128 karakter. Gunakan password tanpa spasi agar command lebih sederhana:
+Ganti `ChooseYourAdminPassword` dengan password pribadi sepanjang 6-128 karakter. Gunakan password tanpa spasi agar command lebih sederhana:
 
 ```powershell
 npm.cmd --prefix backend run setup:admin -- admin_w ChooseYourAdminPassword
@@ -914,7 +914,7 @@ A successful result ends with `COMMIT`. If tables already exist, do not delete t
 
 ### Step 6 â€” Create an Admin account
 
-Replace the example with a private password of 4â€“128 characters. A password without spaces is easier to enter in this command:
+Replace the example with a private password of 6-128 characters. A password without spaces is easier to enter in this command:
 
 ```powershell
 npm.cmd --prefix backend run setup:admin -- admin_w ChooseYourAdminPassword
