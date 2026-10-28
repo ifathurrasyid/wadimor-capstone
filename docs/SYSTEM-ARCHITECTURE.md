@@ -119,15 +119,15 @@ npm.cmd --prefix frontend run dev
 - **API:** pintu komunikasi antara frontend dan backend.
 - **Endpoint:** alamat API tertentu, misalnya `/api/products`.
 - **Session:** bukti login yang disimpan server dan dikirim melalui cookie.
-- **Role:** hak akses, yaitu `super_admin`, `admin`, `kasir`, atau `pelanggan`. Kasir tidak memerlukan akun Customer untuk transaksi walk-in.
+- **Role:** hak akses, yaitu `admin` (satu pemilik), `kasir`, atau `pelanggan`. Kasir tidak memerlukan akun Customer untuk transaksi walk-in.
 - **Migration:** perubahan database yang diberi nomor dan dijalankan berurutan.
 - **Connection pool:** kumpulan koneksi database yang dipakai ulang backend.
 - **Direct invoice:** faktur pembayaran langsung setelah checkout di toko.
 ## Menyiapkan akun staf
 
-Command `setup:admin` membuat atau memulihkan satu akun Super Admin. Setelah login, Super Admin membuat Admin biasa atau Kasir melalui menu **Kelola Staf**. Sistem menghasilkan password sementara yang hanya ditampilkan satu kali. Staf wajib menggantinya pada login pertama sebelum dapat membuka fitur operasional.
+Command `setup:admin` membuat atau memulihkan satu akun Admin pemilik. Database membatasi satu Admin, dan script menolak pembuatan Admin lain. Setelah login, Admin membuat Kasir melalui menu **Kelola Pengguna**. Sistem menghasilkan password sementara yang hanya ditampilkan satu kali. Staf wajib menggantinya pada login pertama sebelum dapat membuka fitur operasional.
 
-Super Admin juga dapat mereset password staf dari menu yang sama. Admin biasa dapat menghapus akun selain Super Admin, tetapi tidak dapat membuat akun atau mereset password staf. Tidak ada endpoint yang dapat menaikkan role Admin menjadi Super Admin. Akun Super Admin dan akun yang sedang dipakai tidak dapat dihapus. Kasir masuk melalui `/cashier/login`; akun Customer dan fitur belanja Customer tetap tersedia terpisah.
+Admin juga dapat mereset password dan menghapus Kasir maupun Customer dari menu yang sama. Menu dan API staf tidak dapat membuat Admin atau Customer, menghapus pemilik, atau mereset kata sandi pemilik. Role Super Admin dihapus melalui [migration 011](UPGRADE-011.md). Kasir masuk melalui `/cashier/login`; akun Customer dan fitur belanja Customer tetap tersedia terpisah.
 
 Di Daftar Barang, Admin dapat mengisi barcode opsional. Jika belum ada barcode, Kasir tetap bisa memasukkan ID numerik yang ditampilkan di baris produk. Scanner USB dapat mengetikkan barcode ke kolom yang sama.
 

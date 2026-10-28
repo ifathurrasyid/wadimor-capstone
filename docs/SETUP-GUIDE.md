@@ -298,7 +298,7 @@ npm.cmd --prefix backend run setup:admin -- admin_w WadimorAdmin2026
 
 Jika berhasil, terminal menampilkan username dan password Admin. Simpan password secara pribadi. Menjalankan kembali command dengan username yang sama akan mengganti password dan menghapus session lama akun tersebut.
 
-Akun Admin tidak dapat dibuat dari halaman registrasi agar pengguna biasa tidak dapat memberikan role Admin kepada dirinya sendiri. Akun dari `setup:admin` adalah Super Admin. Setelah login, buka **Kelola Staf** untuk membuat Admin biasa atau Kasir. Password sementara ditampilkan satu kali dan wajib diganti oleh staf saat login pertama. Kasir masuk melalui `/cashier/login`; akun Customer tetap dapat didaftarkan untuk menggunakan katalog dan struk Customer.
+Akun Admin tidak dapat dibuat dari halaman registrasi agar pengguna biasa tidak dapat memberikan role Admin kepada dirinya sendiri. Akun dari `setup:admin` adalah satu-satunya Admin (pemilik toko). Setelah login, buka **Kelola Pengguna** untuk membuat Kasir. Admin tambahan tidak dapat dibuat. Lihat [migration 011](UPGRADE-011.md) untuk database lama. Password sementara ditampilkan satu kali dan wajib diganti oleh staf saat login pertama. Kasir masuk melalui `/cashier/login`; akun Customer tetap dapat didaftarkan untuk menggunakan katalog dan struk Customer.
 
 ## 9. Menjalankan dan menghentikan aplikasi
 
@@ -382,6 +382,8 @@ Migration yang tersedia:
 7. `007_product_images.sql` menambahkan lokasi foto produk.
 8. `008_transaction_cashier_snapshot.sql` mempertahankan nama kasir di riwayat transaksi setelah akun dihapus.
 9. `009_payment_status.sql` menambahkan status pembayaran dan waktu konfirmasi kasir.
+10. `010_inventory_checkout.sql` menambahkan riwayat stok dan checkout andal; lihat [panduan 010](UPGRADE-010.md).
+11. `011_single_owner.sql` menghapus Super Admin dan membatasi satu Admin pemilik; lihat [panduan 011](UPGRADE-011.md).
 
 Untuk database Docker, jalankan hanya file yang belum pernah diterapkan:
 
@@ -397,7 +399,7 @@ Get-Content -Raw backend/migrations/008_transaction_cashier_snapshot.sql | docke
 Get-Content -Raw backend/migrations/009_payment_status.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 ```
 
-Setelah migration `003`, buat atau reset Super Admin melalui `setup:admin`. Setelah migration `006`, buat Admin biasa dan Kasir melalui menu **Kelola Pengguna**. Setelah migration `007`, Admin dapat mengunggah foto JPG, PNG, atau WebP hingga 3 MB. File disimpan di `backend/uploads/products`; sertakan folder ini dalam backup. Migration `008` menyimpan nama kasir pada transaksi agar faktur tetap mencantumkan petugas setelah akun dihapus.
+Setelah semua migration yang diperlukan termasuk [migration 011](UPGRADE-011.md), buat atau reset Admin pemilik melalui `setup:admin`. Buat Kasir melalui menu **Kelola Pengguna**. Setelah migration `007`, Admin dapat mengunggah foto JPG, PNG, atau WebP hingga 3 MB. File disimpan di `backend/uploads/products`; sertakan folder ini dalam backup. Migration `008` menyimpan nama kasir pada transaksi agar faktur tetap mencantumkan petugas setelah akun dihapus.
 
 Migration `009` membuat pesanan Customer berstatus menunggu konfirmasi sampai Kasir/Admin mengonfirmasi uang diterima. Untuk QRIS, atur `QRIS_IMAGE_URL` di `backend/.env` ke URL HTTPS gambar QRIS merchant yang benar atau path gambar frontend seperti `/qris.png` (letakkan file tersebut di `frontend/public/qris.png`). Konfirmasi QRIS tetap dilakukan staf secara manual; aplikasi ini belum terhubung ke payment gateway.
 
@@ -928,7 +930,7 @@ npm.cmd --prefix backend run setup:admin -- admin_w WadimorAdmin2026
 
 The terminal displays the Admin username and password. Store the password privately. Running the command again with the same username changes its password and deletes old sessions.
 
-Admin accounts cannot be created through registration, preventing regular users from granting themselves the Admin role. The account created by `setup:admin` is the Super Admin. After signing in, open **Manage Staff** to create regular Admin or Cashier accounts. A temporary password is shown once and staff must replace it at first login. Cashiers sign in at `/cashier/login`; Customer accounts remain available for the customer catalog and receipts.
+Admin accounts cannot be created through registration, preventing regular users from granting themselves the Admin role. The account created by `setup:admin` is the sole Admin (store owner). After signing in, open **Manage Users** to create Cashier accounts. Additional Admins cannot be created. See [migration 011](UPGRADE-011.md) for existing databases. A temporary password is shown once and staff must replace it at first login. Cashiers sign in at `/cashier/login`; Customer accounts remain available for the customer catalog and receipts.
 
 ## 9. Starting and stopping the application
 
@@ -1012,6 +1014,8 @@ Available migrations:
 7. `007_product_images.sql` adds product photo paths.
 8. `008_transaction_cashier_snapshot.sql` preserves cashier names on transaction history after account deletion.
 9. `009_payment_status.sql` adds payment status and cashier confirmation time.
+10. `010_inventory_checkout.sql` adds stock history and reliable checkout; see [guide 010](UPGRADE-010.md).
+11. `011_single_owner.sql` removes Super Admin and enforces one owner Admin; see [guide 011](UPGRADE-011.md).
 
 For Docker, run only files not previously applied:
 
@@ -1027,7 +1031,7 @@ Get-Content -Raw backend/migrations/008_transaction_cashier_snapshot.sql | docke
 Get-Content -Raw backend/migrations/009_payment_status.sql | docker compose --env-file backend/.env exec -T db psql -U admin -d wadimor_db -v ON_ERROR_STOP=1
 ```
 
-After migration `003`, create or reset the Super Admin with `setup:admin`. After migration `006`, create regular Admin and Cashier accounts through **Manage Users**. After migration `007`, Admins can upload JPG, PNG, or WebP photos up to 3 MB. Files are stored in `backend/uploads/products`; include that folder in backups. Migration `008` stores cashier names on transactions so receipts continue to identify the cashier after account deletion. Legacy plaintext-password users must register again or use a secure reset flow.
+After all required migrations including [migration 011](UPGRADE-011.md), create or reset the owner Admin with `setup:admin`. Create Cashier accounts through **Manage Users**. After migration `007`, Admins can upload JPG, PNG, or WebP photos up to 3 MB. Files are stored in `backend/uploads/products`; include that folder in backups. Migration `008` stores cashier names on transactions so receipts continue to identify the cashier after account deletion. Legacy plaintext-password users must register again or use a secure reset flow.
 
 Migration `009` makes Customer orders wait for staff to confirm that money was received. For QRIS, set `QRIS_IMAGE_URL` in `backend/.env` to the merchant's real HTTPS QR image or a frontend path such as `/qris.png` (put that image at `frontend/public/qris.png`). QRIS confirmation is manual; this project is not connected to a payment gateway.
 
@@ -1261,9 +1265,4 @@ npm.cmd --prefix frontend run dev
 
 Then open `http://localhost:5173`.
 
-
-
-
-
-
-
+Google login has been removed by team agreement. All users sign in with usernames and passwords. Existing databases that previously applied migration 012 can apply `backend/migrations/013_remove_google_login.sql` to remove unused OAuth metadata without deleting users or business records. Migration 012 is retained only as migration history; new databases use the current schema.

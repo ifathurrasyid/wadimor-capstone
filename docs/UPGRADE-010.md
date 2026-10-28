@@ -18,7 +18,7 @@ Restart the backend and refresh the frontend together because the list API respo
 
 ## User-visible changes
 
-- **Daftar Barang → Sesuaikan Stok:** enter a delivery or correction amount and a reason. Negative corrections are supported; changes that would make stock negative are rejected.
+- **Daftar Barang → Sesuaikan Stok:** for **Barang Masuk**, enter the quantity to add. For **Koreksi**, enter the actual final stock count (including zero), which replaces the current stock. For example, correcting stock from 20 to 15 produces 15, while a delivery of 15 produces 35. Both require a reason; negative quantities are rejected. Stock history records the actual difference and before/after balances.
 - **Riwayat Stok:** view opening balances, deliveries, corrections, sales, and cancellations, with the user, reason, timestamp, transaction reference, and before/after stock. A button beside each product opens that product's history; the toolbar opens all history, including deleted products.
 - Stock is read-only in the product edit form. Product creation can set its opening balance. Product edits no longer overwrite stock from a stale form.
 - Existing stock becomes an opening balance at migration time. Earlier movements cannot be reconstructed and are not presented as historical sales movements.
@@ -40,7 +40,7 @@ Restart the backend and refresh the frontend together because the list API respo
 
 `POST /api/transactions/checkout` requires an `Idempotency-Key` header (16–100 letters, numbers, underscores, or hyphens). Repeating a completed request returns HTTP 200 and the original response; a new sale returns HTTP 201. Reusing a key with different items/payment values returns HTTP 409. Cashier cash checkouts and cash confirmation require numeric `cashTendered`; insufficient cash is rejected. Receipt responses include `cashTendered` and `cashChange`.
 
-Stock PATCH requires `{ "amount": 5, "kind": "delivery", "reason": "Supplier delivery" }`. Supported manual kinds are `delivery` and `correction`. Product PUT updates metadata/prices/minimum stock; its `stock` field is ignored. Reports expose `financials.laba_kotor` in place of `laba_bersih`.
+Stock PATCH requires `{ "amount": 5, "kind": "delivery", "reason": "Supplier delivery" }`. Supported manual kinds are `delivery` (amount to add, 1–1000000) and `correction` (final stock count, 0–1000000; also the default kind). Correction amounts now specify an absolute stock count rather than a signed difference; deploy backend and frontend together and update any other API clients accordingly. Product PUT updates metadata/prices/minimum stock; its `stock` field is ignored. Reports expose `financials.laba_kotor` in place of `laba_bersih`.
 
 ## Verification
 

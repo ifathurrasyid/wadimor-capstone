@@ -5,11 +5,12 @@ CREATE TABLE users (
     username VARCHAR(50) UNIQUE NOT NULL,
     display_name VARCHAR(100) NOT NULL,
     password VARCHAR(255) NOT NULL, -- Password HASH only; never plaintext.
-    role VARCHAR(20) NOT NULL DEFAULT 'pelanggan' CHECK (role IN ('super_admin', 'admin', 'kasir', 'pelanggan')),
+    role VARCHAR(20) NOT NULL DEFAULT 'pelanggan' CHECK (role IN ('admin', 'kasir', 'pelanggan')),
     must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE UNIQUE INDEX users_single_admin_idx ON users (role) WHERE role = 'admin';
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,

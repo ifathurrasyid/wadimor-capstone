@@ -127,7 +127,7 @@ test('admin can retrieve gross profit reports', async t => {
     if (sql.includes('INSERT INTO sessions')) { pool.sessions.set(params[0], { token_hash: params[0], user_id: 99, csrf_token: params[2] }); return { rows: [] }; }
     if (sql.includes('SELECT * FROM sessions')) return { rows: [{ user_id: 99 }] };
     if (sql.includes('FROM sessions s JOIN users')) return { rows: [{ id: 99, username: 'admin_w', display_name: 'Admin WADIMOR', role: 'admin', must_change_password: false, token_hash: params[0] }] };
-    if (sql.includes('laba_kotor')) return { rows: [{ omset: 150000, hpp: 132000, laba_kotor: 18000, total_orders: 1 }] };
+    if (sql.includes('laba_kotor')) return { rows: [{ current: true, units_sold: 2, omset: 150000, hpp: 132000, laba_kotor: 18000, total_orders: 1 }] };
     if (sql.includes('units_sold')) return { rows: [{ name: 'Beras', units_sold: 2, revenue: 150000 }] };
     return originalQuery(sql, params);
   };

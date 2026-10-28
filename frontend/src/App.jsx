@@ -1,10 +1,21 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import './App.css'
 import wadimorLogo from './assets/wadimor-logo.svg'
+import Icon from './components/Icon'
 
 // ─── i18n ──────────────────────────────────────────────────────────────────
 const LANGS = {
   id: {
+    openMenu: 'Buka menu', closeMenu: 'Tutup menu',
+    dateFrom: 'Dari tanggal', dateTo: 'Sampai tanggal', applyFilter: 'Tampilkan',
+    salesChart: 'Grafik Penjualan', unitsSold: 'Barang Terjual', summary: 'Ringkasan',
+    selectedMonth: 'Per Bulan', selectedYear: 'Per Tahun', monthLabel: 'Bulan', yearLabel: 'Tahun',
+    previousPeriod: 'dibanding periode sebelumnya', noComparison: 'Belum ada pembanding',
+    chartRecent: 'Grafik bulanan, 13 bulan terakhir', chartPeriod: 'Periode grafik', days: 'hari terakhir',
+    rememberUsername: 'Ingat nama pengguna', forgotPassword: 'Lupa kata sandi?',
+    recoveryHelp: 'Hubungi pemilik warung untuk meminta reset kata sandi. Anda akan menerima kata sandi sementara dan diminta menggantinya saat masuk.',
+    ownerRecoveryHelp: 'Hubungi pengelola instalasi WADIMOR untuk memulihkan akun pemilik.',
+    page: 'Halaman', details: 'Rincian',
     stockHistory: 'Riwayat Stok',
     allMovements: 'Semua Perubahan',
     adjustStock: 'Sesuaikan Stok',
@@ -16,6 +27,10 @@ const LANGS = {
     sale: 'Penjualan',
     cancellation: 'Pembatalan',
     quantityChange: 'Perubahan Jumlah',
+    deliveryQuantity: 'Jumlah Barang Masuk',
+    correctedStock: 'Stok Akhir',
+    deliveryHint: 'Jumlah ini akan ditambahkan ke stok saat ini.',
+    correctionHint: 'Masukkan jumlah stok yang sebenarnya. Stok akan diganti dengan angka ini, bukan ditambahkan.',
     actor: 'Oleh',
     balance: 'Stok Sebelum / Sesudah',
     cashTendered: 'Uang Diterima',
@@ -91,10 +106,10 @@ const LANGS = {
     reports: 'Laporan',
     catalog: 'Katalog',
     myOrders: 'Struk Saya',
-    refresh: '↻ Perbarui',
+    refresh: 'Perbarui',
     adminRoom: 'Ruang admin',
     customerRoom: 'Ruang pelanggan',
-    active: 'WADIMOR aktif',
+    toggleTheme: 'Ganti tema',
     connError: 'Koneksi bermasalah',
     skip: 'Langsung ke konten',
     retry: 'Coba lagi',
@@ -208,14 +223,14 @@ const LANGS = {
     expandMenu: 'Perluas menu',
     staffManagement: 'Kelola Pengguna',
     staffTitle: 'Kelola Akun Pengguna',
-    staffDesc: 'Super Admin mengelola semua akun. Admin hanya dapat membuat dan menghapus akun Kasir.',
-    addStaff: 'Tambah Pengguna',
+    staffDesc: 'Kelola akun Kasir dan Pelanggan. Akun baru hanya untuk Kasir.',
+    confirmResetPassword: 'Buat kata sandi sementara baru? Pengguna akan keluar dari semua sesi dan wajib mengganti kata sandinya saat masuk kembali.',
+    addStaff: 'Tambah Kasir',
     fullName: 'Nama lengkap',
     role: 'Peran',
     adminRole: 'Admin',
     cashierRole: 'Kasir',
     customerRole: 'Pelanggan',
-    superAdminRole: 'Super Admin',
     createStaff: 'Buat Akun',
     temporaryPassword: 'Kata Sandi Sementara',
     temporaryPasswordNote: 'Salin kata sandi saja. Hanya ditampilkan satu kali.',
@@ -244,6 +259,16 @@ const LANGS = {
     usernameHint: '3-50 karakter: huruf, angka, atau underscore',
   },
   en: {
+    openMenu: 'Open menu', closeMenu: 'Close menu',
+    dateFrom: 'From date', dateTo: 'To date', applyFilter: 'Show',
+    salesChart: 'Sales Chart', unitsSold: 'Units Sold', summary: 'Summary',
+    selectedMonth: 'By Month', selectedYear: 'By Year', monthLabel: 'Month', yearLabel: 'Year',
+    previousPeriod: 'versus the previous period', noComparison: 'No previous sales to compare',
+    chartRecent: 'Monthly chart, last 13 months', chartPeriod: 'Chart period', days: 'last days',
+    rememberUsername: 'Remember username', forgotPassword: 'Forgot password?',
+    recoveryHelp: 'Contact the store owner to reset your password. You will receive a temporary password and be asked to change it when you sign in.',
+    ownerRecoveryHelp: 'Contact your WADIMOR installation administrator to recover the owner account.',
+    page: 'Page', details: 'Details',
     stockHistory: 'Stock History',
     allMovements: 'All Movements',
     adjustStock: 'Adjust Stock',
@@ -255,6 +280,10 @@ const LANGS = {
     sale: 'Sale',
     cancellation: 'Cancellation',
     quantityChange: 'Quantity Change',
+    deliveryQuantity: 'Delivery Quantity',
+    correctedStock: 'Final Stock',
+    deliveryHint: 'This quantity will be added to the current stock.',
+    correctionHint: 'Enter the actual stock count. Stock will be set to this number, not increased by it.',
     actor: 'By',
     balance: 'Stock Before / After',
     cashTendered: 'Cash Received',
@@ -330,10 +359,10 @@ const LANGS = {
     reports: 'Reports',
     catalog: 'Catalog',
     myOrders: 'My Receipts',
-    refresh: '↻ Refresh',
+    refresh: 'Refresh',
     adminRoom: 'Admin space',
     customerRoom: 'Customer space',
-    active: 'WADIMOR active',
+    toggleTheme: 'Switch theme',
     connError: 'Connection issue',
     skip: 'Skip to content',
     retry: 'Try again',
@@ -447,14 +476,14 @@ const LANGS = {
     expandMenu: 'Expand menu',
     staffManagement: 'Manage Users',
     staffTitle: 'Manage User Accounts',
-    staffDesc: 'Super Admins manage all accounts. Admins can only create and delete Cashier accounts.',
-    addStaff: 'Add User',
+    staffDesc: 'Manage Cashier and Customer accounts. New accounts are for Cashiers only.',
+    confirmResetPassword: 'Create a new temporary password? The user will be signed out of all sessions and must choose a new password when signing in again.',
+    addStaff: 'Add Cashier',
     fullName: 'Full name',
     role: 'Role',
     adminRole: 'Admin',
     cashierRole: 'Cashier',
     customerRole: 'Customer',
-    superAdminRole: 'Super Admin',
     createStaff: 'Create Account',
     temporaryPassword: 'Temporary Password',
     temporaryPasswordNote: 'Copy the password only. It is shown once.',
@@ -523,9 +552,10 @@ function usePagedApi(url, refreshToken = 0) {
 function Pagination({ data, onPage }) {
   const t = useT()
   const pages = Math.max(1, Math.ceil(data.total / data.pageSize))
+  const visible = [...new Set([1, pages, data.page - 1, data.page, data.page + 1])].filter(n => n >= 1 && n <= pages).sort((a, b) => a - b)
   return <footer className="panel-footer inventory-pagination">
     <span>{t('showing')} {data.total ? (data.page - 1) * data.pageSize + 1 : 0}&ndash;{Math.min(data.page * data.pageSize, data.total)} {t('of')} {data.total}</span>
-    <div className="pagination-controls"><button disabled={data.loading || data.page <= 1} onClick={() => onPage(data.page - 1)} aria-label={t('previousPage')}>&lsaquo;</button><span>{data.page} / {pages}</span><button disabled={data.loading || data.page >= pages} onClick={() => onPage(data.page + 1)} aria-label={t('nextPage')}>&rsaquo;</button></div>
+    <div className="pagination-controls"><button disabled={data.loading || data.page <= 1} onClick={() => onPage(data.page - 1)} aria-label={t('previousPage')}>&lsaquo;</button>{visible.map((n, index) => <span key={n}>{index > 0 && n - visible[index - 1] > 1 && <span aria-hidden="true"> … </span>}<button aria-label={`${t('page')} ${n}`} aria-current={n === data.page ? 'page' : undefined} disabled={data.loading} onClick={() => onPage(n)}>{n}</button></span>)}<button disabled={data.loading || data.page >= pages} onClick={() => onPage(data.page + 1)} aria-label={t('nextPage')}>&rsaquo;</button></div>
   </footer>
 }
 function CashSummary({ tendered, change }) {
@@ -539,7 +569,7 @@ function OrderFilters({ search, setSearch, status, setStatus }) {
 
 const money = v => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(v || 0))
 const categoryOf = item => item.category_name || '—'
-const paths = { choice: '/', adminLogin: '/admin/login', cashierLogin: '/cashier/login', customerLogin: '/customer/login', register: '/customer/register', admin: '/admin', inventory: '/admin/inventory', lowStock: '/admin/low-stock', adminOrders: '/admin/transactions', adminReports: '/admin/reports', staff: '/admin/staff', adminSettings: '/admin/settings', cashier: '/cashier', cashierOrders: '/cashier/transactions', cashierSettings: '/cashier/settings', customer: '/customer', myOrders: '/customer/receipts', customerSettings: '/customer/settings' }
+const paths = { choice: '/', adminLogin: '/admin/login', cashierLogin: '/cashier/login', customerLogin: '/customer/login', register: '/customer/register', admin: '/admin', inventory: '/admin/inventory', adminCashier: '/admin/cashier', lowStock: '/admin/low-stock', adminOrders: '/admin/transactions', adminReports: '/admin/reports', staff: '/admin/staff', adminSettings: '/admin/settings', cashier: '/cashier', cashierOrders: '/cashier/transactions', cashierSettings: '/cashier/settings', customer: '/customer', myOrders: '/customer/receipts', customerSettings: '/customer/settings' }
 
 // ─── UI Atoms ───────────────────────────────────────────────────────────────
 function Brand({ collapsed }) {
@@ -570,7 +600,10 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
   const t = useT()
   const { theme, setTheme } = useTheme()
   const { lang, setLang } = useContext(I18nContext)
-  const [username, setUsername] = useState('')
+  const rememberedKey = `wadimor-username-${page}`
+  const [username, setUsername] = useState(() => localStorage.getItem(rememberedKey) || '')
+  const [rememberUsername, setRememberUsername] = useState(() => Boolean(localStorage.getItem(rememberedKey)))
+  const [recoveryOpen, setRecoveryOpen] = useState(false)
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -588,6 +621,8 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
       const endpoint = isRegister ? '/api/auth/register' : `/api/auth/login/${loginRole}`
       if (isRegister && password !== passwordConfirm) throw new Error(t('passwordsMismatch'))
       const session = await api(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username.trim(), password, passwordConfirm, displayName: displayName.trim() }) })
+      if (rememberUsername && !isRegister) localStorage.setItem(rememberedKey, username.trim())
+      else localStorage.removeItem(rememberedKey)
       onAuthenticated(session)
     } catch (err) { setError(err.message) }
     finally { setSubmitting(false) }
@@ -606,8 +641,8 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
       </div>
       <main id="main" className="auth-main">
         <div className="auth-topbar">
-          <button className="lang-btn" onClick={() => setLang(lang === 'id' ? 'en' : 'id')} title="Switch language">{lang === 'id' ? '🇺🇸 EN' : '🇮🇩 ID'}</button>
-          <button className="theme-btn" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} title="Toggle theme">{theme === 'light' ? '🌙' : '☀️'}</button>
+          <button className="lang-btn" onClick={() => setLang(lang === 'id' ? 'en' : 'id')} title="Switch language">{lang === 'id' ? 'EN' : 'ID'}</button>
+          <button className="theme-btn" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={t('toggleTheme')} title={t('toggleTheme')}><Icon name={theme === 'light' ? 'moon' : 'sun'} /></button>
         </div>
         <div className="auth-card">
           {isChoice ? (
@@ -644,6 +679,8 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
                 <label>{t('username')}<input autoComplete="username" required minLength={3} maxLength={50} pattern="[a-zA-Z0-9_]+" value={username} onChange={e => setUsername(e.target.value)} placeholder={t('username')} /></label>
                 <label>{t('password')}<input type="password" autoComplete={isRegister ? 'new-password' : 'current-password'} required minLength={isRegister ? 6 : 1} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} placeholder={isRegister ? t('passwordMin6') : t('password')} /></label>
                 {isRegister && <label>{t('confirmPassword')}<input type="password" autoComplete="new-password" required minLength={6} maxLength={128} value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} /></label>}
+                {!isRegister && <div className="auth-options"><label><input type="checkbox" checked={rememberUsername} onChange={event => { setRememberUsername(event.target.checked); if (!event.target.checked) localStorage.removeItem(rememberedKey) }} />{t('rememberUsername')}</label><button type="button" className="text-link" aria-expanded={recoveryOpen} onClick={() => setRecoveryOpen(value => !value)}>{t('forgotPassword')}</button></div>}
+                {recoveryOpen && <p className="auth-recovery">{t(isAdmin ? 'ownerRecoveryHelp' : 'recoveryHelp')}</p>}
                 {error && <p className="form-error" role="alert">{error}</p>}
                 <button className="button auth-submit" disabled={submitting}>{submitting ? t('processing') : isRegister ? t('create') : t('enter')}</button>
               </form>
@@ -657,7 +694,7 @@ function AuthScreen({ page, navigate, onAuthenticated }) {
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
-function Dashboard({ analytics, loading, error, retry, navigate }) {
+function Dashboard({ analytics, loading, error, retry, navigate, chartDays, setChartDays }) {
   const t = useT()
   const { lang } = useContext(I18nContext)
   const [grossProfit, setGrossProfit] = useState(null)
@@ -691,12 +728,12 @@ function Dashboard({ analytics, loading, error, retry, navigate }) {
       </section>
       <div className="dashboard-grid">
         <section className="inventory-panel chart-panel">
-          <div className="panel-heading"><div><h2>{t('sevenDaySales')}</h2><p className="muted">{t('revenue')}</p></div><span className="chart-period">7 {lang === 'id' ? 'hari terakhir' : 'last days'}</span></div>
+          <div className="panel-heading"><div><h2>{t('salesChart')}</h2><p className="muted">{t('revenue')}</p></div><select className="chart-period" aria-label={t('chartPeriod')} value={chartDays} onChange={event => setChartDays(Number(event.target.value))}>{[7, 14, 30].map(days => <option key={days} value={days}>{days} {t('days')}</option>)}</select></div>
           {daily.some(d => Number(d.revenue) > 0) ? (
-            <div className="sales-chart"><svg viewBox="0 0 700 255" role="img" aria-label={t('sevenDaySales')} preserveAspectRatio="none">
+            <div className="sales-chart"><svg viewBox="0 0 700 255" role="img" aria-label={t('salesChart')} preserveAspectRatio="none">
               {[0, 1, 2, 3, 4].map(index => <g key={index}><line className="chart-gridline" x1="58" x2="658" y1={40 + index * 43.75} y2={40 + index * 43.75} /><text className="chart-axis" x="48" y={44 + index * 43.75} textAnchor="end">{new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 }).format(maxRevenue * (1 - index / 4))}</text></g>)}
               <path className="chart-area" d={chartArea} /><path className="chart-line" d={chartLine} />
-              {chartPoints.map(point => <g key={point.day.day}><circle className="chart-dot" cx={point.x} cy={point.y} r="5"><title>{money(point.day.revenue)}</title></circle><text className="chart-axis chart-date" x={point.x} y="245" textAnchor="middle">{new Date(`${String(point.day.day).slice(0, 10)}T12:00:00`).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: '2-digit', month: 'short' })}</text></g>)}
+              {chartPoints.map(point => <g key={point.day.day}><circle className="chart-dot" cx={point.x} cy={point.y} r="5"><title>{money(point.day.revenue)}</title></circle><text style={{ visibility: chartPoints.length > 7 && chartPoints.indexOf(point) % Math.ceil(chartPoints.length / 6) !== 0 ? 'hidden' : 'visible' }} className="chart-axis chart-date" x={point.x} y="245" textAnchor="middle">{new Date(`${String(point.day.day).slice(0, 10)}T12:00:00`).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: '2-digit', month: 'short' })}</text></g>)}
             </svg></div>
           ) : (
             <div className="chart-empty"><strong>{t('noSales')}</strong><p>{t('noSalesDesc')}</p></div>
@@ -831,7 +868,9 @@ function Inventory({ csrfToken, onRefresh, refreshToken, initialLowOnly = false 
       {historyProduct && <StockHistory product={historyProduct} onClose={() => setHistoryProduct(null)} />}
       {adjustment && <div className="modal-backdrop"><div className="modal"><h2>{t('adjustStock')} &mdash; {adjustment.product.name}</h2><form className="product-form" onSubmit={adjustStock}>
         <label>{t('movementKind')}<select value={adjustment.kind} onChange={e => setAdjustment(current => ({ ...current, kind: e.target.value }))}><option value="delivery">{t('delivery')}</option><option value="correction">{t('correction')}</option></select></label>
-        <label>{t('quantityChange')}<input type="number" required step="1" min={adjustment.kind === 'delivery' ? 1 : -1000000} max="1000000" value={adjustment.amount} onChange={e => setAdjustment(current => ({ ...current, amount: e.target.value }))} /></label>
+        <p>{t('stock')}: {adjustment.product.stock}</p>
+        <label>{t(adjustment.kind === 'delivery' ? 'deliveryQuantity' : 'correctedStock')}<input type="number" required step="1" min={adjustment.kind === 'delivery' ? 1 : 0} max="1000000" aria-describedby="stock-adjustment-hint" value={adjustment.amount} onChange={e => setAdjustment(current => ({ ...current, amount: e.target.value }))} /></label>
+        <p id="stock-adjustment-hint">{t(adjustment.kind === 'delivery' ? 'deliveryHint' : 'correctionHint')}</p>
         <label>{t('reason')}<input required minLength="3" maxLength="300" value={adjustment.reason} onChange={e => setAdjustment(current => ({ ...current, reason: e.target.value }))} /></label>
         {formError && <p className="form-error" role="alert">{formError}</p>}
         <div className="modal-actions"><button type="button" className="button secondary" disabled={saving} onClick={() => setAdjustment(null)}>{t('cancel')}</button><button className="button" disabled={saving}>{t('saveProduct')}</button></div>
@@ -905,7 +944,7 @@ function StockHistory({ product, onClose }) {
   return <div className="modal-backdrop"><div className="modal stock-history-modal" role="dialog" aria-modal="true" aria-label={t('stockHistory')}>
     <div className="panel-heading"><h2>{t('stockHistory')}{product.name ? ` - ${product.name}` : ''}</h2><button className="button secondary" onClick={onClose}>{t('cancel')}</button></div>
     <label>{t('movementKind')}<select value={kind} onChange={event => { setKind(event.target.value); setPage(1) }}><option value="">{t('allMovements')}</option>{['opening', 'delivery', 'correction', 'sale', 'cancellation'].map(value => <option key={value} value={value}>{t(value)}</option>)}</select></label>
-    {data.error ? <StatePanel title={t('dataError')} retry={data.reload}>{data.error}</StatePanel> : data.loading ? <StatePanel title={t('loadingProducts')} /> : <div className="table-scroll"><table><thead><tr><th>{t('orderDate')}</th><th>{t('productName')}</th><th>{t('movementKind')}</th><th>{t('quantityChange')}</th><th>{t('balance')}</th><th>{t('actor')}</th><th>{t('reason')}</th></tr></thead><tbody>{data.items.map(item => <tr key={item.id}><td>{new Date(item.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')}</td><td>{item.product_name}</td><td>{t(item.kind)}{item.transaction_id && ` #${item.transaction_id}`}</td><td>{item.quantity > 0 ? '+' : ''}{item.quantity}</td><td>{item.stock_before} &rarr; {item.stock_after}</td><td>{item.actor_name}</td><td>{item.reason}</td></tr>)}</tbody></table></div>}
+    {data.error ? <StatePanel title={t('dataError')} retry={data.reload}>{data.error}</StatePanel> : data.loading ? <StatePanel title={t('loadingProducts')} /> : <div className="table-scroll" tabIndex={0} role="region" aria-label={t('details')}><table><thead><tr><th>{t('orderDate')}</th><th>{t('productName')}</th><th>{t('movementKind')}</th><th>{t('quantityChange')}</th><th>{t('balance')}</th><th>{t('actor')}</th><th>{t('reason')}</th></tr></thead><tbody>{data.items.map(item => <tr key={item.id}><td>{new Date(item.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')}</td><td>{item.product_name}</td><td>{t(item.kind)}{item.transaction_id && ` #${item.transaction_id}`}</td><td>{item.quantity > 0 ? '+' : ''}{item.quantity}</td><td>{item.stock_before} &rarr; {item.stock_after}</td><td>{item.actor_name}</td><td>{item.reason}</td></tr>)}</tbody></table></div>}
     <Pagination data={data} onPage={setPage} />
   </div></div>
 }
@@ -916,7 +955,9 @@ function AdminOrders({ cashierMode = false, csrfToken }) {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
-  const data = usePagedApi(`${cashierMode ? '/api/cashier/transactions' : '/api/admin/transactions'}?${new URLSearchParams({ page, pageSize: 20, q: search, status })}`)
+  const [dates, setDates] = useState({ dateFrom: '', dateTo: '' })
+  const [appliedDates, setAppliedDates] = useState(dates)
+  const data = usePagedApi(`${cashierMode ? '/api/cashier/transactions' : '/api/admin/transactions'}?${new URLSearchParams({ page, pageSize: 10, q: search, status, ...appliedDates })}`)
   const { items: transactions, loading, reload: load } = data
   const [detail, setDetail] = useState(null)
   const [notice, setNotice] = useState('')
@@ -941,9 +982,14 @@ function AdminOrders({ cashierMode = false, csrfToken }) {
         <button className="button secondary" onClick={load}>↻</button>
       </div>
       <OrderFilters search={search} setSearch={value => { setSearch(value); setPage(1) }} status={status} setStatus={value => { setStatus(value); setPage(1) }} />
+      <form className="date-filters" onSubmit={event => { event.preventDefault(); setAppliedDates(dates); setPage(1) }}>
+        <label>{t('dateFrom')}<input type="date" max={dates.dateTo || '9998-12-31'} value={dates.dateFrom} onChange={event => setDates(current => ({ ...current, dateFrom: event.target.value }))} /></label>
+        <label>{t('dateTo')}<input type="date" min={dates.dateFrom} max="9998-12-31" value={dates.dateTo} onChange={event => setDates(current => ({ ...current, dateTo: event.target.value }))} /></label>
+        <button className="button">{t('applyFilter')}</button><button type="button" className="button secondary" onClick={() => { setDates({ dateFrom: '', dateTo: '' }); setAppliedDates({ dateFrom: '', dateTo: '' }); setPage(1) }}>{t('resetFilter')}</button>
+      </form>
       {data.error && <StatePanel title={t('dataError')} retry={load}>{data.error}</StatePanel>}
       {loading ? <StatePanel title="…">Loading</StatePanel> : transactions.length === 0 ? <StatePanel title={t('noOrders')}>{t('noOrdersDesc')}</StatePanel> : (
-        <div className="table-scroll"><table><thead><tr>
+        <div className="table-scroll" tabIndex={0} role="region" aria-label={t('details')}><table><thead><tr>
           <th>ID / Faktur</th><th>{t('cashierName')}</th><th>{t('orderDate')}</th><th>{t('items_ordered')}</th><th>{t('payment')}</th><th>{t('paymentStatus')}</th><th className="numeric">{t('total')}</th><th>{t('actions')}</th>
         </tr></thead><tbody>{transactions.map(transaction => <tr key={transaction.id}>
           <td><button className="text-link" onClick={() => setDetail(transaction)}>#{transaction.id}</button></td><td>{transaction.cashier_name || transaction.customer_name || t('walkInCustomer')}</td>
@@ -972,48 +1018,55 @@ function AdminOrders({ cashierMode = false, csrfToken }) {
   )
 }
 // ─── Admin Reports ────────────────────────────────────────────────────────────
-function AdminReports() {
+function AdminReports({ refreshToken }) {
   const t = useT()
+  const { lang } = useContext(I18nContext)
   const [period, setPeriod] = useState('all')
-  const [report, setReport] = useState(null)
-  const [loading, setLoading] = useState(true)
-
+  const [month, setMonth] = useState(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit' }).format(new Date()))
+  const [year, setYear] = useState(String(new Date().getFullYear()))
+  const [selection, setSelection] = useState('selectedMonth')
+  const [query, setQuery] = useState('period=all')
+  const [state, setState] = useState({ report: null, loading: true, error: '' })
+  const [revision, setRevision] = useState(0)
   useEffect(() => {
-    setLoading(true) // eslint-disable-line react-hooks/set-state-in-effect
-    api(`/api/admin/reports?period=${period}`).then(setReport).catch(() => {}).finally(() => setLoading(false))
-  }, [period])
-
-  return (
-    <section className="inventory-panel">
-      <div className="panel-heading">
-        <div><h2>{t('reportsTitle')}</h2><p className="muted">{t('reportsDesc')}</p><p className="muted">{t('grossProfitNote')}</p></div>
-        <div className="filter-tabs inline">
-          {['today', 'week', 'month', 'all'].map(p => (
-            <button key={p} className={`tab-btn ${period === p ? 'active' : ''}`} onClick={() => setPeriod(p)}>
-              {t(`period${p.charAt(0).toUpperCase() + p.slice(1)}`)}
-            </button>
-          ))}
+    const controller = new AbortController()
+    setState(current => ({ ...current, loading: true, error: '' })) // eslint-disable-line react-hooks/set-state-in-effect
+    api(`/api/admin/reports?${query}`, { signal: controller.signal }).then(report => {
+      if (!controller.signal.aborted) setState({ report, loading: false, error: '' })
+    }).catch(error => { if (!controller.signal.aborted) setState({ report: null, loading: false, error: error.message }) })
+    return () => controller.abort()
+  }, [query, refreshToken, revision])
+  const { report, loading, error } = state
+  const metrics = [['total_orders', 'totalOrders', 'stat-products'], ['omset', 'omset', 'stat-gross'], ['laba_kotor', 'laba', 'stat-profit'], ['units_sold', 'unitsSold', 'stat-stock']]
+  const maxRevenue = Math.max(1, ...(report?.series || []).map(row => Number(row.revenue)))
+  const comparison = key => {
+    if (!report?.previous) return null
+    const previous = Number(report.previous[key]), current = Number(report.financials[key])
+    return previous > 0 ? `${current >= previous ? '+' : ''}${(((current - previous) / previous) * 100).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { maximumFractionDigits: 1 })}% ${t('previousPeriod')}` : t('noComparison')
+  }
+  return <section className="inventory-panel reports-panel">
+    <div className="panel-heading"><div><h2>{t('reportsTitle')}</h2><p className="muted">{t('grossProfitNote')}</p></div>
+      <div className="filter-tabs inline">{['today', 'week', 'month', 'all'].map(p => <button key={p} className={`tab-btn ${period === p ? 'active' : ''}`} onClick={() => { setPeriod(p); setQuery(`period=${p}`) }}>{t(`period${p.charAt(0).toUpperCase() + p.slice(1)}`)}</button>)}</div>
+    </div>
+    <form className="report-filters" onSubmit={event => { event.preventDefault(); setPeriod(selection); setQuery(new URLSearchParams({ period: selection, month, year }).toString()) }}>
+      <label>{t('chartPeriod')}<select value={selection} onChange={event => setSelection(event.target.value)}><option value="selectedMonth">{t('selectedMonth')}</option><option value="year">{t('selectedYear')}</option></select></label>
+      {selection === 'selectedMonth' ? <label>{t('monthLabel')}<input required type="month" min="1900-01" max="9998-12" value={month} onChange={event => setMonth(event.target.value)} /></label> : <label>{t('yearLabel')}<input required type="number" min="1900" max="9998" value={year} onChange={event => setYear(event.target.value)} /></label>}
+      <button className="button">{t('applyFilter')}</button>
+    </form>
+    {error ? <StatePanel title={t('dataError')} retry={() => setRevision(v => v + 1)}>{error}</StatePanel> : loading ? <StatePanel title={t('loadingReport')} /> : report && <>
+      <div className="stats report-stats">{metrics.map(([key, label, color]) => <article className={color} key={key}><span>{t(label)}</span><strong className={['omset', 'laba_kotor'].includes(key) ? 'currency-stat' : ''}>{['omset', 'laba_kotor'].includes(key) ? money(report.financials[key]) : Number(report.financials[key]).toLocaleString('id-ID')}</strong>{comparison(key) && <small className="trend-note">{comparison(key)}</small>}</article>)}</div>
+      <div className="report-details"><section><h2>{t('salesChart')}</h2><p className="report-chart-total">{period === 'all' ? t('chartRecent') : `${report.range.start} — ${new Date(Date.parse(report.range.end) - 86400000).toISOString().slice(0, 10)}`} · WIB</p>
+        <div className="sales-bars" role="img" aria-label={t('salesChart')}>
+          {report.series.map((row, index) => <div className="sales-bar" key={row.day} title={`${row.day}: ${money(row.revenue)}`}><div className="sales-bar-fill" style={{ height: `${Number(row.revenue) / maxRevenue * 190}px` }} /><span style={{ visibility: index % Math.ceil(report.series.length / 7) === 0 || index === report.series.length - 1 ? 'visible' : 'hidden' }}>{new Date(row.day + 'T12:00:00').toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', report.range.bucket === 'month' ? { month: 'short', year: '2-digit' } : { day: '2-digit' })}</span></div>)}
         </div>
-      </div>
-      {loading ? <StatePanel title={t('loadingReport')}>{t('loadingReport')}</StatePanel> : report && (
-        <>
-          <div className="stats report-stats">
-            <article><span>{t('omset')}</span><strong className="currency-stat">{money(report.financials?.omset)}</strong></article>
-            <article><span>{t('hpp')}</span><strong className="currency-stat">{money(report.financials?.hpp)}</strong></article>
-            <article className={Number(report.financials?.laba_kotor) >= 0 ? '' : 'attention'}><span>{t('laba')}</span><strong className="currency-stat">{money(report.financials?.laba_kotor)}</strong></article>
-            <article><span>{t('totalOrders')}</span><strong>{report.financials?.total_orders || 0}<small>transaksi</small></strong></article>
-          </div>
-          <div className="panel-heading"><h2>{t('topProducts')}</h2></div>
-          {report.topProducts?.length ? (
-            <ol className="top-list">{report.topProducts.map(p => <li key={p.name}><strong>{p.name}</strong><span>{p.units_sold} × · {money(p.revenue)}</span></li>)}</ol>
-          ) : <div className="state-panel"><p>{t('noTopProducts')}</p></div>}
-        </>
-      )}
-    </section>
-  )
+        <details className="chart-data"><summary>{t('salesChart')} — {t('details')}</summary><div className="table-scroll" tabIndex={0}><table><thead><tr><th>{t('orderDate')}</th><th>{t('revenue')}</th></tr></thead><tbody>{report.series.map(row => <tr key={row.day}><td>{row.day}</td><td>{money(row.revenue)}</td></tr>)}</tbody></table></div></details>
+      </section><section className="report-summary"><h2>{t('summary')}</h2><dl>{[...metrics, ['hpp', 'hpp']].map(([key, label]) => <div key={key}><dt>{t(label)}</dt><dd>{['omset', 'laba_kotor', 'hpp'].includes(key) ? money(report.financials[key]) : Number(report.financials[key]).toLocaleString('id-ID')}</dd></div>)}</dl></section></div>
+      <div className="panel-heading"><h2>{t('topProducts')}</h2></div>
+      {report.topProducts.length ? <ol className="top-list">{report.topProducts.map(p => <li key={p.name}><strong>{p.name}</strong><span>{p.units_sold} × · {money(p.revenue)}</span></li>)}</ol> : <StatePanel title={t('noTopProducts')} />}
+    </>}
+  </section>
 }
 
-// ─── Customer Catalog ─────────────────────────────────────────────────────────
 function Catalog({ cart, setCart, csrfToken, onCheckoutSuccess, accountId, refreshToken, cashierMode = false }) {
   const t = useT()
   const { lang } = useContext(I18nContext)
@@ -1153,7 +1206,7 @@ function Catalog({ cart, setCart, csrfToken, onCheckoutSuccess, accountId, refre
         </div>
       </section>
 
-      {cashierMode && <aside className="cashier-cart inventory-panel">
+      {cashierMode && <aside id="cashier-cart" className="cashier-cart inventory-panel" tabIndex={-1}>
         <div className="panel-heading"><h2><span className="cart-heading-icon" aria-hidden="true">▣</span>{t('cartTitle')} <span>{cartCount}</span></h2>{cartCount > 0 && <button className="text-link" onClick={() => setCart({})}>{t('delete')}</button>}</div>
         {cartItems.length === 0 ? <p className="cart-empty">{t('cartEmpty')}</p> : <div className="cart-items-list">{cartItems.map(item => <div className="cart-item" key={item.id}>
           <div className="cart-item-art">{item.image_url ? <img src={item.image_url} alt="" /> : item.name.slice(0, 1)}</div><div className="cart-item-info"><strong>{item.name}</strong><small>{item.quantity} × {money(item.price)}</small><span>{money(Number(item.price) * item.quantity)}</span></div>
@@ -1165,6 +1218,7 @@ function Catalog({ cart, setCart, csrfToken, onCheckoutSuccess, accountId, refre
         {checkoutError && <p className="form-error">{checkoutError}</p>}
         <button className="button checkout-btn" disabled={checkingOut || cartCount === 0 || (paymentMethod === 'cash' && (cashTendered === '' || Number(cashTendered) < total))} onClick={checkout}>{checkingOut ? t('checkingOut') : t('checkout')}</button>
       </aside>}
+      {cashierMode && cartCount > 0 && <button className="cashier-cart-jump" onClick={() => { const target = document.getElementById('cashier-cart'); target?.scrollIntoView({ block: 'start' }); target?.focus({ preventScroll: true }) }}><Icon name="cashier" /><span>{t('cartTitle')} ({cartCount})</span><strong>{money(total)}</strong></button>}
       {/* Cart Fab */}
       {!cashierMode && cartCount > 0 && (
         <button className="cart-fab" onClick={() => setCartOpen(true)}>
@@ -1320,51 +1374,53 @@ function PasswordChangeModal({ session, onComplete }) {
   </div>
 }
 
-function StaffManagement({ csrfToken, isSuperAdmin, currentUserId }) {
+function StaffManagement({ csrfToken, onOpenSettings }) {
   const t = useT()
   const [staff, setStaff] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ displayName: '', username: '', role: 'cashier' })
+  const [form, setForm] = useState({ displayName: '', username: '' })
   const [credential, setCredential] = useState(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [pendingAction, setPendingAction] = useState(null)
   const load = useCallback(() => {
     api('/api/admin/staff').then(setStaff).catch(err => setError(err.message)).finally(() => setLoading(false))
   }, [])
   useEffect(() => { load() }, [load])
   async function createStaff(event) {
-    event.preventDefault(); setSaving(true); setError(''); setCredential(null)
+    event.preventDefault(); setSaving(true); setError(''); setCredential(null); setCopied(false)
     try {
-      const result = await api('/api/admin/staff', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify(form) })
+      const result = await api('/api/admin/staff', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify({ ...form, role: 'cashier' }) })
       setCredential({ username: result.staff.username, password: result.temporaryPassword })
-      setForm({ displayName: '', username: '', role: 'cashier' }); setShowForm(false); load()
+      setForm({ displayName: '', username: '' }); setShowForm(false); load()
     } catch (err) { setError(err.message) }
     finally { setSaving(false) }
   }
   async function resetPassword(member) {
-    setError(''); setCredential(null)
+    setError(''); setCredential(null); setCopied(false); setSaving(true)
     try {
       const result = await api(`/api/admin/staff/${member.id}/reset-password`, { method: 'POST', headers: { 'x-csrf-token': csrfToken } })
-      setCredential({ username: result.staff.username, password: result.temporaryPassword }); load()
+      setCredential({ username: result.staff.username, password: result.temporaryPassword }); setPendingAction(null); load()
     } catch (err) { setError(err.message) }
+    finally { setSaving(false) }
   }
   async function deleteUser(member) {
-    if (!window.confirm(t('confirmDeleteUser'))) return
-    setError('')
+    setError(''); setSaving(true)
     try {
       await api(`/api/admin/staff/${member.id}`, { method: 'DELETE', headers: { 'x-csrf-token': csrfToken } })
-      setCredential(null)
+      setCredential(null); setPendingAction(null)
       load()
     } catch (err) { setError(err.message) }
+    finally { setSaving(false) }
   }
   async function copyCredential() {
     if (!credential) return
     await navigator.clipboard.writeText(credential.password)
     setCopied(true); setTimeout(() => setCopied(false), 1800)
   }
-  const roleLabel = role => role === 'super_admin' ? t('superAdminRole') : role === 'admin' ? t('adminRole') : role === 'kasir' ? t('cashierRole') : t('customerRole')
+  const roleLabel = role => role === 'admin' ? t('adminRole') : role === 'kasir' ? t('cashierRole') : t('customerRole')
   if (loading) return <StatePanel title={t('loadingProducts')}>{t('loadingProducts')}</StatePanel>
   return <>
     {credential && <div className="credential-card" role="status">
@@ -1372,16 +1428,23 @@ function StaffManagement({ csrfToken, isSuperAdmin, currentUserId }) {
       <button className="button" onClick={copyCredential}>{copied ? t('copied') : t('copyPassword')}</button>
     </div>}
     {error && <p className="form-error" role="alert">{error}</p>}
-    <section className="inventory-panel">
+    <section className="inventory-panel staff-panel">
       <div className="panel-heading"><div><h2>{t('staffTitle')} <span>{staff.length}</span></h2><p className="muted">{t('staffDesc')}</p></div><button className="button" onClick={() => setShowForm(true)}>{t('addStaff')}</button></div>
-      <div className="table-scroll"><table><thead><tr><th>{t('fullName')}</th><th>{t('username')}</th><th>{t('role')}</th><th>{t('status')}</th><th>{t('actions')}</th></tr></thead>
-      <tbody>{staff.map(member => <tr key={member.id}><td className="price">{member.displayName}</td><td>{member.username}</td><td>{roleLabel(member.role)}</td><td><span className={`badge ${member.mustChangePassword ? 'low' : ''}`}>{member.mustChangePassword ? t('waitingPasswordChange') : t('activeAccount')}</span></td><td><div className="action-row">{isSuperAdmin && ['admin', 'kasir'].includes(member.role) && <button className="action-btn" onClick={() => resetPassword(member)}>{t('resetOtp')}</button>}{member.id !== currentUserId && (isSuperAdmin || member.role === 'kasir') && <button className="action-btn danger" onClick={() => deleteUser(member)}>{t('deleteUser')}</button>}</div></td></tr>)}</tbody></table></div>
+      <div className="table-scroll" tabIndex={0} role="region" aria-label={t('details')}><table><thead><tr><th>{t('fullName')}</th><th>{t('username')}</th><th>{t('role')}</th><th>{t('status')}</th><th>{t('actions')}</th></tr></thead>
+      <tbody>{staff.map(member => <tr key={member.id}><td><div className="staff-person"><span className="staff-avatar" aria-hidden="true">{member.displayName.slice(0, 1).toUpperCase()}</span><strong>{member.displayName}</strong></div></td><td className="staff-username">{member.username}</td><td><span className={`role-badge role-${member.role}`}>{roleLabel(member.role)}</span></td><td><span className={`badge ${member.mustChangePassword ? 'low' : ''}`}>{member.mustChangePassword ? t('waitingPasswordChange') : t('activeAccount')}</span></td><td><div className="action-row">{['kasir', 'pelanggan'].includes(member.role) ? <><button className="action-btn" disabled={saving} onClick={() => { setError(''); setPendingAction({ type: 'reset', member }) }}><Icon name="key" />{t('resetOtp')}</button><button className="action-btn danger" disabled={saving} onClick={() => { setError(''); setPendingAction({ type: 'delete', member }) }}><Icon name="trash" />{t('deleteUser')}</button></> : <button className="action-btn" onClick={onOpenSettings}><Icon name="settings" />{t('settings')}</button>}</div></td></tr>)}</tbody></table></div>
     </section>
+    {pendingAction && <div className="modal-backdrop"><section className="modal confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="user-action-title">
+      <span className={`confirmation-icon ${pendingAction.type === 'delete' ? 'danger' : ''}`}><Icon name={pendingAction.type === 'delete' ? 'trash' : 'key'} /></span>
+      <h2 id="user-action-title">{t(pendingAction.type === 'delete' ? 'deleteUser' : 'resetOtp')}</h2>
+      <p className="confirmation-person"><strong>{pendingAction.member.displayName}</strong> <span>@{pendingAction.member.username}</span></p>
+      <p className="muted">{t(pendingAction.type === 'delete' ? 'confirmDeleteUser' : 'confirmResetPassword')}</p>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <div className="modal-actions"><button className="button secondary" disabled={saving} onClick={() => { setPendingAction(null); setError('') }}>{t('cancel')}</button><button className={`button ${pendingAction.type === 'delete' ? 'danger' : ''}`} disabled={saving} onClick={() => pendingAction.type === 'delete' ? deleteUser(pendingAction.member) : resetPassword(pendingAction.member)}>{saving ? t('processing') : t(pendingAction.type === 'delete' ? 'deleteUser' : 'resetOtp')}</button></div>
+    </section></div>}
     {showForm && <div className="modal-backdrop" onClick={() => setShowForm(false)}><form className="modal account-form" onSubmit={createStaff} onClick={event => event.stopPropagation()}>
       <h2>{t('addStaff')}</h2>
       <label>{t('fullName')}<input required minLength={2} maxLength={100} value={form.displayName} onChange={event => setForm(current => ({ ...current, displayName: event.target.value }))} /></label>
       <label>{t('username')}<input required minLength={3} maxLength={50} pattern="[a-zA-Z0-9_]+" value={form.username} onChange={event => setForm(current => ({ ...current, username: event.target.value }))} /><small>{t('usernameHint')}</small></label>
-      {isSuperAdmin && <label>{t('role')}<select value={form.role} onChange={event => setForm(current => ({ ...current, role: event.target.value }))}><option value="cashier">{t('cashierRole')}</option><option value="admin">{t('adminRole')}</option><option value="customer">{t('customerRole')}</option></select></label>}
       <div className="modal-actions"><button type="button" className="button secondary" onClick={() => setShowForm(false)}>{t('cancel')}</button><button className="button" disabled={saving}>{saving ? t('processing') : t('createStaff')}</button></div>
     </form></div>}
   </>
@@ -1419,11 +1482,15 @@ export default function App() {
   const [path, setPath] = useState(window.location.pathname)
   const [session, setSession] = useState(null)
   const [checking, setChecking] = useState(true)
+  const [chartDays, setChartDays] = useState(7)
   const [analytics, setAnalytics] = useState(null)
   const [loadingAnalytics, setLoadingAnalytics] = useState(true)
   const [analyticsError, setAnalyticsError] = useState('')
   const [refreshCount, setRefreshCount] = useState(0)
   const [cart, setCart] = useState({})
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const menuButtonRef = useRef(null)
+  const sidebarRef = useRef(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar-collapsed') === 'true')
   const [lang, setLang] = useState(() => localStorage.getItem('lang') || 'id')
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light')
@@ -1438,15 +1505,42 @@ export default function App() {
   }, [theme])
   useEffect(() => { localStorage.setItem('sidebar-collapsed', sidebarCollapsed) }, [sidebarCollapsed])
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const trigger = menuButtonRef.current
+    const panel = sidebarRef.current
+    const controls = () => [...panel.querySelectorAll('button, a')].filter(el => el.getClientRects().length)
+    controls()[0]?.focus()
+    const onKey = event => {
+      if (event.key === 'Escape') setMobileMenuOpen(false)
+      if (event.key === 'Tab') {
+        const elements = controls(), first = elements[0], last = elements.at(-1)
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+      }
+    }
+    const onResize = () => { if (window.innerWidth > 760) setMobileMenuOpen(false) }
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('resize', onResize)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', onResize)
+      trigger?.focus()
+    }
+  }, [mobileMenuOpen])
+
   const role = session?.user.role
-  const isAdmin = role === 'admin' || role === 'super_admin'
-  const isSuperAdmin = role === 'super_admin'
+  const isAdmin = role === 'admin'
   const mustChangePassword = Boolean(session?.user.mustChangePassword)
   const isCashier = role === 'kasir'
   const lowStockCount = analytics?.summary.low_stock_count || 0
   const page = Object.entries(paths).find(([, v]) => v === path)?.[0] || 'choice'
 
   function navigate(next) {
+    setMobileMenuOpen(false)
     const target = paths[next]
     if (target && target !== window.location.pathname) window.history.pushState({}, '', target)
     setPath(target || '/')
@@ -1455,7 +1549,7 @@ export default function App() {
   function refresh() { if (isAdmin) setLoadingAnalytics(true); setRefreshCount(v => v + 1) }
   function authenticated(data) {
     setLoadingAnalytics(true); setSession(data); setCart({})
-    navigate(['admin', 'super_admin'].includes(data.user.role) ? 'admin' : data.user.role === 'kasir' ? 'cashier' : 'customer')
+    navigate(data.user.role === 'admin' ? 'admin' : data.user.role === 'kasir' ? 'cashier' : 'customer')
   }
   function updateSessionUser(user) { setSession(current => ({ ...current, user: { ...current.user, ...user } })) }
   async function logout() {
@@ -1476,8 +1570,8 @@ export default function App() {
     api('/api/auth/me').then(data => {
       if (!active) return
       setSession(data)
-      const home = ['admin', 'super_admin'].includes(data.user.role) ? paths.admin : data.user.role === 'kasir' ? paths.cashier : paths.customer
-      const allowedPrefix = ['admin', 'super_admin'].includes(data.user.role) ? '/admin' : data.user.role === 'kasir' ? '/cashier' : '/customer'
+      const home = data.user.role === 'admin' ? paths.admin : data.user.role === 'kasir' ? paths.cashier : paths.customer
+      const allowedPrefix = data.user.role === 'admin' ? '/admin' : data.user.role === 'kasir' ? '/cashier' : '/customer'
       if (!window.location.pathname.startsWith(allowedPrefix)) {
         window.history.replaceState({}, '', home); setPath(home)
       }
@@ -1488,12 +1582,12 @@ export default function App() {
   useEffect(() => {
     if (!isAdmin || mustChangePassword) return
     const controller = new AbortController(); let active = true
-    api('/api/admin/analytics', { signal: controller.signal })
+    api(`/api/admin/analytics?days=${chartDays}`, { signal: controller.signal })
       .then(data => { if (active) { setAnalytics(data); setAnalyticsError('') } })
       .catch(err => { if (active) setAnalyticsError(err.message) })
       .finally(() => { if (active) setLoadingAnalytics(false) })
     return () => { active = false; controller.abort() }
-  }, [isAdmin, mustChangePassword, refreshCount])
+  }, [isAdmin, mustChangePassword, refreshCount, chartDays])
 
   const i18n = { lang, setLang, t }
   const themeCtx = { theme, setTheme }
@@ -1523,35 +1617,37 @@ export default function App() {
   const cartCount = Object.values(cart).reduce((s, v) => s + v.quantity, 0)
 
   const adminNav = [
-    { key: 'admin', label: t('dashboard'), icon: '▥' },
-    { key: 'inventory', label: t('inventory'), icon: '▦' },
-    { key: 'adminOrders', label: t('orders'), icon: '📦' },
-    { key: 'adminReports', label: t('reports'), icon: '📊' },
-    { key: 'lowStock', label: t('lowStockMenu'), icon: '🔔', badge: lowStockCount },
-    ...(isSuperAdmin ? [{ key: 'staff', label: t('staffManagement'), icon: '👥' }] : []),
-    { key: 'adminSettings', label: t('settings'), icon: '⚙' },
+    { key: 'admin', label: t('dashboard') },
+    { key: 'inventory', label: t('inventory') },
+    { key: 'adminCashier', label: t('cashierMenuTitle') },
+    { key: 'adminOrders', label: t('orders') },
+    { key: 'adminReports', label: t('reports') },
+    { key: 'lowStock', label: t('lowStockMenu'), badge: lowStockCount },
+    { key: 'staff', label: t('staffManagement') },
+    { key: 'adminSettings', label: t('settings') },
   ]
   const cashierNav = [
-    { key: 'cashier', label: t('cashierMenuTitle'), icon: '▣' },
-    { key: 'cashierOrders', label: t('orders'), icon: '📦' },
-    { key: 'cashierSettings', label: t('settings'), icon: '⚙' },
+    { key: 'cashier', label: t('cashierMenuTitle') },
+    { key: 'cashierOrders', label: t('orders') },
+    { key: 'cashierSettings', label: t('settings') },
   ]
   const customerNav = [
-    { key: 'customer', label: t('catalog'), icon: '🛒' },
-    { key: 'myOrders', label: t('myOrders'), icon: '📋' },
-    { key: 'customerSettings', label: t('settings'), icon: '⚙' },
+    { key: 'customer', label: t('catalog') },
+    { key: 'myOrders', label: t('myOrders') },
+    { key: 'customerSettings', label: t('settings') },
   ]
-  const navItems = isAdmin ? [...adminNav.filter(item => item.key !== 'staff'), { key: 'staff', label: t('staffManagement'), icon: '👥' }] : isCashier ? cashierNav : customerNav
+  const navItems = isAdmin ? adminNav : isCashier ? cashierNav : customerNav
   function renderContent() {
     switch (page) {
-      case 'admin': return <Dashboard analytics={analytics} loading={loadingAnalytics} error={analyticsError} retry={refresh} navigate={navigate} />
+      case 'admin': return <Dashboard chartDays={chartDays} setChartDays={setChartDays} analytics={analytics} loading={loadingAnalytics} error={analyticsError} retry={refresh} navigate={navigate} />
       case 'inventory': return <Inventory refreshToken={refreshCount} csrfToken={session.csrfToken} onRefresh={refresh} />
       case 'lowStock': return <Inventory key="lowStock" refreshToken={refreshCount} csrfToken={session.csrfToken} onRefresh={refresh} initialLowOnly />
       case 'adminOrders': return <AdminOrders csrfToken={session.csrfToken} />
+      case 'adminCashier':
       case 'cashier': return <Catalog accountId={session.user.id} refreshToken={refreshCount} cashierMode cart={cart} setCart={setCart} csrfToken={session.csrfToken} onCheckoutSuccess={onCheckoutSuccess} />
       case 'cashierOrders': return <AdminOrders cashierMode csrfToken={session.csrfToken} />
-      case 'adminReports': return <AdminReports />
-      case 'staff': return isAdmin ? <StaffManagement csrfToken={session.csrfToken} isSuperAdmin={isSuperAdmin} currentUserId={session.user.id} /> : <StatePanel title={t('dataError')}>403</StatePanel>
+      case 'adminReports': return <AdminReports refreshToken={refreshCount} />
+      case 'staff': return isAdmin ? <StaffManagement csrfToken={session.csrfToken} onOpenSettings={() => navigate('adminSettings')} /> : <StatePanel title={t('dataError')}>403</StatePanel>
       case 'adminSettings':
       case 'cashierSettings':
       case 'customerSettings': return <AccountSettings session={session} onSessionUpdate={updateSessionUser} />
@@ -1564,50 +1660,46 @@ export default function App() {
   return (
     <I18nContext.Provider value={i18n}>
       <ThemeContext.Provider value={themeCtx}>
-        <div className={`app-shell page-${page} ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''} ${['admin', 'inventory', 'lowStock', 'cashier'].includes(page) ? 'reference-layout' : ''}`}>
+        <div className={`app-shell reference-layout page-${page} ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''}`}>
           <a className="skip-link" href="#main">{t('skip')}</a>
 
-          {/* Sidebar */}
-          <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+          {mobileMenuOpen && <button className="sidebar-backdrop" aria-label={t('closeMenu')} onClick={() => setMobileMenuOpen(false)} tabIndex={-1} />}
+          <aside id="main-navigation" ref={sidebarRef} className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`} aria-label={t('mainNav')}>
             <div className="sidebar-brand">
-              <Brand collapsed={sidebarCollapsed} />
-              <button className="collapse-btn" onClick={() => setSidebarCollapsed(v => !v)} title={sidebarCollapsed ? t('expandMenu') : t('collapseMenu')}>
-                {sidebarCollapsed ? '›' : '‹'}
+              <Brand />
+              <button className="collapse-btn" onClick={() => setSidebarCollapsed(v => !v)} aria-label={sidebarCollapsed ? t('expandMenu') : t('collapseMenu')} title={sidebarCollapsed ? t('expandMenu') : t('collapseMenu')} aria-expanded={!sidebarCollapsed}>
+                <Icon name={sidebarCollapsed ? 'chevronRight' : 'chevronLeft'} />
               </button>
+              <button className="mobile-close" aria-label={t('closeMenu')} onClick={() => setMobileMenuOpen(false)}><Icon name="close" /></button>
             </div>
-            {!sidebarCollapsed && <p className="nav-label">{isSuperAdmin ? t('superAdminRole') : isAdmin ? t('adminSpace') : isCashier ? t('cashierSpace') : t('customerSpace')}</p>}
+            <p className="nav-label">{isAdmin ? t('adminSpace') : isCashier ? t('cashierSpace') : t('customerSpace')}</p>
             <nav aria-label={t('mainNav')}>
               {navItems.map(item => (
-                <button key={item.key} className={`nav-button ${page === item.key ? 'active' : ''}`} onClick={() => navigate(item.key)} aria-current={page === item.key ? 'page' : undefined} title={sidebarCollapsed ? item.label : undefined}>
-                  <span className="nav-icon">{item.icon}</span>
-                  {!sidebarCollapsed && <span>{item.label}</span>}{item.badge > 0 && <span className="nav-count notification-count">{item.badge}</span>}{!sidebarCollapsed && <>{item.count != null && <span className="nav-count">{item.count}</span>}{item.key === 'customer' && cartCount > 0 && <span className="nav-count cart-count">{cartCount}</span>}</>}
+                <button key={item.key} className={`nav-button ${page === item.key ? 'active' : ''}`} onClick={() => navigate(item.key)} aria-label={item.label} aria-current={page === item.key ? 'page' : undefined} title={item.label}>
+                  <span className="nav-icon"><Icon name={item.key} /></span>
+                  <span className="nav-text">{item.label}</span>
+                  {item.badge > 0 && <span className="nav-count notification-count" aria-label={`${item.badge} ${t('items')}`}>{item.badge > 99 ? '99+' : item.badge}</span>}
+                  {item.key === 'customer' && cartCount > 0 && <span className="nav-count cart-count">{cartCount}</span>}
                 </button>
               ))}
             </nav>
-            {!sidebarCollapsed && (
-              <div className="sidebar-note">
-                <span className="note-dot" /> {t('sidebarNote')}
-                <p>{t('sidebarNoteDesc')}</p>
-              </div>
-            )}
-            <div className={`workspace ${sidebarCollapsed ? 'collapsed' : ''}`}>
+            <div className="sidebar-note"><span className="note-dot" /> {t('sidebarNote')}<p>{t('sidebarNoteDesc')}</p></div>
+            <div className="workspace">
               <span className="avatar" title={session.user.displayName || session.user.username}>{(session.user.displayName || session.user.username).slice(0, 1).toUpperCase()}</span>
-              {!sidebarCollapsed && <div>{session.user.displayName || session.user.username}<small>{isSuperAdmin ? t('superAdminRole') : isAdmin ? t('adminWarung') : isCashier ? t('cashier') : t('customer')}</small></div>}
+              <div>{session.user.displayName || session.user.username}<small>{isAdmin ? t('adminWarung') : isCashier ? t('cashier') : t('customer')}</small></div>
             </div>
-            <button className={`logout-button ${sidebarCollapsed ? 'icon-only' : ''}`} onClick={logout} title={t('logout')}>
-              {sidebarCollapsed ? '⏻' : t('logout')}
-            </button>
+            <button className="logout-button" onClick={logout} aria-label={t('logout')} title={t('logout')}><Icon name="logout" /><span>{t('logout')}</span></button>
           </aside>
 
           {/* Main */}
-          <div className="main-shell">
+          <div className="main-shell" inert={mobileMenuOpen}>
             <header className="topbar">
-              <span>{isAdmin ? t('adminRoom') : isCashier ? t('cashierRoom') : t('customerRoom')} <span className="breadcrumb">/ {t(page === 'admin' ? 'dashboard' : page === 'inventory' || page === 'lowStock' ? 'inventory' : page === 'adminOrders' || page === 'cashierOrders' ? 'orders' : page === 'adminReports' ? 'reports' : page === 'staff' ? 'staffManagement' : page.endsWith('Settings') ? 'settings' : page === 'myOrders' ? 'myOrders' : page === 'cashier' ? 'cashier' : 'catalog')}</span></span>
+              <button ref={menuButtonRef} className="mobile-menu-button" aria-label={t('openMenu')} aria-controls="main-navigation" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)}><Icon name="menu" /></button>
+              <span>{isAdmin ? t('adminRoom') : isCashier ? t('cashierRoom') : t('customerRoom')} <span className="breadcrumb">/ {t(page === 'admin' ? 'dashboard' : page === 'inventory' || page === 'lowStock' ? 'inventory' : page === 'adminOrders' || page === 'cashierOrders' ? 'orders' : page === 'adminReports' ? 'reports' : page === 'staff' ? 'staffManagement' : page.endsWith('Settings') ? 'settings' : page === 'myOrders' ? 'myOrders' : ['cashier', 'adminCashier'].includes(page) ? 'cashier' : 'catalog')}</span></span>
               <div className="topbar-right">
-                <button className="lang-btn" onClick={() => setLang(lang === 'id' ? 'en' : 'id')}>{lang === 'id' ? '🇺🇸 EN' : '🇮🇩 ID'}</button>
-                <button className="theme-btn" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>{theme === 'light' ? '🌙' : '☀️'}</button>
-                <button className="button secondary" onClick={refresh} disabled={isAdmin && loadingAnalytics}>↻</button>
-                <span className="environment">{analyticsError ? t('connError') : t('active')}</span>
+                <button className="lang-btn" onClick={() => setLang(lang === 'id' ? 'en' : 'id')}>{lang === 'id' ? 'EN' : 'ID'}</button>
+                <button className="theme-btn" aria-label={t('toggleTheme')} title={t('toggleTheme')} onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}><Icon name={theme === 'light' ? 'moon' : 'sun'} /></button>
+                <button className="button secondary icon-button" aria-label={t('refresh')} title={t('refresh')} onClick={refresh} disabled={isAdmin && loadingAnalytics}><Icon name="refresh" /></button>
               </div>
             </header>
 
@@ -1616,7 +1708,7 @@ export default function App() {
               <div className="page-heading">
                 <div>
                   <p className="eyebrow">{isAdmin ? 'PANTAU WARUNG ANDA' : isCashier ? 'TRANSAKSI TOKO' : 'BELANJA LEBIH MUDAH'}</p>
-                  <h1>{t(page === 'admin' ? 'dashboard' : page === 'inventory' || page === 'lowStock' ? 'inventoryTitle' : page === 'adminOrders' || page === 'cashierOrders' ? 'allOrders' : page === 'adminReports' ? 'reportsTitle' : page === 'staff' ? 'staffTitle' : page.endsWith('Settings') ? 'settingsTitle' : page === 'myOrders' ? 'orderHistory' : page === 'cashier' ? 'cashierMenuTitle' : 'storeTagline')}</h1>
+                  <h1>{t(page === 'admin' ? 'dashboard' : page === 'inventory' || page === 'lowStock' ? 'inventoryTitle' : page === 'adminOrders' || page === 'cashierOrders' ? 'allOrders' : page === 'adminReports' ? 'reportsTitle' : page === 'staff' ? 'staffTitle' : page.endsWith('Settings') ? 'settingsTitle' : page === 'myOrders' ? 'orderHistory' : ['cashier', 'adminCashier'].includes(page) ? 'cashierMenuTitle' : 'storeTagline')}</h1>
                 </div>
               </div>
               {renderContent()}

@@ -2,7 +2,7 @@ const { randomBytes, createHash, scrypt: scryptCallback, timingSafeEqual } = req
 const { promisify } = require('node:util');
 const scrypt = promisify(scryptCallback);
 const SESSION_DAYS = 7;
-const ROLE_MAP = { admin: ['admin', 'super_admin'], cashier: ['kasir'], customer: ['pelanggan'] };
+const ROLE_MAP = { admin: ['admin'], cashier: ['kasir'], customer: ['pelanggan'] };
 
 async function hashPassword(password) {
   const salt = randomBytes(16).toString('hex');
@@ -71,10 +71,7 @@ function createAuth(pool, origins) {
       : next());
   }
   function requireAdmin(req, res, next) {
-    return ['admin', 'super_admin'].includes(req.account.role) ? next() : res.status(403).json({ error: 'Khusus admin' });
-  }
-  function requireSuperAdmin(req, res, next) {
-    return req.account.role === 'super_admin' ? next() : res.status(403).json({ error: 'Khusus super admin' });
+    return req.account.role === 'admin' ? next() : res.status(403).json({ error: 'Khusus admin' });
   }
   function requireCashier(req, res, next) {
     return req.account.role === 'kasir' ? next() : res.status(403).json({ error: 'Khusus kasir' });
@@ -102,6 +99,6 @@ function createAuth(pool, origins) {
     attempts.set(key, current && current.until > now ? { ...current, count: current.count + 1 } : { count: 1, until: now + 900000 });
   }
   function clearLogin(key) { attempts.delete(key); }
-  return { originGuard, requireUser, requireReady, requireAdmin, requireSuperAdmin, requireCashier, csrfGuard, limitLogin, failedLogin, clearLogin, createSession: (res, user) => createSession(pool, res, user), getCookie, publicUser };
+  return { originGuard, requireUser, requireReady, requireAdmin, requireCashier, csrfGuard, limitLogin, failedLogin, clearLogin, createSession: (res, user) => createSession(pool, res, user), getCookie, publicUser };
 }
 module.exports = { createAuth, hashPassword, verifyPassword, digest, ROLE_MAP, cookieName, cookieOptions, publicUser };
