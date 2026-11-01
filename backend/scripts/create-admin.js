@@ -1,6 +1,6 @@
 const path = require('node:path');
 require('dotenv').config({ path: path.join(__dirname, '../.env'), quiet: true });
-const { Pool } = require('pg');
+const { createPool } = require('../src/database');
 const { hashPassword } = require('../src/auth');
 
 async function provisionAdmin(pool, username, password) {
@@ -30,11 +30,7 @@ async function provisionAdmin(pool, username, password) {
 async function main() {
   const username = process.argv[2] || 'admin_w';
   const password = process.argv[3] || process.env.ADMIN_PASSWORD;
-  const pool = new Pool({
-    user: process.env.DB_USER, host: process.env.DB_HOST,
-    database: process.env.DB_NAME, password: process.env.DB_PASSWORD,
-    port: Number(process.env.DB_PORT || 5434), connectionTimeoutMillis: 5000,
-  });
+  const pool = createPool();
   try {
     await provisionAdmin(pool, username, password);
     console.log('Owner Admin login:', username);

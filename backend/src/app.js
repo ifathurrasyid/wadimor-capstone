@@ -7,6 +7,7 @@ const { createAuth, hashPassword, verifyPassword, digest, ROLE_MAP, cookieName, 
 const { paginatedQuery } = require('./pagination');
 const { stockContext, cashPayment } = require('./stock');
 const { validDate, salesReport } = require('./reports');
+const { uploadCloudImage, removeCloudImage } = require('./cloud-images');
 const PRODUCT_IMAGE_DIR = path.join(__dirname, '../uploads/products');
 
 function generateTemporaryPassword() {
@@ -41,12 +42,16 @@ async function persistProductImage(imageData, imageUrl) {
       : buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP';
   if (!validSignature) throw Object.assign(new Error('The selected file is not a valid image.'), { code: 'INVALID_IMAGE' });
   const extension = match[1] === 'image/jpeg' ? 'jpg' : match[1].slice(6);
+  const objectName = randomUUID() + '.' + extension;
+  const cloudUrl = await uploadCloudImage(objectName, buffer, match[1]);
+  if (cloudUrl) return { url: cloudUrl, filePath: null };
   await fs.mkdir(PRODUCT_IMAGE_DIR, { recursive: true });
-  const filePath = path.join(PRODUCT_IMAGE_DIR, randomUUID() + '.' + extension);
+  const filePath = path.join(PRODUCT_IMAGE_DIR, objectName);
   await fs.writeFile(filePath, buffer, { flag: 'wx' });
   return { url: '/uploads/products/' + path.basename(filePath), filePath };
 }
 async function removeProductImage(imageUrl) {
+  await removeCloudImage(imageUrl);
   if (!/^\/uploads\/products\/[a-f0-9-]+\.(?:jpg|png|webp)$/i.test(imageUrl || '')) return;
   await fs.rm(path.join(PRODUCT_IMAGE_DIR, path.basename(imageUrl)), { force: true });
 }
@@ -416,7 +421,7 @@ function createApp(pool, origins = []) {
       res.status(201).json(result.rows[0]);
     } catch (error) {
       await client.query('ROLLBACK');
-      if (uploadedImage?.filePath) await fs.rm(uploadedImage.filePath, { force: true });
+      if (uploadedImage?.url && (uploadedImage.filePath || image_data)) await removeProductImage(uploadedImage.url);
       if (error.code === 'INVALID_IMAGE') return res.status(400).json({ error: error.message });
       if (error.code === '23505') return res.status(409).json({ error: 'Kode produk/barcode sudah digunakan.' });
       next(error);
@@ -449,14 +454,14 @@ function createApp(pool, origins = []) {
         SET name = $1, category_id = $2, barcode = $3, image_url = $4, price = $5, cost_price = $6, min_stock = $7
         WHERE id = $8 RETURNING *`, [name, category_id || null, barcode, uploadedImage.url, price, cost_price, min_stock, req.params.id]);
       if (result.rowCount === 0) {
-        if (uploadedImage.filePath) await fs.rm(uploadedImage.filePath, { force: true });
+        if (uploadedImage.url && (uploadedImage.filePath || image_data)) await removeProductImage(uploadedImage.url);
         return res.status(404).json({ error: 'Produk tidak ditemukan.' });
       }
       saved = true;
       if (previousImageUrl !== uploadedImage.url) await removeProductImage(previousImageUrl);
       res.json(result.rows[0]);
     } catch (error) {
-      if (!saved && uploadedImage?.filePath) await fs.rm(uploadedImage.filePath, { force: true });
+      if (!saved && uploadedImage?.url && (uploadedImage.filePath || image_data)) await removeProductImage(uploadedImage.url);
       if (error.code === 'INVALID_IMAGE') return res.status(400).json({ error: error.message });
       if (error.code === '23505') return res.status(409).json({ error: 'Kode produk/barcode sudah digunakan.' });
       next(error);

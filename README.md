@@ -31,6 +31,8 @@ Admin mengelola barang, stok, akun, dan laporan. Kasir memasukkan ID produk atau
 
 Panduan upgrade database dan fitur terbaru: [Upgrade 010](docs/UPGRADE-010.md).
 
+Panduan demo online Rp0: [Vercel Hobby + Supabase Free](docs/DEPLOY-FREE.md).
+
 ## Mulai dengan cepat
 
 Bagian ini ditujukan untuk anggota tim yang sudah memasang Git, Node.js, dan Docker Desktop. Jika belum pernah menggunakan terminal atau belum memasang software tersebut, ikuti [panduan setup lengkap](docs/SETUP-GUIDE.md).
