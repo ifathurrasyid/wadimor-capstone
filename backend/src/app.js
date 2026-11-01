@@ -68,7 +68,8 @@ function createApp(pool, origins = []) {
     try {
       await pool.query('SELECT 1');
       res.json({ status: 'ok', database: 'connected' });
-    } catch {
+    } catch (error) {
+      console.error('Database readiness failed:', error.code || error.name);
       res.status(503).json({ status: 'unavailable', database: 'disconnected' });
     }
   });
